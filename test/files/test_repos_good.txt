@@ -1,0 +1,4 @@
+someorg/somerepository
+some-org/someRepository
+some.org/som3rep0
+some_org/some-repo

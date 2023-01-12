@@ -1,0 +1,14 @@
+name: 'Test WF'
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ['self-hosted']
+    steps:
+
+    - name: Execution
+      run: |
+          echo "Hello World and bad stuff!"

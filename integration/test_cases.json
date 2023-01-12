@@ -1,0 +1,232 @@
+[
+    {
+        "PAT": "LOW_PRIV_PAT",
+        "invocation": "gato enum --self-enumeration",
+        "assertions": [
+            {
+                "expect": "[+] The user reallybadcicd belongs to 0 organizations!",
+                "type": "stdout"
+            },
+            {
+                "expect": "[+] The authenticated user is: reallybadcicd",
+                "type": "stdout"
+            }
+        ],
+        "extra_validation": "function_name"
+    },
+    {
+        "PAT": "ORG_MEMBER_REPO_TOKEN",
+        "invocation": "gato enum --self-enumeration",
+        "assertions": [
+            {
+                "expect": "[+] The user main-feature-LINT-DocumentationUpdate belongs to 1 organizations!",
+                "type": "stdout"
+            },
+            {
+                "expect": "About to enumerate 4 repos within the GHRunnerPlayground organization!",
+                "type": "stdout"
+            },
+            {
+                "expect": "The GitHub Classic PAT has the following scopes: repo!",
+                "type": "stdout"
+            }
+        ],
+        "extra_validation": "function_name"
+    },
+    {
+        "PAT": "ORG_ADMIN_REPO_WORKFLOW_ADMIN_TOKEN",
+        "invocation": "gato enum --self-enumeration",
+        "assertions": [
+            {
+                "expect": "The user GHRunner-ad belongs to 1 organizations!",
+                "type": "stdout"
+            },
+            {
+                "expect": "The user is an organization owner!",
+                "type": "stdout"
+            },
+            {
+                "expect": "[+] The organization has 1 org-level self-hosted runners!",
+                "type": "stdout"
+            },
+            {
+                "expect": "About to enumerate 4 repos within the GHRunnerPlayground organization!",
+                "type": "stdout"
+            }
+        ],
+        "extra_validation": "function_name"
+    },
+    {
+        "PAT": "LOW_PRIV_PAT",
+        "invocation": "gato enum --target GHRunnerPlayground",
+        "assertions": [
+            {
+                "expect": "Enumerating the GHRunnerPlayground organization!",
+                "type": "stdout"
+            },
+            {
+                "expect": "[!] The user has only public access!",
+                "type": "stdout"
+            },
+            {
+                "expect": "About to enumerate 3 repos within the GHRunnerPlayground organization!",
+                "type": "stdout"
+            }
+        ],
+        "extra_validation": "function_name"
+    },
+    {
+        "PAT": "ORG_MEMBER_REPO_TOKEN",
+        "invocation": "gato enum --target GHRunnerPlayground",
+        "assertions": [
+            {
+                "expect": "Enumerating the GHRunnerPlayground organization!",
+                "type": "stdout"
+            },
+            {
+                "expect": "About to enumerate 4 repos within the GHRunnerPlayground organization!",
+                "type": "stdout"
+            },
+            {
+                "expect": "[+] The repository GHRunnerPlayground/TestWF contains a previous workflow run that executed on a self-hosted runner!",
+                "type": "stdout"
+            }
+        ],
+        "extra_validation": "function_name"
+    },
+    {
+        "PAT": "ORG_ADMIN_REPO_WORKFLOW_TOKEN",
+        "invocation": "gato enum --target GHRunnerPlayground",
+        "assertions": [
+            {
+                "expect": "Enumerating the GHRunnerPlayground organization!",
+                "type": "stdout"
+            },
+            {
+                "expect": "[+] The user is an organization owner!",
+                "type": "stdout"
+            },
+            {
+                "expect": "About to enumerate 4 repos within the GHRunnerPlayground organization!",
+                "type": "stdout"
+            },
+            {
+                "expect": "[+] The repository GHRunnerPlayground/TestWF contains a previous workflow run that executed on a self-hosted runner!",
+                "type": "stdout"
+            },
+            {
+                "expect": "[+] The repository contains a workflow: main.yml that executes on self-hosted runners!",
+                "type": "stdout"
+            }
+        ],
+        "extra_validation": "function_name"
+    },
+    {
+        "PAT": "ORG_MEMBER_REPO_TOKEN",
+        "invocation": "gato enum --repository GHRunnerPlayground/TestWF2",
+        "assertions": [
+            {
+                "expect": "Enumerating: GHRunnerPlayground/TestWF2!",
+                "type": "stdout"
+            },
+            {
+                "expect": "The runner name was: ghrunner-test and the machine name was ghrunner-test",
+                "type": "stdout"
+            },
+            {
+                "expect": "The user can only pull from the repository, but forking is allowed! Only a fork pull-request based attack would be possible.",
+                "type": "stdout"
+            }
+        ],
+        "extra_validation": "function_name"
+    },
+
+    {
+        "PAT": "ORG_ADMIN_REPO_TOKEN",
+        "invocation": "gato enum --repository GHRunnerPlayground/TestWF",
+        "assertions": [
+            {
+                "expect": "Enumerating: GHRunnerPlayground/TestWF!",
+                "type": "stdout"
+            },
+            {
+                "expect": "The runner name was: ghrunner-test and the machine name was ghrunner-test",
+                "type": "stdout"
+            },
+            {
+                "expect": "The user is an administrator on the repository!",
+                "type": "stdout"
+            },
+            {
+                "expect": "The user does not have the workflow scope, which means an existing workflow trigger must be used!",
+                "type": "stdout"
+            }
+        ],
+        "extra_validation": "function_name"
+    },
+    {
+        "PAT": "ORG_ADMIN_REPO_WORKFLOW_TOKEN",
+        "invocation": "gato enum --repository GHRunnerPlayground/TestWF",
+        "assertions": [
+            {
+                "expect": "Enumerating: GHRunnerPlayground/TestWF!",
+                "type": "stdout"
+            },
+            {
+                "expect": "The runner name was: ghrunner-test and the machine name was ghrunner-test",
+                "type": "stdout"
+            },
+            {
+                "expect": "The user is an administrator on the repository!",
+                "type": "stdout"
+            },
+            {
+                "expect": "The user also has the workflow scope, which means a custom YAML payload can be used!",
+                "type": "stdout"
+            }
+        ],
+        "extra_validation": "function_name"
+    },
+    {
+        "PAT": "ORG_ADMIN_REPO_WORKFLOW_TOKEN",
+        "invocation": "gato a -t GHRunnerPlayground/TestWF -w",
+        "assertions": [
+            {
+                "expect": "Succesfully pushed the malicious workflow!",
+                "type": "stdout"
+            },
+            {
+                "expect": "Malicious branch deleted",
+                "type": "stdout"
+            },
+            {
+                "expect": "The malicious workflow executed succesfully!",
+                "type": "stdout"
+            }
+        ],
+        "extra_validation": "function_name"
+    },
+    {
+        "PAT": "ORG_ADMIN_REPO_WORKFLOW_ADMIN_DELETE_TOKEN",
+        "invocation": "gato a -t GHRunnerPlayground/TestWF2 -pr",
+        "assertions": [
+            {
+                "expect": "Successfully created a PR! It can be viewed at",
+                "type": "stdout"
+            },
+            {
+                "expect": "Successfully rebased commit",
+                "type": "stdout"
+            },
+            {
+                "expect": "Pushed commit to close PR!",
+                "type": "stdout"
+            },
+            {
+                "expect": "Successfully deleted the fork!",
+                "type": "stdout"
+            }
+        ],
+        "extra_validation": "function_name"
+    }
+]

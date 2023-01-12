@@ -1,0 +1,54 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "praetorian-gato"
+version = "1.0"
+description = "GitHub Self-Hosted Runner Enumeration and Attack Framework"
+readme = "readme.md"
+authors = [
+    {name = "Adnan Khan", email = "adnan.khan@praetorian.com"},
+    {name = "Matthew Jackoski", email = "matthew.jackoski@praetorian.com"},
+    {name = "Mason Davis", email = "mason.davis@praetorian.com"}
+]
+requires-python = ">=3.8"
+classifiers = [
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11"
+]
+dependencies = [
+    "colorama",
+    "requests",
+    "pyyaml",
+    "packaging"
+]
+
+[project.optional-dependencies]
+test = [
+    "flake8",
+    "pytest",
+    "pytest-cov"
+]
+
+[tool.setuptools]
+py-modules = [
+    "gato"
+]
+
+[tool.pytest.ini_options]
+testpaths = ["test"]
+python_files = ["test_*.py"]
+addopts = "--cov=gato"
+
+[tool.coverage.run]
+source = ['gato']
+
+[tool.coverage.html]
+directory = "cov_html"
+
+[project.scripts]
+gato = "gato.main:entry"
+praetorian-gato = "gato.main:entry"
