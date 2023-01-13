@@ -74,12 +74,17 @@ class Enumerator:
                 f"{GREEN_PLUS} The authenticated user is:"
                 f' {Style.BRIGHT}{self.user_perms["user"]}{Style.RESET_ALL}'
             )
-            print(
-                f"{GREEN_PLUS} The GitHub Classic PAT has the following"
-                " scopes:"
-                f' {Fore.YELLOW}{", ".join(self.user_perms["scopes"])}'
-                f"{Style.RESET_ALL}!"
-            )
+            if len(self.user_perms["scopes"]):
+                print(
+                    f"{GREEN_PLUS} The GitHub Classic PAT has the following"
+                    " scopes:"
+                    f' {Fore.YELLOW}{", ".join(self.user_perms["scopes"])}'
+                    f"{Style.RESET_ALL}!"
+                )
+            else:
+                print(
+                    f"{YELLOW_EXCLAIM} The token has no scopes!"
+                )
 
         return True
 
@@ -304,6 +309,10 @@ class Enumerator:
         self.__setup_user_info()
 
         if not self.user_perms:
+            return False
+
+        if 'repo' not in self.user_perms['scopes']:
+            print(f"{RED_DASH} Self-enumeration requires the repo scope!")
             return False
 
         orgs = self.api.check_organizations()

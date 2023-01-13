@@ -54,12 +54,17 @@ class Searcher:
                 f"{GREEN_PLUS} The authenticated user is:"
                 f' {Style.BRIGHT}{self.user_perms["user"]}{Style.RESET_ALL}'
             )
-            print(
-                f"{GREEN_PLUS} The GitHub Classic PAT has the following"
-                " scopes:"
-                f' {Fore.YELLOW}{", ".join(self.user_perms["scopes"])}'
-                f"{Style.RESET_ALL}!"
-            )
+            if len(self.user_perms["scopes"]) > 0:
+                print(
+                    f"{GREEN_PLUS} The GitHub Classic PAT has the following"
+                    " scopes:"
+                    f' {Fore.YELLOW}{", ".join(self.user_perms["scopes"])}'
+                    f"{Style.RESET_ALL}!"
+                )
+            else:
+                print(
+                    f"{YELLOW_EXCLAIM} The token has no scopes!"
+                )
 
         return True
 
