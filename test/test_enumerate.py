@@ -500,6 +500,71 @@ def test_enum_repo(mock_api, capfd):
 
 
 @patch("gato.enumerate.enumerate.Api")
+def test_enum_repo_runner(mock_api, capfd):
+
+    mock_api.return_value.check_user.return_value = {
+        "user": 'testUser',
+        "scopes": ['repo', 'workflow']
+    }
+
+    mock_api.return_value.get_repo_runners.return_value = [
+        {
+            'id': 2,
+            'name': '17e749a1b008',
+            'os': 'Linux',
+            'status': 'offline',
+            'busy': False,
+            'labels': [
+                {
+                    'id': 1,
+                    'name': 'self-hosted',
+                    'type': 'read-only'
+                },
+                {
+                    'id': 2,
+                    'name': 'Linux',
+                    'type': 'read-only',
+                },
+                {
+                    'id': 3,
+                    'name': 'X64',
+                    'type': 'read-only',
+                }
+            ]
+        }
+    ]
+
+    test_repodata = TEST_REPO_DATA.copy()
+
+    test_repodata["permissions"]['admin'] = True
+
+    mock_api.return_value.get_repository.return_value = test_repodata
+
+    gh_enumeration_runner = Enumerator(
+        "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+        socks_proxy=None,
+        http_proxy=None,
+        skip_clones=True,
+        output_yaml=False,
+        skip_log=True,
+    )
+
+    gh_enumeration_runner.enumerate_repo_only("octocat/Hello-World")
+    out, err = capfd.readouterr()
+
+    escaped_output = escape_ansi(out)
+
+    assert "The repository has 1 repo-level self-hosted runners!" in \
+        escaped_output
+
+    assert "[!] The user is an administrator on the repository!" in \
+        escaped_output
+
+    assert "The runner has the following labels: self-hosted, Linux, X64!" in \
+        escaped_output
+
+
+@patch("gato.enumerate.enumerate.Api")
 def test_enum_repos(mock_api, capfd):
 
     mock_api.return_value.check_user.return_value = {
