@@ -110,6 +110,6 @@ start a conversation about the motivation for the changes.
 
 ## License
 
-Gato is licensed under the [Apache License, Version 2.0](LICENSE-APACHE).
+Gato is licensed under the [Apache License, Version 2.0](LICENSE).
 
 Any contribution intentionally submitted for inclusion in Gato by you, as defined in the Apache 2.0 license, shall be licensed as above, without any additional terms or conditions.
