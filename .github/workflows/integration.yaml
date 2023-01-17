@@ -19,10 +19,27 @@ env:
   ORG_ADMIN_REPO_WORKFLOW_TOKEN: ${{ secrets.ORG_ADMIN_REPO_WORKFLOW_TOKEN }}
   ORG_ADMIN_REPO_WORKFLOW_ADMIN_TOKEN: ${{ secrets.ORG_ADMIN_REPO_WORKFLOW_ADMIN_TOKEN }}
   ORG_ADMIN_REPO_WORKFLOW_ADMIN_DELETE_TOKEN: ${{ secrets.ORG_ADMIN_REPO_WORKFLOW_ADMIN_DELETE_TOKEN }}
+  WF_DISPATCH_TOKEN: ${{ secrets.WF_DISPATCH_TOKEN }}
+  RUN_REF: ${{ github.ref }}
 
 jobs:
+    SH-Runner-Dispatch:
+        name: Prepare Integration Test SH Runner
+        runs-on: ubuntu-latest
+        steps:
+          - name: Checkout the repo
+            uses: actions/checkout@v3
+          - name: Setup python
+            uses: actions/setup-python@v4
+            with:
+              python-version: 3.11
+          - run: pip install requests
+          - name: Dispatch Runner Event
+            run: python integration/runner_helper.py dispatch
     Integration-Testing:
         name: Gato Integration Testing
+        needs: SH-Runner-Dispatch
+        if: success()
         strategy:
           max-parallel: 1
           matrix:
