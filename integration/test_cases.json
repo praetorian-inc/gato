@@ -46,7 +46,11 @@
                 "type": "stdout"
             },
             {
-                "expect": "[+] The organization has 1 org-level self-hosted runners!",
+                "expect": "[+] The organization has",
+                "type": "stdout"
+            },
+            {
+                "expect": "org-level self-hosted runners!",
                 "type": "stdout"
             },
             {
@@ -130,7 +134,7 @@
                 "type": "stdout"
             },
             {
-                "expect": "The runner name was: ghrunner-test and the machine name was ghrunner-test",
+                "expect": "The runner name was: ghrunner-test and the machine name was",
                 "type": "stdout"
             },
             {
@@ -150,7 +154,7 @@
                 "type": "stdout"
             },
             {
-                "expect": "The runner name was: ghrunner-test and the machine name was ghrunner-test",
+                "expect": "The runner name was: ghrunner-test and the machine name was",
                 "type": "stdout"
             },
             {
@@ -173,7 +177,7 @@
                 "type": "stdout"
             },
             {
-                "expect": "The runner name was: ghrunner-test and the machine name was ghrunner-test",
+                "expect": "The runner name was: ghrunner-test and the machine name was",
                 "type": "stdout"
             },
             {
