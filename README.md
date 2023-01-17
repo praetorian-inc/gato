@@ -1,13 +1,13 @@
 ![Supported Python versions](https://img.shields.io/badge/python-3.8+-blue.svg)
 
-# Gato (Github Attack TOol)
+# Gato (Github Attack TOolkit)
 
 <p align="center">
   <img src="https://user-images.githubusercontent.com/2006441/212176664-2ffb61ec-1b40-49cb-8cb2-7a9127a51f3b.PNG" alt="gato"/>
 </p>
 
 
-Gato, or GitHub Attack Tool, is an enumeration and attack tool that allows both 
+Gato, or GitHub Attack Toolkit, is an enumeration and attack tool that allows both 
 blue teamers and offensive security practitioners to evaluate the blast radius 
 of a compromised personal access token within a GitHub organization.
 
