@@ -42,7 +42,7 @@ are thousands of organizations that utilize self-hosted runners.
 
 ### Installation
 
-Gato supports OS X and Linux with at least **Python 3.8**.
+Gato supports OS X and Linux with at least **Python 3.7**.
 
 In order to install the tool, simply clone the repository and use `pip install`. We 
 recommend performing this within a virtual environment.
