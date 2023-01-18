@@ -110,7 +110,7 @@ start a conversation about the motivation for the changes.
 
 ## License
 
-Gato is licensed under the [Apache License, Version 2.0](LICENSE-APACHE).
+Gato is licensed under the [Apache License, Version 2.0](LICENSE).
 
 ```
 Copyright 2023 Praetorian Security, Inc
