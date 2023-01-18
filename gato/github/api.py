@@ -270,6 +270,8 @@ class Api():
             organizations = result.json()
 
             return [org['login'] for org in organizations]
+        elif result.status_code == 403:
+            return []
 
     def get_repository(self, repository: str):
         """Retrieve a repository using the GitHub API.

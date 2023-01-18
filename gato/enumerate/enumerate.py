@@ -74,12 +74,17 @@ class Enumerator:
                 f"{GREEN_PLUS} The authenticated user is:"
                 f' {Style.BRIGHT}{self.user_perms["user"]}{Style.RESET_ALL}'
             )
-            print(
-                f"{GREEN_PLUS} The GitHub Classic PAT has the following"
-                " scopes:"
-                f' {Fore.YELLOW}{", ".join(self.user_perms["scopes"])}'
-                f"{Style.RESET_ALL}!"
-            )
+            if len(self.user_perms["scopes"]):
+                print(
+                    f"{GREEN_PLUS} The GitHub Classic PAT has the following"
+                    " scopes:"
+                    f' {Fore.YELLOW}{", ".join(self.user_perms["scopes"])}'
+                    f"{Style.RESET_ALL}!"
+                )
+            else:
+                print(
+                    f"{YELLOW_EXCLAIM} The token has no scopes!"
+                )
 
         return True
 
@@ -306,6 +311,10 @@ class Enumerator:
         if not self.user_perms:
             return False
 
+        if 'repo' not in self.user_perms['scopes']:
+            print(f"{RED_DASH} Self-enumeration requires the repo scope!")
+            return False
+
         orgs = self.api.check_organizations()
 
         print(
@@ -496,11 +505,11 @@ class Enumerator:
             runners = self.api.get_repo_runners(repository.name)
             if runners:
                 runner_detected = True
-                logger.info(
-                    f"The repository {repository.name} has repo-level"
-                    " self-hosted runners!"
+                print(
+                    f"{GREEN_PLUS} The repository has "
+                    f"{len(runners)} repo-level self-hosted runners!"
                 )
-                self.__print_runner_info(runners)
+                self.__print_runner_info({"runners": runners})
 
         if not self.skip_log and self.__perform_runlog_enumeration(repository):
             runner_detected = True
