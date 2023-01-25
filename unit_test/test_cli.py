@@ -91,10 +91,11 @@ def test_attack_bad_args1(capfd):
 def test_attack_bad_args2(capfd):
     """Test attack command with conflicting params.
     """
+    curr_path = pathlib.Path(__file__).parent.resolve()
 
     with pytest.raises(SystemExit):
         cli.cli(["attack", "-t", "test", "-pr",
-                 "-f", "test/files/main.yaml", "-n", "invalid"])
+                 "-f", os.path.join(curr_path, "files/main.yaml"), "-n", "invalid"])
 
     out, err = capfd.readouterr()
     assert "cannot be used with a custom" in err

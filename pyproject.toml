@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools", "wheel"]
+requires = ["setuptools<64.0.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -34,22 +34,8 @@ test = [
     "pytest-cov"
 ]
 
-[tool.setuptools]
-packages = [
-    "gato", 
-    "gato.cli", 
-    "gato.attack", 
-    "gato.enumerate", 
-    "gato.git", 
-    "gato.github", 
-    "gato.models", 
-    "gato.search", 
-    "gato.util", 
-    "gato.workflow_parser"
-]
-
 [tool.pytest.ini_options]
-testpaths = ["test"]
+testpaths = ["unit_test"]
 python_files = ["test_*.py"]
 addopts = "--cov=gato"
 

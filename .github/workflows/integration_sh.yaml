@@ -6,7 +6,7 @@ env:
     SH_RUNNER_MANAGE_TOKEN: ${{secrets.SH_RUNNER_MANAGE_TOKEN }}
 
 jobs:
-    # This job creates a self-hosted runner attached to the 
+    # This job creates a self-hosted runner attached to the
     # test organization.
     Integration_SH_Runner:
         name: Ephemeral Self-Hosted Runner
@@ -25,14 +25,14 @@ jobs:
               mkdir actions-runner && cd actions-runner
               curl -o actions-runner-linux-x64-2.300.2.tar.gz -L https://github.com/actions/runner/releases/download/v2.300.2/actions-runner-linux-x64-2.300.2.tar.gz
               tar xzf ./actions-runner-linux-x64-2.300.2.tar.gz
-              python ../integration/runner_helper.py register
+              python ../test/runner_helper.py register
               nohup ./run.sh &
           - name: Sleep
             run: python3 -c "import time; time.sleep(840)"
           - name: Remove Runner
             run: |
               cd actions-runner
-              python ../integration/runner_helper.py remove
+              python ../test/runner_helper.py remove
     SH_Runner_Cleanup:
     # Removes the self-hosted runner forcibly in the event the cleanup operation
     # did not work.
@@ -50,4 +50,4 @@ jobs:
           - name: Force Remove SH Runner
             run: |
               pip install requests
-              python integration/runner_helper.py force_remove
+              python test/runner_helper.py force_remove
