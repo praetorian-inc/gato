@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools"]
+requires = ["setuptools", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -35,8 +35,17 @@ test = [
 ]
 
 [tool.setuptools]
-py-modules = [
-    "gato"
+packages = [
+    "gato", 
+    "gato.cli", 
+    "gato.attack", 
+    "gato.enumerate", 
+    "gato.git", 
+    "gato.github", 
+    "gato.models", 
+    "gato.search", 
+    "gato.util", 
+    "gato.workflow_parser"
 ]
 
 [tool.pytest.ini_options]
