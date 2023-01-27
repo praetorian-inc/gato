@@ -34,13 +34,8 @@ test = [
     "pytest-cov"
 ]
 
-[tool.setuptools]
-py-modules = [
-    "gato"
-]
-
 [tool.pytest.ini_options]
-testpaths = ["test"]
+testpaths = ["unit_test"]
 python_files = ["test_*.py"]
 addopts = "--cov=gato"
 

@@ -35,7 +35,7 @@ jobs:
               python-version: 3.11
           - run: pip install requests
           - name: Dispatch Runner Event
-            run: python integration/runner_helper.py dispatch
+            run: python test/runner_helper.py dispatch
     Integration-Testing:
         name: Gato Integration Testing
         needs: SH-Runner-Dispatch
@@ -61,4 +61,4 @@ jobs:
               pip install ".[test]"
           - name: Kick off integration tests.
             run: |
-              pytest integration/
+              pytest test/
