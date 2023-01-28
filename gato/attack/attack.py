@@ -130,6 +130,9 @@ class Attacker:
                 print(f"{RED_DASH} Error while forking repository!")
                 return False
 
+            # Sanity check for integration test.
+            time.sleep(30)
+
             cloned_repo = Git(
                 self.api.pat,
                 repo_name,
