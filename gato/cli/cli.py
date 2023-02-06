@@ -72,6 +72,18 @@ def cli(args):
         required=False,
     )
 
+    parser.add_argument(
+        "--api-url", "-u",
+        help=(
+            f"{Fore.RED}{bright('!! Experimental !!')}\n"
+            "Github API URL to target. \n"
+            "Defaults to 'https://api.github.com'"
+        ),
+        metavar="https://api.github-url.com",
+        default="https://api.github.com",
+        required=False,
+    )
+
     attack_parser = subparsers.add_parser(
         "attack", help="CI/CD Attack Capabilities", aliases=["a"],
         formatter_class=argparse.RawTextHelpFormatter
@@ -153,7 +165,8 @@ def attack(args, parser):
         author_name=args.author_name,
         socks_proxy=args.socks_proxy,
         http_proxy=args.http_proxy,
-        timeout=timeout
+        timeout=timeout,
+        github_url=args.api_url
     )
 
     if args.pull_request:
@@ -215,6 +228,7 @@ def enumerate(args, parser):
             skip_clones=args.skip_clones,
             output_yaml=args.output_yaml,
             skip_log=args.skip_runlog,
+            github_url=args.api_url
         )
 
     if args.self_enumeration:
@@ -245,7 +259,8 @@ def search(args, parser):
     gh_search_runner = Searcher(
         args.gh_token,
         socks_proxy=args.socks_proxy,
-        http_proxy=args.http_proxy
+        http_proxy=args.http_proxy,
+        github_url=args.api_url
     )
 
     print(SPLASH)

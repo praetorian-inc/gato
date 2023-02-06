@@ -32,6 +32,7 @@ class Enumerator:
         skip_clones: bool = False,
         output_yaml: str = None,
         skip_log: bool = False,
+        github_url: str = None,
     ):
         """Initialize enumeration class with arguments sent by user.
 
@@ -54,6 +55,7 @@ class Enumerator:
             pat,
             socks_proxy=socks_proxy,
             http_proxy=http_proxy,
+            github_url=github_url,
         )
 
         self.socks_proxy = socks_proxy
