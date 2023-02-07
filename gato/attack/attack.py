@@ -130,8 +130,21 @@ class Attacker:
                 print(f"{RED_DASH} Error while forking repository!")
                 return False
 
-            # Sanity check for integration test.
-            time.sleep(30)
+            for i in range(self.timeout):
+                status = self.api.get_repository(repo_name)
+                if status:
+                    print(
+                        f"{GREEN_PLUS} Successfully created fork: {repo_name}!"
+                    )
+                else:
+                    time.sleep(1)
+
+            if not status:
+                print(
+                    f"{RED_DASH} Forked repository not found after "
+                    f"{self.timeout} seconds!"
+                )
+                return False
 
             cloned_repo = Git(
                 self.api.pat,
@@ -198,11 +211,6 @@ class Attacker:
                     if push_status:
                         print(f"{GREEN_PLUS} Pushed commit to close PR!")
 
-                print(
-                    f"{GREEN_PLUS} Sleeping 25 seconds to allow"
-                    " PR to close before deleting fork repo!"
-                )
-                time.sleep(25)
             else:
                 print(f"{RED_DASH} Failed to create a PR for the fork!")
 
