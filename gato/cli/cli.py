@@ -79,7 +79,7 @@ def cli(args):
             "Github API URL to target. \n"
             "Defaults to 'https://api.github.com'"
         ),
-        metavar="https://api.github-url.com",
+        metavar="https://api.github-url.com/api/v3",
         default="https://api.github.com",
         required=False,
     )
