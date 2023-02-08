@@ -375,7 +375,8 @@ def configure_parser_attack(parser):
         "--timeout", "-to",
         metavar="SECONDS",
         help="Timeout, in seconds, to wait for the Action to queue and\n"
-        "execute. Defaults to '30'",
+        "execute. For fork PR attacks, this is the time, in seconds, to wait "
+        "for the fork repository to be created. Defaults to '30'",
         default="30",
         type=int
     )
