@@ -40,7 +40,7 @@ class Api():
             'Authorization': f'Bearer {pat}',
             'X-GitHub-Api-Version': version
         }
-        self.GITHUB_URL = github_url
+        self.github_url = github_url
 
         if http_proxy and socks_proxy:
             raise ValueError('A SOCKS & HTTP proxy cannot be used at the same '
@@ -107,7 +107,7 @@ class Api():
         Returns:
             Response: Returns the requests response object.
         """
-        request_url = self.GITHUB_URL + url
+        request_url = self.github_url + url
 
         logger.debug(f'Making GET API request to {request_url}!')
         api_response = requests.get(request_url, headers=self.headers,
@@ -130,7 +130,7 @@ class Api():
         Returns:
             Response: Returns the requests response object.
         """
-        request_url = self.GITHUB_URL + url
+        request_url = self.github_url + url
         logger.debug(f'Making POST API request to {request_url}!')
 
         api_response = requests.post(request_url, headers=self.headers,
@@ -153,7 +153,7 @@ class Api():
         Returns:
             Response: Returns the requests response object.
         """
-        request_url = self.GITHUB_URL + url
+        request_url = self.github_url + url
         logger.debug(f'Making DELETE API request to {request_url}!')
 
         api_response = requests.delete(request_url, headers=self.headers,
