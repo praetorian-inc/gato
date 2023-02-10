@@ -136,6 +136,7 @@ class Attacker:
                     print(
                         f"{GREEN_PLUS} Successfully created fork: {repo_name}!"
                     )
+                    time.sleep(5)
                     break
                 else:
                     time.sleep(1)
