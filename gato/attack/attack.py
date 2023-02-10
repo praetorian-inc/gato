@@ -136,6 +136,7 @@ class Attacker:
                     print(
                         f"{GREEN_PLUS} Successfully created fork: {repo_name}!"
                     )
+                    time.sleep(5)
                     break
                 else:
                     time.sleep(1)
@@ -155,7 +156,13 @@ class Attacker:
                 email=self.author_email
             )
 
-            status = cloned_repo.perform_clone()
+            for i in range(self.timeout):
+                status = cloned_repo.perform_clone()
+                if status:
+                    break
+                else:
+                    time.sleep(1)
+
             if not status:
                 print(f"{RED_DASH} Error cloning forked repository!")
                 return False
