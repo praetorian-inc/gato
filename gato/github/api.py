@@ -1,3 +1,4 @@
+import base64
 import requests
 import logging
 import zipfile
@@ -138,6 +139,22 @@ class Api():
         logger.debug(
             f'The POST request to {request_url} returned a '
             f'{api_response.status_code}!')
+
+        return api_response
+
+    def call_put(self, url: str, params: dict = None):
+        """_summary_
+
+        Args:
+            url (stre): _description_
+            params (dict, optional): _description_. Defaults to None.
+        """
+        request_url = Api.GITHUB_URL + url
+        logger.debug(f'Making PUT API request to {request_url}!')
+
+        api_response = requests.put(request_url, headers=self.headers,
+                                    proxies=self.proxies, json=params,
+                                    verify=self.verify_ssl)
 
         return api_response
 
@@ -637,3 +654,64 @@ class Api():
         with open(f"{workflow_id}.zip", "wb+") as f:
             f.write(req.content)
         return True
+    
+    def create_branch(self, repo_name: str, branch_name: str):
+        """_summary_
+
+        Args:
+            repo_name (str): _description_
+            branch_name (str): _description_
+        """
+
+        resp = self.call_get(f'/repos/{repo_name}/git/refs/heads')
+
+        json_resp = resp.json()
+
+        sha = json_resp[0]['object']['sha']
+
+        branch_data = {
+            "ref": f"refs/heads/{branch_name}",
+            "sha": sha
+        }
+
+        resp = self.call_post(f'/repos/{repo_name}/git/refs', params=branch_data)
+
+        if resp.status_code == 201:
+            return True
+
+    def delete_branch(self, repo_name: str, branch_name: str):
+        """_summary_
+
+        Args:
+            repo_name (str): _description_
+            branch_name (str): _description_
+        """
+        resp = self.call_delete(f'/repos/{repo_name}/git/refs/heads/{branch_name}')
+
+        if resp.status_code == 204:
+            return True
+
+    def commit_file(self, repo_name: str, branch_name: str, file_path: str,
+                    file_content: bytes, message="Testing"):
+        """Commits a file to the specified branch on a repository.
+
+        Args:
+            repo_name (str): Name of repository to target.
+            branch_name (str): _description_
+            file_path (str): _description_
+            file_content (bytes): _description_
+        """
+        b64_contents = base64.b64encode(file_content)
+        commit_data = {
+            "message": message,
+            "content": b64_contents.decode('utf-8'),
+            "branch": branch_name
+        }
+
+        resp = self.call_put(
+            f'/repos/{repo_name}/contents/{file_path}', params=commit_data
+        )
+
+        if resp.status_code == 201:
+            resp_json = resp.json()
+            return resp_json['commit']['sha']
