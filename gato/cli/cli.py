@@ -1,5 +1,7 @@
 import argparse
 import os
+import re
+
 from packaging import version
 
 from gato.enumerate import Enumerator
@@ -115,7 +117,8 @@ def validate_arguments(args, parser):
             f"{Fore.RED}[!] Fine-grained PATs are currently not supported!"
         )
 
-    if "ghp_" not in gh_token:
+    if not ("ghp_" in gh_token or "gho_" in gh_token or "ghu_" in
+            gh_token or re.match('^[a-fA-F0-9]+$', gh_token)):
         parser.error(f"{Fore.RED}[!] Provided GitHub PAT is malformed!")
 
     args_dict = vars(args)
