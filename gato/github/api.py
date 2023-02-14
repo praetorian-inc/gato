@@ -1,4 +1,5 @@
 import base64
+import copy
 import requests
 import logging
 import zipfile
@@ -95,13 +96,15 @@ class Api():
                             }
                             return log_package
 
-    def call_get(self, url: str, params: dict = None):
+    def call_get(self, url: str, params: dict = None, strip_auth=False):
         """Internal method to wrap a GET request so that proxies and headers
         do not need to be repeated.
 
         Args:
             url (str): Url path for the API request
             params (dict, optional): Parameters to pass to the request.
+            strip_auth (bool): Whether to make the request without any auth
+            token. Defaults to False.
             Defaults to None.
 
         Returns:
@@ -109,8 +112,12 @@ class Api():
         """
         request_url = Api.GITHUB_URL + url
 
+        get_header = copy.deepcopy(self.headers)
+        if strip_auth:
+            del get_header['Authorization']
+
         logger.debug(f'Making GET API request to {request_url}!')
-        api_response = requests.get(request_url, headers=self.headers,
+        api_response = requests.get(request_url, headers=get_header,
                                     proxies=self.proxies, params=params,
                                     verify=self.verify_ssl)
         logger.debug(
@@ -409,7 +416,11 @@ class Api():
             "page": 1
         }
 
-        org_repos = self.call_get(f'/orgs/{org}/repos', params=get_params)
+        unauth_req = type == 'public'
+
+        org_repos = self.call_get(
+            f'/orgs/{org}/repos', params=get_params, strip_auth=unauth_req
+        )
 
         repos = []
         if org_repos.status_code == 200:
@@ -420,7 +431,10 @@ class Api():
             while len(listing) == 100:
                 get_params['page'] += 1
                 org_repos = self.call_get(
-                    f'/orgs/{org}/repos', params=get_params)
+                    f'/orgs/{org}/repos',
+                    params=get_params,
+                    strip_auth=unauth_req
+                )
                 if org_repos.status_code == 200:
                     listing = org_repos.json()
                     repos.extend(listing)
@@ -654,7 +668,7 @@ class Api():
         with open(f"{workflow_id}.zip", "wb+") as f:
             f.write(req.content)
         return True
-    
+
     def create_branch(self, repo_name: str, branch_name: str):
         """_summary_
 
@@ -674,19 +688,23 @@ class Api():
             "sha": sha
         }
 
-        resp = self.call_post(f'/repos/{repo_name}/git/refs', params=branch_data)
+        resp = self.call_post(
+            f'/repos/{repo_name}/git/refs', params=branch_data
+        )
 
         if resp.status_code == 201:
             return True
 
     def delete_branch(self, repo_name: str, branch_name: str):
-        """_summary_
+        """Deletes the specified branch within the repository.
 
         Args:
-            repo_name (str): _description_
-            branch_name (str): _description_
+            repo_name (str): Name of the repository in Owner/Repo format.
+            branch_name (str): Name of the branch to delete.
         """
-        resp = self.call_delete(f'/repos/{repo_name}/git/refs/heads/{branch_name}')
+        resp = self.call_delete(
+            f'/repos/{repo_name}/git/refs/heads/{branch_name}'
+        )
 
         if resp.status_code == 204:
             return True
@@ -697,9 +715,10 @@ class Api():
 
         Args:
             repo_name (str): Name of repository to target.
-            branch_name (str): _description_
-            file_path (str): _description_
-            file_content (bytes): _description_
+            branch_name (str): Branch name to commit to. Must exist, otherwise
+            the operation will fail.
+            file_path (str): Path within to repository to commit file to.
+            file_content (bytes): Content of the file to commit in bytes.
         """
         b64_contents = base64.b64encode(file_content)
         commit_data = {
@@ -715,3 +734,31 @@ class Api():
         if resp.status_code == 201:
             resp_json = resp.json()
             return resp_json['commit']['sha']
+
+    def retrieve_workflow_ymls(self, repo_name: str):
+        """_summary_
+
+        Args:
+            repo_name (str): _description_
+
+        Returns:
+            _type_: _description_
+        """
+        ymls = []
+
+        resp = self.call_get(f'/repos/{repo_name}/contents/.github/workflows/')
+
+        if resp.status_code == 200:
+            objects = resp.json()
+
+            for file in objects:
+                if file['type'] == "file" and (file['name'].endswith(".yml") or file['name'].endswith(".yaml")):
+
+                    resp = self.call_get(f'/repos/{repo_name}/contents/{file["path"]}')
+                    if resp.status_code == 200:
+                        resp_data = resp.json()
+                        if 'content' in resp_data:
+                            file_data = base64.b64decode(resp_data['content'])
+                            ymls.append((file['name'], file_data.decode()))
+
+        return ymls

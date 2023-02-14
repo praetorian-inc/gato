@@ -199,6 +199,42 @@ class Enumerator:
                 f"{Fore.YELLOW}{labels}{Style.RESET_ALL}!"
             )
 
+    def __perform_yml_enumeration(self, repository: Repository):
+        """Enumerates the repository using the API to extract yml files. This
+        does not generate any git clone audit log events.
+
+        Args:
+            repository (Repository): Wrapped repository object.
+        """
+        runner_detected = False
+        ymls = self.api.retrieve_workflow_ymls(repository.name)
+
+        for (wf, yml) in ymls:
+            try:
+                parsed_yml = WorkflowParser(yml, repository.name, wf)
+
+                self_hosted_jobs = parsed_yml.self_hosted()
+
+                if self_hosted_jobs:
+                    runner_detected = True
+                    print(
+                        f"{GREEN_PLUS} The repository contains a workflow:"
+                        f" {wf} that executes on self-hosted runners!"
+                    )
+
+                    if self.output_yaml:
+                        success = parsed_yml.output(self.output_yaml)
+                        if not success:
+                            logger.warning("Failed to write yml to disk!")
+
+            # At this point we only know the extension, so handle and
+            #  ignore malformed yml files.
+            except Exception as parse_error:
+                print(parse_error)
+                logger.warning("Attmpted to parse invalid yaml!")
+
+        return runner_detected
+
     def __perform_clone_enumeration(self, repository: Repository):
         """Performs enumeration on the repository after cloning it.
 
@@ -221,6 +257,7 @@ class Enumerator:
             return False
 
         ymls = cloned_repo.extract_workflow_ymls()
+
         for (wf, yml) in ymls:
             try:
                 parsed_yml = WorkflowParser(yml, repository.name, wf)
@@ -514,7 +551,7 @@ class Enumerator:
         if not self.skip_log and self.__perform_runlog_enumeration(repository):
             runner_detected = True
 
-        if clone and self.__perform_clone_enumeration(repository):
+        if self.__perform_yml_enumeration(repository):
             runner_detected = True
 
         if runner_detected:
