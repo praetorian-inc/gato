@@ -118,7 +118,7 @@ def validate_arguments(args, parser):
         )
 
     if not ("ghp_" in gh_token or "gho_" in gh_token or "ghu_" in
-            gh_token or re.match('^[a-fA-F0-9]+$', gh_token)):
+            gh_token or re.match('^[a-fA-F0-9]{40}$', gh_token)):
         parser.error(f"{Fore.RED}[!] Provided GitHub PAT is malformed!")
 
     args_dict = vars(args)
