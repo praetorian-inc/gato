@@ -253,7 +253,7 @@ class Attacker:
                 f"{bright(target_repo)} as the user: "
                 f"{bright(self.user_perms['user'])}!"
             )
-            
+
             # Randomly generate a branch name, since this will run immediately
             # otherwise it will fail at the push.
             if target_branch is None:
@@ -296,7 +296,9 @@ class Attacker:
                 print(f"{RED_DASH} Failed to push the malicious workflow!")
                 return
 
-            print(f"{GREEN_EXCLAIM} Succesfully pushed the malicious workflow!")
+            print(
+                f"{GREEN_EXCLAIM} Succesfully pushed the malicious workflow!"
+            )
 
             for i in range(self.timeout):
                 ret = self.api.delete_branch(target_repo, branch)
@@ -313,7 +315,9 @@ class Attacker:
             print(f"    {BRIGHT_DASH} Waiting for the workflow to queue...")
 
             for i in range(self.timeout):
-                workflow_id = self.api.get_recent_workflow(target_repo, rev_hash)
+                workflow_id = self.api.get_recent_workflow(
+                    target_repo, rev_hash
+                )
                 if workflow_id == -1:
                     print(f"{RED_DASH} Failed to find the created workflow!")
                     return

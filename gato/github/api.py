@@ -670,11 +670,11 @@ class Api():
         return True
 
     def create_branch(self, repo_name: str, branch_name: str):
-        """_summary_
+        """Create a branch with the provided name.
 
         Args:
-            repo_name (str): _description_
-            branch_name (str): _description_
+            repo_name (str): Name of repository in Org/Repo format.
+            branch_name (str): Name of branch to create.
         """
 
         resp = self.call_get(f'/repos/{repo_name}/git/refs/heads')
@@ -736,13 +736,14 @@ class Api():
             return resp_json['commit']['sha']
 
     def retrieve_workflow_ymls(self, repo_name: str):
-        """_summary_
+        """Retrieve all .yml or .yaml files within the workflows directory.
+        Utilizes the GitHub Repository contents API.
 
         Args:
-            repo_name (str): _description_
+            repo_name (str): Name of the repository in Org/Repo format.
 
         Returns:
-            _type_: _description_
+            (list): List of yml files in text format.
         """
         ymls = []
 
@@ -752,9 +753,14 @@ class Api():
             objects = resp.json()
 
             for file in objects:
-                if file['type'] == "file" and (file['name'].endswith(".yml") or file['name'].endswith(".yaml")):
+                if file['type'] == "file" and (
+                    file['name'].endswith(".yml") or
+                    file['name'].endswith(".yaml")
+                ):
 
-                    resp = self.call_get(f'/repos/{repo_name}/contents/{file["path"]}')
+                    resp = self.call_get(
+                        f'/repos/{repo_name}/contents/{file["path"]}'
+                    )
                     if resp.status_code == 200:
                         resp_data = resp.json()
                         if 'content' in resp_data:
