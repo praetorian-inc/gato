@@ -101,6 +101,61 @@ def test_search_api_ratelimit(mock_api, mock_time, capfd):
     assert "[-] Secondary rate limit hit! Sleeping 3 minutes!" in out
 
 
+@patch("gato.github.search.Api")
+def test_search_api_permission(mock_api, capfd):
+
+    mock1 = MagicMock()
+    mock1.status_code = 422
+
+    mock1.json.return_value = {
+        "message": "Validation Failed",
+        "errors": [
+            {
+                "message": "The listed users and repositories cannot be "
+                "searched either because the resources do not exist or you "
+                "do not have permission to view them.",
+                "resource": "Search",
+                "field": "q",
+                "code": "invalid"
+            }
+        ],
+        "documentation_url": "https://docs.github.com/v3/search/"
+    }
+
+    mock_api.call_get.side_effect = [mock1]
+
+    searcher = Search(mock_api)
+
+    res = searcher.search_enumeration('privateOrg')
+    assert len(res) == 0
+    out, err = capfd.readouterr()
+    assert "[-] Search failed with reponse code 422!" in out
+    assert " listed users and repositories cannot be searched " in out
+
+
+@patch("gato.github.search.Api")
+def test_search_api_iniitalrl(mock_api, capfd):
+
+    mock1 = MagicMock()
+    mock1.status_code = 403
+
+    mock1.json.return_value = {
+        "documentation_url": "https://docs.github.com/en/free-pro-team@latest"
+        "/rest/overview/resources-in-the-rest-api#secondary-rate-limits",
+        "message": "You have exceeded a secondary rate limit"
+        ". Please wait a few minutes before you try again."
+    }
+
+    mock_api.call_get.side_effect = [mock1]
+
+    searcher = Search(mock_api)
+
+    res = searcher.search_enumeration('testOrg')
+    assert len(res) == 0
+    out, err = capfd.readouterr()
+    assert "[-] Secondary rate limit hit!" in out
+
+
 @patch('gato.github.Search.search_enumeration')
 @patch("gato.search.search.Api")
 def test_search(mock_api, mock_search):
