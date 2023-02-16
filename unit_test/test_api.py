@@ -19,7 +19,7 @@ def api_access():
     # This PAT is INVALID,
     test_pat = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
 
-    abstraction_layer = Api(output, test_pat, "2022-11-28")
+    abstraction_layer = Api( test_pat, "2022-11-28")
 
     yield abstraction_layer
 
@@ -31,7 +31,7 @@ def test_initialize():
     # This PAT is INVALID,
     test_pat = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
 
-    abstraction_layer = Api(output, test_pat, "2022-11-28")
+    abstraction_layer = Api( test_pat, "2022-11-28")
 
     assert abstraction_layer.pat == test_pat
     assert abstraction_layer.verify_ssl is True
@@ -44,7 +44,7 @@ def test_socks(api_access):
     test_pat = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
 
     abstraction_layer = Api(
-        output, test_pat, "2022-11-28", socks_proxy="localhost:9090"
+         test_pat, "2022-11-28", socks_proxy="localhost:9090"
     )
 
     assert abstraction_layer.proxies['http'] == "socks5://localhost:9090"
@@ -58,7 +58,7 @@ def test_http_proxy(api_access):
     test_pat = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
 
     abstraction_layer = Api(
-        output, test_pat, "2022-11-28", http_proxy="localhost:1080"
+         test_pat, "2022-11-28", http_proxy="localhost:1080"
     )
 
     assert abstraction_layer.proxies['http'] == "http://localhost:1080"
@@ -72,7 +72,7 @@ def test_user_scopes(mock_get):
     # This PAT is INVALID,
     test_pat = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
 
-    abstraction_layer = Api(output, test_pat, "2022-11-28")
+    abstraction_layer = Api( test_pat, "2022-11-28")
 
     mock_result = MagicMock()
     mock_result.configure_mock(
@@ -99,7 +99,7 @@ def test_socks_and_http(api_access):
 
     with pytest.raises(ValueError):
         Api(
-            output,
+            
             test_pat,
             "2022-11-28",
             socks_proxy="localhost:1090",
@@ -111,7 +111,7 @@ def test_socks_and_http(api_access):
 def test_validate_sso(mock_get):
     test_pat = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
 
-    abstraction_layer = Api(output, test_pat, "2022-11-28")
+    abstraction_layer = Api( test_pat, "2022-11-28")
 
     mock_get().status_code = 200
 
@@ -124,7 +124,7 @@ def test_validate_sso(mock_get):
 def test_validate_sso_fail(mock_get):
     test_pat = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
 
-    abstraction_layer = Api(output, test_pat, "2022-11-28")
+    abstraction_layer = Api( test_pat, "2022-11-28")
 
     mock_get().status_code = 403
 
@@ -138,7 +138,7 @@ def test_invalid_pat():
     """
     test_pat = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
 
-    abstraction_layer = Api(output, test_pat, "2022-11-28")
+    abstraction_layer = Api( test_pat, "2022-11-28")
 
     assert abstraction_layer.check_user() is None
 
@@ -151,7 +151,7 @@ def test_delete_repo(mock_delete):
 
     mock_delete().status_code = 204
 
-    abstraction_layer = Api(output, test_pat, "2022-11-28")
+    abstraction_layer = Api( test_pat, "2022-11-28")
 
     result = abstraction_layer.delete_repository("testOrg/TestRepo")
 
@@ -165,7 +165,7 @@ def test_delete_fail(mock_delete):
     test_pat = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
 
     mock_delete().status_code = 403
-    abstraction_layer = Api(output, test_pat, "2022-11-28")
+    abstraction_layer = Api( test_pat, "2022-11-28")
 
     result = abstraction_layer.delete_repository("testOrg/TestRepo")
 
@@ -183,7 +183,7 @@ def test_fork_repository(mock_post):
     mock_post.return_value.json.return_value = {
         "full_name": "myusername/TestRepo"
     }
-    abstraction_layer = Api(output, test_pat, "2022-11-28")
+    abstraction_layer = Api( test_pat, "2022-11-28")
 
     result = abstraction_layer.fork_repository('testOrg/TestRepo')
 
@@ -201,7 +201,7 @@ def test_fork_repository_forbid(mock_post):
     mock_post.return_value.json.return_value = {
         "full_name": "myusername/TestRepo"
     }
-    abstraction_layer = Api(output, test_pat, "2022-11-28")
+    abstraction_layer = Api( test_pat, "2022-11-28")
 
     result = abstraction_layer.fork_repository('testOrg/TestRepo')
     assert result is False
@@ -218,7 +218,7 @@ def test_fork_repository_notfound(mock_post):
     mock_post.return_value.json.return_value = {
         "full_name": "myusername/TestRepo"
     }
-    abstraction_layer = Api(output, test_pat, "2022-11-28")
+    abstraction_layer = Api( test_pat, "2022-11-28")
 
     result = abstraction_layer.fork_repository('testOrg/TestRepo')
     assert result is False
@@ -235,7 +235,7 @@ def test_fork_repository_fail(mock_post):
     mock_post.return_value.json.return_value = {
         "full_name": "myusername/TestRepo"
     }
-    abstraction_layer = Api(output, test_pat, "2022-11-28")
+    abstraction_layer = Api( test_pat, "2022-11-28")
 
     result = abstraction_layer.fork_repository('testOrg/TestRepo')
     assert result is False
@@ -252,7 +252,7 @@ def test_fork_pr(mock_post):
         "html_url": "https://github.com/testOrg/testRepo/pull/11"
     }
 
-    abstraction_layer = Api(output, test_pat, "2022-11-28")
+    abstraction_layer = Api( test_pat, "2022-11-28")
 
     result = abstraction_layer.create_fork_pr(
         'testOrg/testRepo', 'testuser', 'badBranch', 'develop', 'Test PR Title'
@@ -272,7 +272,7 @@ def test_fork_pr_failed(mock_post):
         "html_url": "https://github.com/testOrg/testRepo/pull/11"
     }
 
-    abstraction_layer = Api(output, test_pat, "2022-11-28")
+    abstraction_layer = Api( test_pat, "2022-11-28")
 
     result = abstraction_layer.create_fork_pr(
         'testOrg/testRepo', 'testuser', 'badBranch', 'develop', 'Test PR Title'
@@ -289,7 +289,7 @@ def test_get_repo(mock_get):
     mock_get().status_code = 200
     mock_get.return_value.json.return_value = {"repo1": "fakerepodata"}
 
-    abstraction_layer = Api(output, test_pat, "2022-11-28")
+    abstraction_layer = Api( test_pat, "2022-11-28")
 
     result = abstraction_layer.get_repository('testOrg/TestRepo')
 
@@ -304,7 +304,7 @@ def test_get_org(mock_get):
     mock_get().status_code = 200
     mock_get.return_value.json.return_value = {"org1": "fakeorgdata"}
 
-    abstraction_layer = Api(output, test_pat, "2022-11-28")
+    abstraction_layer = Api( test_pat, "2022-11-28")
 
     result = abstraction_layer.get_organization_details('testOrg')
 
@@ -318,7 +318,7 @@ def test_get_org_notfound(mock_get):
     test_pat = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
     mock_get().status_code = 404
 
-    abstraction_layer = Api(output, test_pat, "2022-11-28")
+    abstraction_layer = Api( test_pat, "2022-11-28")
 
     result = abstraction_layer.get_organization_details('testOrg')
 
@@ -336,7 +336,7 @@ def test_check_org_runners(mock_get):
         "total_count": 5
     }
 
-    abstraction_layer = Api(output, test_pat, "2022-11-28")
+    abstraction_layer = Api( test_pat, "2022-11-28")
 
     result = abstraction_layer.check_org_runners('testOrg')
 
@@ -350,7 +350,7 @@ def test_check_org_runners_fail(mock_get):
     test_pat = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
     mock_get().status_code = 403
 
-    abstraction_layer = Api(output, test_pat, "2022-11-28")
+    abstraction_layer = Api( test_pat, "2022-11-28")
 
     result = abstraction_layer.check_org_runners('testOrg')
 
@@ -373,7 +373,7 @@ def test_check_repo_runners(mock_get):
         "runners": runner_list
     }
 
-    abstraction_layer = Api(output, test_pat, "2022-11-28")
+    abstraction_layer = Api( test_pat, "2022-11-28")
 
     result = abstraction_layer.get_repo_runners('testOrg/TestRepo')
 
@@ -392,7 +392,7 @@ def test_check_org_repos_invalid(mock_get):
     """
     test_pat = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
 
-    abstraction_layer = Api(output, test_pat, "2022-11-28")
+    abstraction_layer = Api( test_pat, "2022-11-28")
 
     with pytest.raises(ValueError):
         abstraction_layer.check_org_repos('testOrg', 'invalid')
@@ -413,7 +413,7 @@ def test_check_org_repos(mock_get):
         {"repo5": "fakerepodata"},
     ]
 
-    abstraction_layer = Api(output, test_pat, "2022-11-28")
+    abstraction_layer = Api( test_pat, "2022-11-28")
 
     result = abstraction_layer.check_org_repos('testOrg', 'internal')
 
@@ -435,7 +435,7 @@ def test_check_org(mock_get):
         {"login": "org5"},
     ]
 
-    abstraction_layer = Api(output, test_pat, "2022-11-28")
+    abstraction_layer = Api( test_pat, "2022-11-28")
 
     result = abstraction_layer.check_organizations()
 
@@ -462,7 +462,7 @@ def test_retrieve_run_logs(mock_get):
         zip_bytes = run_log.read()
         mock_get.return_value.content = zip_bytes
 
-    abstraction_layer = Api(output, test_pat, "2022-11-28")
+    abstraction_layer = Api( test_pat, "2022-11-28")
     logs = abstraction_layer.retrieve_run_logs("testOrg/testRepo")
 
     assert len(logs) == 1
@@ -487,7 +487,7 @@ def test_parse_wf_runs(mock_get):
         "total_count": 2
     }
 
-    abstraction_layer = Api(output, test_pat, "2022-11-28")
+    abstraction_layer = Api( test_pat, "2022-11-28")
     wf_count = abstraction_layer.parse_workflow_runs('testOrg/testRepo')
 
     assert wf_count == 2
@@ -500,7 +500,7 @@ def test_parse_wf_runs_fail(mock_get):
     test_pat = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
     mock_get().status_code = 403
 
-    abstraction_layer = Api(output, test_pat, "2022-11-28")
+    abstraction_layer = Api( test_pat, "2022-11-28")
     wf_count = abstraction_layer.parse_workflow_runs('testOrg/testRepo')
 
     assert wf_count is None
@@ -520,7 +520,7 @@ def test_get_recent_workflow(mock_get):
         }]
     }
 
-    api = Api(output, test_pat, "2022-11-28")
+    api = Api( test_pat, "2022-11-28")
     workflow_id = api.get_recent_workflow('repo', 'sha')
 
     assert workflow_id == 15
@@ -538,7 +538,7 @@ def test_get_recent_workflow_missing(mock_get):
         "workflow_runs": []
     }
 
-    api = Api(output, test_pat, "2022-11-28")
+    api = Api( test_pat, "2022-11-28")
     workflow_id = api.get_recent_workflow('repo', 'sha')
 
     assert workflow_id == 0
@@ -552,7 +552,7 @@ def test_get_recent_workflow_fail(mock_get):
 
     mock_get.return_value.status_code = 401
 
-    api = Api(output, test_pat, "2022-11-28")
+    api = Api( test_pat, "2022-11-28")
     workflow_id = api.get_recent_workflow('repo', 'sha')
 
     assert workflow_id == -1
@@ -569,7 +569,7 @@ def test_get_workflow_status_queued(mock_get):
         "status": "queued"
     }
 
-    api = Api(output, test_pat, "2022-11-28")
+    api = Api( test_pat, "2022-11-28")
     assert api.get_workflow_status("repo", 5) == 0
 
 
@@ -585,7 +585,7 @@ def test_get_workflow_status_failed(mock_get):
         "conclusion": "failure"
     }
 
-    api = Api(output, test_pat, "2022-11-28")
+    api = Api( test_pat, "2022-11-28")
     assert api.get_workflow_status("repo", 5) == -1
 
 
@@ -597,7 +597,7 @@ def test_get_workflow_status_errorr(mock_get):
 
     mock_get.return_value.status_code = 401
 
-    api = Api(output, test_pat, "2022-11-28")
+    api = Api( test_pat, "2022-11-28")
     assert api.get_workflow_status("repo", 5) == -1
 
 
@@ -609,7 +609,7 @@ def test_delete_workflow_fail(mock_get):
 
     mock_get.return_value.status_code = 401
 
-    api = Api(output, test_pat, "2022-11-28")
+    api = Api( test_pat, "2022-11-28")
     assert not api.delete_workflow_run("repo", 5)
 
 
@@ -622,7 +622,7 @@ def test_download_workflow_success(mock_get, mock_open):
 
     mock_get.return_value.status_code = 200
 
-    api = Api(output, test_pat, "2022-11-28")
+    api = Api( test_pat, "2022-11-28")
     assert api.download_workflow_logs("repo", 5)
 
 
@@ -635,7 +635,7 @@ def test_download_workflow_fail(mock_get, mock_open):
 
     mock_get.return_value.status_code = 401
 
-    api = Api(output, test_pat, "2022-11-28")
+    api = Api( test_pat, "2022-11-28")
     assert not api.download_workflow_logs("repo", 5)
 
 
@@ -647,7 +647,7 @@ def test_get_repo_branch(mock_get):
 
     mock_get.return_value.status_code = 200
 
-    api = Api(output, test_pat, "2022-11-28")
+    api = Api( test_pat, "2022-11-28")
     assert api.get_repo_branch("repo", "branch") == 1
 
     mock_get.return_value.status_code = 404

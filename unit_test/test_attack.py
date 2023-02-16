@@ -19,7 +19,7 @@ def test_init():
     """
 
     gh_attacker = Attacker(
-        output,
+        
         "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
         socks_proxy=None,
         http_proxy="localhost:8080"
@@ -51,7 +51,7 @@ def test_fork_pr(mock_git, mock_api, mock_time, capsys):
     }
 
     gh_attacker = Attacker(
-        output,
+        
         "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
         socks_proxy=None,
         http_proxy="localhost:8080"
@@ -95,7 +95,7 @@ def test_fork_pr_timeout(mock_git, mock_api, mock_time, capsys):
     }
 
     gh_attacker = Attacker(
-        output,
+        
         "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
         socks_proxy=None,
         http_proxy="localhost:8080"
@@ -132,7 +132,7 @@ def test_fork_pr_perm(mock_git, mock_api, capsys):
     }
 
     gh_attacker = Attacker(
-        output,
+        
         "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
         socks_proxy=None,
         http_proxy="localhost:8080"
@@ -174,7 +174,7 @@ def test_shell_workflow_attack(mock_git, mock_api, mock_time, capsys):
     mock_api.return_value.get_recent_workflow.return_value = 1
 
     gh_attacker = Attacker(
-        output,
+        
         "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
         socks_proxy=None,
         http_proxy="localhost:8080"
@@ -201,7 +201,7 @@ def test_shell_workflow_attack_perm(mock_git, mock_api, capsys):
     }
 
     gh_attacker = Attacker(
-        output,
+        
         "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
         socks_proxy=None,
         http_proxy="localhost:8080"

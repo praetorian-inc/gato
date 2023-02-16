@@ -3,10 +3,9 @@ import logging
 from gato.github import Search
 from gato.github import Api
 
-from gato.cli import bright
+from gato.cli import Output
 
 logger = logging.getLogger(__name__)
-logging.root.setLevel(logging.DEBUG)
 
 
 class Searcher:
@@ -15,13 +14,11 @@ class Searcher:
 
     def __init__(
         self,
-        output,
         pat: str,
         socks_proxy: str = None,
         http_proxy: str = None
     ):
         self.api = Api(
-            output,
             pat,
             socks_proxy=socks_proxy,
             http_proxy=http_proxy,
@@ -30,7 +27,6 @@ class Searcher:
         self.socks_proxy = socks_proxy
         self.http_proxy = http_proxy
         self.user_perms = None
-        self.output = output
 
     def __setup_user_info(self):
         """Checks the PAT to ensure that it is valid and retrieves the
@@ -42,19 +38,20 @@ class Searcher:
         if not self.user_perms:
             self.user_perms = self.api.check_user()
             if not self.user_perms:
-                logger.error("This token cannot be used for enumeration!")
+                Output.error("This token cannot be used for enumeration!")
                 return False
 
-            self.output.info(
-                f"The authenticated user is: {bright(self.user_perms['user'])}"
+            Output.info(
+                f"The authenticated user is: "
+                f"{Output.bright(self.user_perms['user'])}"
             )
             if len(self.user_perms["scopes"]) > 0:
-                self.output.info(
+                Output.info(
                     f"The GitHub Classic PAT has the following scopes: "
-                    f'{", ".join(self.user_perms["scopes"])}'
+                    f'{Output.yellow(", ".join(self.user_perms["scopes"]))}'
                 )
             else:
-                self.output.warn("The token has no scopes!")
+                Output.warn("The token has no scopes!")
 
         return True
 
@@ -79,18 +76,19 @@ class Searcher:
         if not self.user_perms:
             return False
 
-        api_search = Search(self.api, self.output)
+        api_search = Search(self.api)
 
-        self.output.info(
-                f"Searching repositories within {bright(organization)} using the "
-                "GitHub Code Search API for 'self-hosted' within YAML files."
+        Output.info(
+                f"Searching repositories within {Output.bright(organization)} "
+                "using the GitHub Code Search API for 'self-hosted' within "
+                "YAML files."
         )
         candidates = api_search.search_enumeration(organization)
 
-        self.output.result(
+        Output.result(
             f"Identified {len(candidates)} non-fork repositories that matched "
             "the criteria!"
         )
 
         for candidate in candidates:
-            self.output.result(candidate)
+            Output.result(candidate)

@@ -1,7 +1,9 @@
 from gato.github import Api
+from gato.cli import Output
 
 import time
 import logging
+
 
 logger = logging.getLogger(__name__)
 
@@ -11,7 +13,7 @@ class Search():
     security issues.
     """
 
-    def __init__(self, api_accessor: Api, output):
+    def __init__(self, api_accessor: Api):
         """Initialize class to call GH search methods. Due to the late limiting
         associated with these API calls, this class will run the enumeration
         in a thread.
@@ -22,7 +24,6 @@ class Search():
             API requests.
         """
         self.api_accessor = api_accessor
-        self.output = output
 
     def search_enumeration(self, organization: str):
         """Search for self-hosted in yml files within a given organization.
@@ -62,24 +63,24 @@ class Search():
                     query['page'] += 1
                     code = result.json()
                 elif result.status_code == 403:
-                    self.output.warn(
+                    Output.inform(
                         "Secondary rate limit hit! Sleeping 3 minutes!"
                     )
                     time.sleep(180)
                 elif result.status_code == 422:
-                    self.output.warn("Reached search cap!")
+                    Output.warn("Reached search cap!")
                     break
 
             return set(candidates)
         else:
             if result.status_code == 403:
-                self.output.warn('[-] Secondary rate limit hit!')
+                Output.inform('Secondary rate limit hit!')
             elif result.status_code == 422:
-                self.output.warn('[-] Search failed with reponse code 422!')
+                Output.warn('Search failed with reponse code 422!')
                 context = result.json()
 
                 if 'errors' in context and len(context['errors']) > 0:
-                    self.output.warn("\tError message from GitHub:\n"
-                          f"\t{context['errors'][0]['message']}")
+                    Output.warn("\tError message from GitHub:\n"
+                                f"\t{context['errors'][0]['message']}")
 
             return set()

@@ -4,7 +4,8 @@ from gato.search import Searcher
 from gato.cli import Output
 
 
-output = Output(False, True)
+Output(False, True)
+
 
 @patch("gato.github.search.time.sleep")
 @patch("gato.github.search.Api")
@@ -26,7 +27,7 @@ def test_search_api(mock_api, mock_time):
         "items": []
     }]
 
-    searcher = Search(mock_api, output)
+    searcher = Search(mock_api)
 
     res = searcher.search_enumeration('testOrganization')
     assert len(res) == 1
@@ -57,7 +58,7 @@ def test_search_api_cap(mock_api, mock_time, capfd):
 
     mock_api.call_get.side_effect = [mock1, mock2]
 
-    searcher = Search(mock_api, output)
+    searcher = Search(mock_api)
 
     res = searcher.search_enumeration('testOrganization')
     mock_time.assert_called_once()
@@ -94,7 +95,7 @@ def test_search_api_ratelimit(mock_api, mock_time, capfd):
 
     mock_api.call_get.side_effect = [mock1, mock2, mock3]
 
-    searcher = Search(mock_api, output)
+    searcher = Search(mock_api)
 
     res = searcher.search_enumeration('testOrganization')
     assert mock_time.call_count == 3
@@ -132,7 +133,7 @@ def test_search_api_permission(mock_api, capfd):
     res = searcher.search_enumeration('privateOrg')
     assert len(res) == 0
     out, err = capfd.readouterr()
-    assert "[-] Search failed with reponse code 422!" in out
+    assert "[!] Search failed with reponse code 422!" in out
     assert " listed users and repositories cannot be searched " in out
 
 
@@ -163,7 +164,7 @@ def test_search_api_iniitalrl(mock_api, capfd):
 @patch("gato.search.search.Api")
 def test_search(mock_api, mock_search):
     mock_search.return_value = ['candidate1', 'candidate2']
-    gh_search_runner = Searcher(output, 'ghp_AAAA')
+    gh_search_runner = Searcher('ghp_AAAA')
 
     res = gh_search_runner.use_search_api('targetOrg')
     mock_search.assert_called_once()
@@ -173,7 +174,7 @@ def test_search(mock_api, mock_search):
 @patch("gato.search.search.Api.check_user")
 def test_search_bad_token(mock_api):
     mock_api.return_value = False
-    gh_search_runner = Searcher(output, 'ghp_AAAA')
+    gh_search_runner = Searcher('ghp_AAAA')
 
     res = gh_search_runner.use_search_api('targetOrg')
     assert res is False

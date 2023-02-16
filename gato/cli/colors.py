@@ -6,11 +6,8 @@ GREEN_EXCLAIM = f'{Fore.GREEN}[!]{Style.RESET_ALL}'
 YELLOW_DASH = f'{Fore.YELLOW}[-]{Style.RESET_ALL}'
 YELLOW_EXCLAIM = f'{Fore.YELLOW}[!]{Style.RESET_ALL}'
 RED_DASH = f'{Fore.RED}[-]{Style.RESET_ALL}'
+RED_EXCLAIM = f'{Fore.RED}[!]{Style.RESET_ALL}'
 BRIGHT_DASH = f'{Style.BRIGHT}-{Style.RESET_ALL}'
-
-
-def bright(toformat: str):
-    return f'{Style.BRIGHT}{toformat}{Style.RESET_ALL}'
 
 
 SPLASH = """
