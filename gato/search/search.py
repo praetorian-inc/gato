@@ -3,15 +3,7 @@ import logging
 from gato.github import Search
 from gato.github import Api
 
-from colorama import Fore, Style
-from gato.cli import (
-    GREEN_PLUS,
-    GREEN_EXCLAIM,
-    YELLOW_EXCLAIM,
-    RED_DASH,
-    BRIGHT_DASH,
-    bright,
-)
+from gato.cli import bright
 
 logger = logging.getLogger(__name__)
 logging.root.setLevel(logging.DEBUG)
@@ -23,11 +15,13 @@ class Searcher:
 
     def __init__(
         self,
+        output,
         pat: str,
         socks_proxy: str = None,
-        http_proxy: str = None,
+        http_proxy: str = None
     ):
         self.api = Api(
+            output,
             pat,
             socks_proxy=socks_proxy,
             http_proxy=http_proxy,
@@ -36,6 +30,7 @@ class Searcher:
         self.socks_proxy = socks_proxy
         self.http_proxy = http_proxy
         self.user_perms = None
+        self.output = output
 
     def __setup_user_info(self):
         """Checks the PAT to ensure that it is valid and retrieves the
@@ -50,21 +45,16 @@ class Searcher:
                 logger.error("This token cannot be used for enumeration!")
                 return False
 
-            print(
-                f"{GREEN_PLUS} The authenticated user is:"
-                f' {Style.BRIGHT}{self.user_perms["user"]}{Style.RESET_ALL}'
+            self.output.info(
+                f"The authenticated user is: {bright(self.user_perms['user'])}"
             )
             if len(self.user_perms["scopes"]) > 0:
-                print(
-                    f"{GREEN_PLUS} The GitHub Classic PAT has the following"
-                    " scopes:"
-                    f' {Fore.YELLOW}{", ".join(self.user_perms["scopes"])}'
-                    f"{Style.RESET_ALL}!"
+                self.output.info(
+                    f"The GitHub Classic PAT has the following scopes: "
+                    f'{", ".join(self.user_perms["scopes"])}'
                 )
             else:
-                print(
-                    f"{YELLOW_EXCLAIM} The token has no scopes!"
-                )
+                self.output.warn("The token has no scopes!")
 
         return True
 
@@ -89,19 +79,18 @@ class Searcher:
         if not self.user_perms:
             return False
 
-        api_search = Search(self.api)
+        api_search = Search(self.api, self.output)
 
-        print(
-            f"{YELLOW_EXCLAIM} Searching repositories within "
-            f"{bright(organization)} using the GitHub Code Search API for"
-            f" 'self-hosted' within YAML files."
+        self.output.info(
+                f"Searching repositories within {bright(organization)} using the "
+                "GitHub Code Search API for 'self-hosted' within YAML files."
         )
         candidates = api_search.search_enumeration(organization)
 
-        print(
-            f"{GREEN_PLUS} Identified {len(candidates)} non-fork "
-            "repositories that matched the criteria!"
+        self.output.result(
+            f"Identified {len(candidates)} non-fork repositories that matched "
+            "the criteria!"
         )
 
         for candidate in candidates:
-            print(candidate)
+            self.output.result(candidate)

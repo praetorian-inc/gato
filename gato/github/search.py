@@ -11,7 +11,7 @@ class Search():
     security issues.
     """
 
-    def __init__(self, api_accessor: Api):
+    def __init__(self, api_accessor: Api, output):
         """Initialize class to call GH search methods. Due to the late limiting
         associated with these API calls, this class will run the enumeration
         in a thread.
@@ -22,6 +22,7 @@ class Search():
             API requests.
         """
         self.api_accessor = api_accessor
+        self.output = output
 
     def search_enumeration(self, organization: str):
         """Search for self-hosted in yml files within a given organization.
@@ -61,15 +62,19 @@ class Search():
                     query['page'] += 1
                     code = result.json()
                 elif result.status_code == 403:
-                    print(
-                        '[-] Secondary rate limit hit! Sleeping 3 minutes!')
+                    self.output.warn(
+                        "Secondary rate limit hit! Sleeping 3 minutes!"
+                    )
                     time.sleep(180)
                 elif result.status_code == 422:
-                    print('[-] Reached search cap!')
+                    self.output.warn("Reached search cap!")
                     break
 
             return set(candidates)
         else:
-            print('[-] Secondary rate limit hit!')
+            self.output.warn(
+                f"Failed to search organization '{organization}' "
+                f"({result.status_code})!"
+            )
             # TODO: Check for auth issues here too!
             return set()

@@ -17,7 +17,7 @@ class Api():
     RUNNER_RE = re.compile(r'Runner name: \'([\w+-]+)\'')
     MACHINE_RE = re.compile(r'Machine name: \'([\w+-]+)\'')
 
-    def __init__(self, pat: str, version: str = "2022-11-28",
+    def __init__(self, output, pat: str, version: str = "2022-11-28",
                  http_proxy: str = None, socks_proxy: str = None):
         """Initialize the API abstraction layer to interact with the GitHub
         REST API.
@@ -40,6 +40,7 @@ class Api():
             'Authorization': f'Bearer {pat}',
             'X-GitHub-Api-Version': version
         }
+        self.output = output
 
         if http_proxy and socks_proxy:
             raise ValueError('A SOCKS & HTTP proxy cannot be used at the same '
@@ -176,9 +177,9 @@ class Api():
         result = self.call_delete(f"/repos/{repo_name}")
 
         if result.status_code == 204:
-            logger.info(f"Successfully deleted {repo_name}!")
+            self.output.result(f"Successfully deleted {repo_name}!")
         else:
-            logger.warning(f"Unable to delete repository {repo_name}!")
+            self.output.warn(f"Unable to delete repository {repo_name}!")
             return False
 
         return True
@@ -365,9 +366,10 @@ class Api():
             if runner_info['total_count'] > 0:
                 return runner_info
         else:
-            logger.warning(
-                f"Unable to query runners for {org}! This is likely due to the"
-                " PAT permission level!")
+            self.output.warn(
+                f"Unable to query runners for {org}! This is likely due to the "
+                "PAT permission level!"
+            )
 
     def check_org_repos(self, org: str, type: str):
         """Check repositories present within an organization.

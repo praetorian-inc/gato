@@ -1,7 +1,10 @@
 from unittest.mock import patch, MagicMock
 from gato.github.search import Search
 from gato.search import Searcher
+from gato.cli import Output
 
+
+output = Output(False, True)
 
 @patch("gato.github.search.time.sleep")
 @patch("gato.github.search.Api")
@@ -23,7 +26,7 @@ def test_search_api(mock_api, mock_time):
         "items": []
     }]
 
-    searcher = Search(mock_api)
+    searcher = Search(mock_api, output)
 
     res = searcher.search_enumeration('testOrganization')
     assert len(res) == 1
@@ -54,13 +57,13 @@ def test_search_api_cap(mock_api, mock_time, capfd):
 
     mock_api.call_get.side_effect = [mock1, mock2]
 
-    searcher = Search(mock_api)
+    searcher = Search(mock_api, output)
 
     res = searcher.search_enumeration('testOrganization')
     mock_time.assert_called_once()
     assert len(res) == 1
     out, err = capfd.readouterr()
-    assert "[-] Reached search cap!" in out
+    assert "Reached search cap!" in out
 
 
 @patch("gato.github.search.time.sleep")
@@ -91,21 +94,21 @@ def test_search_api_ratelimit(mock_api, mock_time, capfd):
 
     mock_api.call_get.side_effect = [mock1, mock2, mock3]
 
-    searcher = Search(mock_api)
+    searcher = Search(mock_api, output)
 
     res = searcher.search_enumeration('testOrganization')
     assert mock_time.call_count == 3
     assert len(res) == 1
 
     out, err = capfd.readouterr()
-    assert "[-] Secondary rate limit hit! Sleeping 3 minutes!" in out
+    assert "Secondary rate limit hit! Sleeping 3 minutes!" in out
 
 
 @patch('gato.github.Search.search_enumeration')
 @patch("gato.search.search.Api")
 def test_search(mock_api, mock_search):
     mock_search.return_value = ['candidate1', 'candidate2']
-    gh_search_runner = Searcher('ghp_AAAA')
+    gh_search_runner = Searcher(output, 'ghp_AAAA')
 
     res = gh_search_runner.use_search_api('targetOrg')
     mock_search.assert_called_once()
@@ -115,7 +118,7 @@ def test_search(mock_api, mock_search):
 @patch("gato.search.search.Api.check_user")
 def test_search_bad_token(mock_api):
     mock_api.return_value = False
-    gh_search_runner = Searcher('ghp_AAAA')
+    gh_search_runner = Searcher(output, 'ghp_AAAA')
 
     res = gh_search_runner.use_search_api('targetOrg')
     assert res is False

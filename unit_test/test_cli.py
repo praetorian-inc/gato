@@ -26,7 +26,7 @@ def test_cli_git_check(mock_run, capfd):
     mock_run.return_value = None
 
     with pytest.raises(SystemExit):
-        cli.cli(["enumerate", "-h"])
+        cli.cli(["enumerate", "-t", "test"])
 
     mock_run.assert_called_once()
     out, err = capfd.readouterr()
@@ -71,7 +71,7 @@ def test_cli_double_proxy(capfd):
     """Test case where conflicing proxies are provided.
     """
     with pytest.raises(SystemExit):
-        cli.cli(["-s", "socks", "-p", "http", "enumerate", "-t", "test"])
+        cli.cli(["-sp", "socks", "-p", "http", "enumerate", "-t", "test"])
 
     out, err = capfd.readouterr()
     assert "proxy at the same time" in err
@@ -348,7 +348,7 @@ def test_unreadable_file(mock_access, capfd):
     """
     curr_path = pathlib.Path(__file__).parent.resolve()
 
-    mock_access.side_effect = [True, False]
+    mock_access.return_value = False
 
     with pytest.raises(SystemExit):
         cli.cli(
@@ -365,7 +365,7 @@ def test_unwritable_dir(mock_access, capfd):
     """
     curr_path = pathlib.Path(__file__).parent.resolve()
 
-    mock_access.side_effect = [True, False]
+    mock_access.return_value = False
 
     with pytest.raises(SystemExit):
         cli.cli(

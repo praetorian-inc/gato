@@ -45,9 +45,6 @@ class WorkflowParser():
         with open(os.path.join(
                 dirpath, f'{self.repo_name}/{self.wf_name}'), 'w') as wf_out:
             wf_out.write(self.raw_yaml)
-            print(f'        {self.wf_name} saved to: ' + os.path.join(
-                dirpath, f'{self.repo_name}/{self.wf_name}'))
-
             return True
 
     def self_hosted(self):

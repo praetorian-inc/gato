@@ -9,8 +9,12 @@ from unittest.mock import patch
 from gato.models.repository import Repository
 from gato.enumerate import Enumerator
 
+from gato.cli import Output
+
 TEST_REPO_DATA = None
 TEST_WORKFLOW_YML = None
+
+output = Output(False, True)
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -43,6 +47,7 @@ def test_init():
     """
 
     gh_enumeration_runner = Enumerator(
+        output,
         "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
         socks_proxy=None,
         http_proxy="localhost:8080",
@@ -59,6 +64,7 @@ def test_self_enumerate(mock_api, capsys):
     """
 
     gh_enumeration_runner = Enumerator(
+        output,
         "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
         socks_proxy=None,
         http_proxy="localhost:8080",
@@ -90,6 +96,7 @@ def test_enumerate_repo(mock_api, capsys):
     """
 
     gh_enumeration_runner = Enumerator(
+        output,
         "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
         socks_proxy=None,
         http_proxy="localhost:8080",
@@ -132,6 +139,7 @@ def test_enumerate_repo_admin(mock_api, capsys):
     """
 
     gh_enumeration_runner = Enumerator(
+        output,
         "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
         socks_proxy=None,
         http_proxy="localhost:8080",
@@ -172,6 +180,7 @@ def test_enumerate_repo_admin_no_wf(mock_api, capsys):
     """
 
     gh_enumeration_runner = Enumerator(
+        output,
         "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
         socks_proxy=None,
         http_proxy="localhost:8080",
@@ -213,6 +222,7 @@ def test_enumerate_repo_no_wf_no_admin(mock_api, capsys):
     """
 
     gh_enumeration_runner = Enumerator(
+        output,
         "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
         socks_proxy=None,
         http_proxy="localhost:8080",
@@ -252,6 +262,7 @@ def test_enumerate_repo_no_wf_maintain(mock_api, capsys):
     """
 
     gh_enumeration_runner = Enumerator(
+        output,
         "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
         socks_proxy=None,
         http_proxy="localhost:8080",
@@ -300,6 +311,7 @@ def test_clone_enumeration(mock_git, mock_wfout):
     ]
 
     gh_enumeration_runner = Enumerator(
+        output,
         "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
         socks_proxy=None,
         http_proxy=None,
@@ -331,6 +343,7 @@ def test_clone_enumeration_writeerror(mock_git, mock_wfout):
     ]
 
     gh_enumeration_runner = Enumerator(
+        output,
         "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
         socks_proxy=None,
         http_proxy=None,
@@ -358,6 +371,7 @@ def test_clone_enumeration_parse_error(mock_git):
     ]
 
     gh_enumeration_runner = Enumerator(
+        output,
         "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
         socks_proxy=None,
         http_proxy=None,
@@ -380,6 +394,7 @@ def test_clone_enumeration_none(mock_git):
     mock_git().extract_workflow_ymls.return_value = []
 
     gh_enumeration_runner = Enumerator(
+        output,
         "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
         socks_proxy=None,
         http_proxy=None,
@@ -400,6 +415,7 @@ def test_clone_enumeration_none(mock_git):
 def test_print_runners(capfd):
 
     gh_enumeration_runner = Enumerator(
+        output,
         "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
         socks_proxy=None,
         http_proxy=None,
@@ -456,6 +472,7 @@ def test_assemble_repo_list(mock_api):
     mock_api().check_org_repos.return_value = [TEST_REPO_DATA]
 
     gh_enumeration_runner = Enumerator(
+        output,
         "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
         socks_proxy=None,
         http_proxy=None,
@@ -483,6 +500,7 @@ def test_enum_repo(mock_api, capfd):
     mock_api.return_value.get_repository.return_value = TEST_REPO_DATA
 
     gh_enumeration_runner = Enumerator(
+        output,
         "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
         socks_proxy=None,
         http_proxy=None,
@@ -541,6 +559,7 @@ def test_enum_repo_runner(mock_api, capfd):
     mock_api.return_value.get_repository.return_value = test_repodata
 
     gh_enumeration_runner = Enumerator(
+        output,
         "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
         socks_proxy=None,
         http_proxy=None,
@@ -575,6 +594,7 @@ def test_enum_repos(mock_api, capfd):
     mock_api.return_value.get_repository.return_value = TEST_REPO_DATA
 
     gh_enumeration_runner = Enumerator(
+        output,
         "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
         socks_proxy=None,
         http_proxy=None,
@@ -602,6 +622,7 @@ def test_enum_repos_empty(mock_api, capfd):
     mock_api.return_value.get_repository.return_value = TEST_REPO_DATA
 
     gh_enumeration_runner = Enumerator(
+        output,
         "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
         socks_proxy=None,
         http_proxy=None,
@@ -620,6 +641,7 @@ def test_enum_repos_empty(mock_api, capfd):
 def test_bad_token(mock_api):
 
     gh_enumeration_runner = Enumerator(
+        output,
         "ghp_BADTOKEN",
         socks_proxy=None,
         http_proxy=None,
