@@ -521,7 +521,7 @@ class Enumerator:
         Args:
             repository (Repository): Wrapper object created from calling the
             API and retrieving a repository.
-            clone (bool, optional):  Whether to clone the repo
+            clone (bool, optional):  Whether to use repo contents API
             in order to analayze the yaml files. Defaults to True.
         """
 
@@ -551,7 +551,9 @@ class Enumerator:
         if not self.skip_log and self.__perform_runlog_enumeration(repository):
             runner_detected = True
 
-        if self.__perform_yml_enumeration(repository):
+        # For now still respecting the skip clone flag until we have clarity
+        # regarding logging impact.
+        if clone and self.__perform_yml_enumeration(repository):
             runner_detected = True
 
         if runner_detected:
