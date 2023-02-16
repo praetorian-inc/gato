@@ -321,7 +321,7 @@ class Attacker:
                 status = self.api.get_workflow_status(target_repo, workflow_id)
                 if status == -1:
                     self.output.error("The workflow failed!")
-                    return
+                    break
                 elif status == 1:
                     self.output.result("The malicious workflow executed succesfully!")
                     break
@@ -329,7 +329,6 @@ class Attacker:
                     time.sleep(1)
             else:
                 self.output.error("The workflow is incomplete but hit the timeout!")
-                return
 
             res = self.api.download_workflow_logs(target_repo, workflow_id)
             if not res:
