@@ -58,7 +58,7 @@ def test_cli_fine_grained_pat(capfd):
 
 @mock.patch("gato.enumerate.Enumerator.enumerate_organization")
 def test_cli_oauth_token(mock_enumerate, capfd):
-    """Test case where an unsupported PAT is provided.
+    """Test case where a GitHub oauth token is provided.
     """
     os.environ["GH_TOKEN"] = "gho_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
 
@@ -70,7 +70,7 @@ def test_cli_oauth_token(mock_enumerate, capfd):
 
 @mock.patch("gato.enumerate.Enumerator.enumerate_organization")
 def test_cli_old_token(mock_enumerate, capfd):
-    """Test case where an unsupported PAT is provided.
+    """Test case where an old, but still potentially valid GitHub token is provided.
     """
     os.environ["GH_TOKEN"] = "43255147468edf32a206441ad296ce648f44ee32"
 
