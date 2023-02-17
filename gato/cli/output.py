@@ -34,7 +34,7 @@ class Output(metaclass=Singleton):
     def splash(cls):
         """Prints the Gato mascot.
         """
-        if Output().silent:
+        if not Output().silent:
             print(SPLASH)
 
     @classmethod
