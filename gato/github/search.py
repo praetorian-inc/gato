@@ -3,6 +3,7 @@ from gato.cli import Output
 
 import time
 import logging
+from urllib.parse import urlparse
 
 
 logger = logging.getLogger(__name__)
@@ -36,51 +37,63 @@ class Search():
         """
 
         query = {
-            'q': f'self-hosted org:{organization} language:yaml',
+            'q': f'self-hosted org:{organization} language:yaml path:.github/workflows',
             'sort': 'indexed',
             'per_page': '100',
             "page": 1
         }
+        next_page = f"/search/code?q={query['q']}&sort={query['sort']}" \
+                    f"&per_page={query['per_page']}&page={query['page']}"
 
-        result = self.api_accessor.call_get('/search/code', params=query)
-        if result.status_code == 200:
-            query['page'] += 1
-            code = result.json()
-            candidates = []
+        Output.info('Searching', end='', flush=True)
+        candidates = set()
+        while next_page:
+            result = self.api_accessor.call_get(next_page)
+            print('.', end='', flush=True)
+            code = result.status_code
+            data = result.json()
+            headers = result.headers
 
-            while len(code['items']) >= 1:
-                for entry in code['items']:
-                    # Only return non-forks
-                    if ".github/workflows" in entry['path'] and \
-                     not entry['repository']['fork']:
-                        candidates.append(entry['repository']['full_name'])
-                time.sleep(60)
-                result = self.api_accessor.call_get(
-                    '/search/code',
-                    params=query
+            if code == 403:
+                retry_after = headers.get('retry-after')
+                reset = headers.get('x-ratelimit-reset')
+                sleep = 60
+                if retry_after:
+                    sleep = int(retry_after) + 5
+                elif reset:
+                    sleep = int(reset) - int(time.time()) + 5
+
+                print()
+                Output.warn(
+                    f'Secondary API Rate Limit Hit. Sleeping for {sleep} seconds!'
                 )
-                if result.status_code == 200:
-                    query['page'] += 1
-                    code = result.json()
-                elif result.status_code == 403:
-                    Output.inform(
-                        "Secondary rate limit hit! Sleeping 3 minutes!"
-                    )
-                    time.sleep(180)
-                elif result.status_code == 422:
-                    Output.warn("Reached search cap!")
-                    break
+                time.sleep(sleep)
 
-            return set(candidates)
-        else:
-            if result.status_code == 403:
-                Output.inform('Secondary rate limit hit!')
-            elif result.status_code == 422:
-                Output.warn('Search failed with reponse code 422!')
+                Output.info('Searching', end='', flush=True)
+                continue
+            elif code != 200:
+                print()
+                Output.error(f'Search failed with response code {code}!')
+
                 context = result.json()
-
                 if 'errors' in context and len(context['errors']) > 0:
                     Output.warn("\tError message from GitHub:\n"
                                 f"\t{context['errors'][0]['message']}")
 
-            return set()
+                return candidates
+
+            if data['incomplete_results']:
+                print()
+                Output.warn('Search results incomplete due to GitHub timeout!')
+
+            for entry in data['items']:
+                candidates.add(entry['repository']['full_name'])
+
+            next_page = result.links.get('next', {}).get('url')
+            if next_page:
+                link = urlparse(next_page)
+                next_page = f"{link.path}?{link.query}"
+                time.sleep(5)
+
+        print()
+        return candidates
