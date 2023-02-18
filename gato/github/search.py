@@ -67,14 +67,14 @@ class Search():
                 print("[+] Searching", end='', flush=True)
                 continue
             elif code != 200:
-                print(f'[-] Search failed with reponse code {code}!')
+                print(f'[-] Search failed with response code {code}!')
                 context = result.json()
                 if 'errors' in context and len(context['errors']) > 0:
                     print("\tError message from GitHub:\n"
                           f"\t{context['errors'][0]['message']}")
                 return candidates
 
-            if data['incomplete_results']:
+            if data.get('incomplete_results'):
                 print("[-] Search results incomplete due to GitHub timeout!")
 
             for entry in data['items']:
