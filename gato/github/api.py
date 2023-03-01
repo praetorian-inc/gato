@@ -60,6 +60,10 @@ class Api():
                 'https': f'socks5://{socks_proxy}'
             }
 
+        if self.github_url != "https://api.github.com":
+            self.verify_ssl = False
+            requests.packages.urllib3.disable_warnings()
+
     def __process_run_log(self, log_content: bytes, run_info: dict):
         """Utility method to process a run log zip file.
 
