@@ -49,6 +49,7 @@ class Attacker:
         self.author_email = author_email
         self.author_name = author_name
         self.timeout = timeout
+        self.github_url = github_url
 
     def __setup_user_info(self):
         if not self.user_perms:
@@ -137,7 +138,8 @@ class Attacker:
                 repo_name,
                 proxies=self.api.proxies,
                 username=self.author_name,
-                email=self.author_email
+                email=self.author_email,
+                github_url=self.github_url.split('/')[2] if self.github_url else None
             )
 
             status = cloned_repo.perform_clone()
@@ -242,7 +244,8 @@ class Attacker:
                 target_repo,
                 proxies=self.api.proxies,
                 username=self.author_name,
-                email=self.author_email
+                email=self.author_email,
+                github_url=self.github_url.split('/')[2] if self.github_url else None
             )
             cloned_repo.perform_clone()
 
