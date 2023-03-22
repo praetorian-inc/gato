@@ -60,7 +60,7 @@ class Output(metaclass=Singleton):
         """Prints a tabbed message with a bright '-'
 
         Args:
-            message (str): _description_
+            message (str): The message to print.
         """
         print(f"    {Output().bright_dash} {message}")
 
@@ -69,7 +69,7 @@ class Output(metaclass=Singleton):
         """Prints a message surrounded by '---'
 
         Args:
-            message (str): _description_
+            message (str): The message to print.
         """
         print(
             f"{cls.bright('---')}"
@@ -82,7 +82,17 @@ class Output(metaclass=Singleton):
         """Prints a result, this is something good that the tool found.
 
         Args:
-            message (str): _description_
+            message (str): The message to print.
+        """
+        print(f"{Output().green_plus} {message}")
+
+    @classmethod
+    def owned(cls, message: str):
+        """Prints a result, this is means that the tool has found a likely
+        vector to own something.
+
+        Args:
+            message (str): The message to print.
         """
         print(f"{Output().green_exclaim} {message}")
 
@@ -91,7 +101,7 @@ class Output(metaclass=Singleton):
         """Used to inform a user.
 
         Args:
-            message (str): _description_
+            message (str): The message to print.
         """
 
         print(f"{Output().yellow_dash} {message}")
@@ -100,9 +110,6 @@ class Output(metaclass=Singleton):
     def warn(cls, message: str):
         """Used to let the user know something that they should not, but
         unlikely to lead to an exploit.
-
-        Args:
-            message (str): _description_
         """
         print(f"{Output().yellow_exclaim} {message}")
 

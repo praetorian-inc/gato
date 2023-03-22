@@ -82,7 +82,7 @@ class Enumerator:
             repository (Repository): Wrapped repository object.
         """
         if repository.is_admin():
-            Output.result(
+            Output.owned(
                 "The user is an administrator on the repository!"
             )
             if "workflow" in self.user_perms["scopes"]:
@@ -337,7 +337,7 @@ class Enumerator:
         # be an organization owner. If not, then the user is a member (for
         # private repos) or
         if "billing_email" in details and details["billing_email"] is not None:
-            Output.result("The user is an organization owner!")
+            Output.owned("The user is an organization owner!")
 
             if "admin:org" in self.user_perms["scopes"]:
                 Output.result(
