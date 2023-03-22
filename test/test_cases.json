@@ -92,7 +92,7 @@
                 "type": "stdout"
             },
             {
-                "expect": "[!] The repository GHRunnerPlayground/TestWF contains a previous workflow run that executed on a self-hosted runner!",
+                "expect": "[+] The repository GHRunnerPlayground/TestWF contains a previous workflow run that executed on a self-hosted runner!",
                 "type": "stdout"
             }
         ],
@@ -115,7 +115,7 @@
                 "type": "stdout"
             },
             {
-                "expect": "[!] The repository GHRunnerPlayground/TestWF contains a previous workflow run that executed on a self-hosted runner!",
+                "expect": "[+] The repository GHRunnerPlayground/TestWF contains a previous workflow run that executed on a self-hosted runner!",
                 "type": "stdout"
             },
             {
