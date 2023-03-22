@@ -27,7 +27,7 @@
                 "type": "stdout"
             },
             {
-                "expect": "The GitHub Classic PAT has the following scopes: repo!",
+                "expect": "The GitHub Classic PAT has the following scopes: repo",
                 "type": "stdout"
             }
         ],
@@ -46,7 +46,7 @@
                 "type": "stdout"
             },
             {
-                "expect": "[+] The organization has",
+                "expect": "The organization has",
                 "type": "stdout"
             },
             {
@@ -92,7 +92,7 @@
                 "type": "stdout"
             },
             {
-                "expect": "[+] The repository GHRunnerPlayground/TestWF contains a previous workflow run that executed on a self-hosted runner!",
+                "expect": "[!] The repository GHRunnerPlayground/TestWF contains a previous workflow run that executed on a self-hosted runner!",
                 "type": "stdout"
             }
         ],
@@ -107,7 +107,7 @@
                 "type": "stdout"
             },
             {
-                "expect": "[+] The user is an organization owner!",
+                "expect": "The user is an organization owner!",
                 "type": "stdout"
             },
             {
@@ -115,7 +115,7 @@
                 "type": "stdout"
             },
             {
-                "expect": "[+] The repository GHRunnerPlayground/TestWF contains a previous workflow run that executed on a self-hosted runner!",
+                "expect": "[!] The repository GHRunnerPlayground/TestWF contains a previous workflow run that executed on a self-hosted runner!",
                 "type": "stdout"
             },
             {
@@ -162,7 +162,7 @@
                 "type": "stdout"
             },
             {
-                "expect": "The user does not have the workflow scope, which means an existing workflow trigger must be used!",
+                "expect": "The PAT does not have the workflow scope, which means an existing workflow trigger must be used!",
                 "type": "stdout"
             }
         ],
@@ -185,7 +185,7 @@
                 "type": "stdout"
             },
             {
-                "expect": "The user also has the workflow scope, which means a custom YAML payload can be used!",
+                "expect": "The PAT also has the workflow scope, which means a custom YAML payload can be used!",
                 "type": "stdout"
             }
         ],
