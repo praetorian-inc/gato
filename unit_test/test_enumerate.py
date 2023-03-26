@@ -8,9 +8,12 @@ from unittest.mock import patch
 
 from gato.models.repository import Repository
 from gato.enumerate import Enumerator
+from gato.cli import Output
 
 TEST_REPO_DATA = None
 TEST_WORKFLOW_YML = None
+
+Output(False, True)
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -52,6 +55,7 @@ def test_init():
     )
 
     assert gh_enumeration_runner.http_proxy == "localhost:8080"
+
 
 @patch("gato.enumerate.enumerate.Api")
 def test_self_enumerate(mock_api, capsys):

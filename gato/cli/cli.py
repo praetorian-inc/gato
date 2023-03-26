@@ -4,6 +4,9 @@ import re
 
 from packaging import version
 
+from colorama import Fore, Style
+from gato.cli import RED_DASH
+
 from gato.enumerate import Enumerator
 from gato.attack import Attacker
 from gato.search import Searcher
@@ -13,10 +16,8 @@ from gato.util.arg_utils import StringType
 from gato.util.arg_utils import WriteableDir
 from gato.util.arg_utils import ReadableFile
 import gato.git as git
+from gato.cli import Output
 
-from colorama import Fore, Style
-from gato.cli import bright, RED_DASH
-from gato.cli import SPLASH
 
 REQUIRED_GIT_VERSION = "2.27"
 
@@ -32,47 +33,9 @@ def cli(args):
         ),
     )
 
-    git_status = git.path_check()
-    if not git_status:
-        parser.error(
-            f"{Fore.RED} [-] The 'git' application is either not installed, "
-            "or not present on the path!"
-        )
-
-    git_version = git.version_check()
-
-    if git_version:
-        git_version = version.parse(git_version)
-        if git_version < version.parse(REQUIRED_GIT_VERSION):
-            parser.error(
-                f"{Fore.RED} This tool requires a 'git' version of at least"
-                f" {REQUIRED_GIT_VERSION}!"
-            )
-    else:
-        parser.error(
-            f"{Fore.RED} 'git --version' returned unexpected output!"
-        )
-
     subparsers = parser.add_subparsers(dest="command", required=True)
 
-    parser.add_argument(
-        "--socks-proxy", "-s",
-        help=(
-            "SOCKS proxy to use for requests, in"
-            f" {Fore.GREEN}HOST{Style.RESET_ALL}:{Fore.GREEN}PORT"
-            f" {Style.RESET_ALL}format"
-        ),
-        required=False,
-    )
-    parser.add_argument(
-        "--http-proxy", "-p",
-        help=(
-            "HTTPS proxy to use for requests, in"
-            f" {Fore.GREEN}HOST{Style.RESET_ALL}:{Fore.GREEN}PORT"
-            f" {Style.RESET_ALL}format."
-        ),
-        required=False,
-    )
+    configure_parser_general(parser)
 
     attack_parser = subparsers.add_parser(
         "attack", help="CI/CD Attack Capabilities", aliases=["a"],
@@ -98,7 +61,12 @@ def cli(args):
 
     arguments = parser.parse_args(args)
 
+    Output(arguments.supress, not arguments.no_color)
+
     validate_arguments(arguments, parser)
+    validate_git_config(parser)
+
+    Output.splash()
 
     arguments.func(arguments, subparsers)
 
@@ -119,7 +87,8 @@ def validate_arguments(args, parser):
 
     if not ("ghp_" in gh_token or "gho_" in gh_token or "ghu_" in
             gh_token or re.match('^[a-fA-F0-9]{40}$', gh_token)):
-        parser.error(f"{Fore.RED}[!] Provided GitHub PAT is malformed!")
+        parser.error(f"{Fore.RED}[!]{Style.RESET_ALL} Provided GitHub PAT is"
+                     " malformed!")
 
     args_dict = vars(args)
     args_dict["gh_token"] = gh_token
@@ -128,6 +97,29 @@ def validate_arguments(args, parser):
         parser.error(
             f"{Fore.RED}[-]{Style.RESET_ALL} You cannot use a SOCKS and HTTP"
             " proxy at the same time!"
+        )
+
+
+def validate_git_config(parser):
+    git_status = git.path_check()
+    if not git_status:
+        parser.error(
+            f"{Fore.RED} [-] The 'git' application is either not installed, "
+            "or not present on the path!"
+        )
+
+    git_version = git.version_check()
+
+    if git_version:
+        git_version = version.parse(git_version)
+        if git_version < version.parse(REQUIRED_GIT_VERSION):
+            parser.error(
+                f"{Fore.RED} This tool requires a 'git' version of at least"
+                f" {REQUIRED_GIT_VERSION}!"
+            )
+    else:
+        parser.error(
+            f"{Fore.RED} 'git --version' returned unexpected output!"
         )
 
 
@@ -147,8 +139,6 @@ def attack(args, parser):
         args.name = args.name if args.name else "test"
 
     timeout = int(args.timeout)
-
-    print(SPLASH)
 
     gh_attack_runner = Attacker(
         args.gh_token,
@@ -200,7 +190,7 @@ def enumerate(args, parser):
     if sum(bool(x) for x in [args.target, args.self_enumeration,
                              args.repository, args.repositories]) != 1:
         parser.error(
-            f"{Fore.RED}[-] {Style.RESET_ALL}You must only select one "
+            f"{Fore.RED}[-]{Style.RESET_ALL} You must only select one "
             "enumeration type."
         )
 
@@ -208,8 +198,6 @@ def enumerate(args, parser):
         parser.error(
             f"{Fore.RED}[-] Cannot output ymls if cloning is not enabled!"
         )
-
-    print(SPLASH)
 
     gh_enumeration_runner = Enumerator(
             args.gh_token,
@@ -236,7 +224,7 @@ def enumerate(args, parser):
         except argparse.ArgumentError as e:
             parser.error(
                 f"{RED_DASH} The file contained an invalid repository name!"
-                f"{bright(e)}"
+                f"{Output.bright(e)}"
             )
     elif args.repository:
         gh_enumeration_runner.enumerate_repo_only(args.repository)
@@ -251,9 +239,46 @@ def search(args, parser):
         http_proxy=args.http_proxy
     )
 
-    print(SPLASH)
-
     gh_search_runner.use_search_api(args.target)
+
+
+def configure_parser_general(parser):
+    """Helper method to add arguments to all subarguments.
+
+    Args:
+        parser: The parser to add the arguments to.
+    """
+    parser.add_argument(
+        "--socks-proxy", "-sp",
+        help=(
+            "SOCKS proxy to use for requests, in"
+            f" {Fore.GREEN}HOST{Style.RESET_ALL}:{Fore.GREEN}PORT"
+            f" {Style.RESET_ALL}format"
+        ),
+        required=False
+    )
+
+    parser.add_argument(
+        "--http-proxy", "-p",
+        help=(
+            "HTTPS proxy to use for requests, in"
+            f" {Fore.GREEN}HOST{Style.RESET_ALL}:{Fore.GREEN}PORT"
+            f" {Style.RESET_ALL}format."
+        ),
+        required=False
+    )
+
+    parser.add_argument(
+        "--supress", "-s",
+        help="Supresses the ASCII art.",
+        action='store_true'
+    )
+
+    parser.add_argument(
+        "--no-color", "-nc",
+        help="Removes all color from output.",
+        action="store_true"
+    )
 
 
 def configure_parser_attack(parser):
@@ -265,7 +290,7 @@ def configure_parser_attack(parser):
     parser.add_argument(
         "--target", "-t",
         help="Repository to target in attack.",
-        metavar=f"{Fore.RED}ORG/REPO{Style.RESET_ALL}",
+        metavar="ORG/REPO",
         required=True,
         type=StringType(80)
     )
@@ -328,7 +353,7 @@ def configure_parser_attack(parser):
         "--source-branch", "-sb",
         default="test",
         help="Name of the PR source branch, this will be displayed as\n"
-             f"{bright('user:branch_name')} when seen in the action approval\n"
+             f"{Output.bright('user:branch_name')} when seen in the action approval\n"
              "page. Defaults to 'test'",
         type=StringType(244)
     )
@@ -352,7 +377,7 @@ def configure_parser_attack(parser):
     parser.add_argument(
         "--file-name", "-fn",
         default="test",
-        help=f"Name of yaml file {bright('without extension')} that will be\n"
+        help=f"Name of yaml file {Output.bright('without extension')} that will be\n"
              "written as part of either attack type. Defaults to 'test'",
         type=StringType(64)
     )
@@ -439,7 +464,7 @@ def configure_parser_enumerate(parser):
     parser.add_argument(
         "--skip-clones", "-sc",
         help=(
-            f"Do {bright('NOT')} perform any git clone operations as part of\n"
+            f"Do {Output.bright('NOT')} perform any git clone operations as part of\n"
             "enumeration, as this generates log events for GitHub Enterprise\n"
             "Cloud customers."
         ),
@@ -449,7 +474,7 @@ def configure_parser_enumerate(parser):
     parser.add_argument(
         "--skip-runlog", "-sr",
         help=(
-            f"Do {bright('NOT')} download any workflow run logs, this will\n"
+            f"Do {Output.bright('NOT')} download any workflow run logs, this will\n"
             "speed up the enumeration, but may miss self-hosted runners for\n"
             "non-admin users."
         ),
