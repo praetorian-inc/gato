@@ -112,7 +112,7 @@ def test_search_api_ratelimit(mock_api, mock_time, capfd):
     assert len(res) == 1
 
     out, err = capfd.readouterr()
-    assert "[-] Secondary API Rate Limit Hit." in out
+    assert "[!] Secondary API Rate Limit Hit." in out
 
 
 @patch("gato.github.search.Api")
@@ -183,7 +183,7 @@ def test_search_api_iniitalrl(mock_api, mock_time, capfd):
     res = searcher.search_enumeration('testOrg')
     assert len(res) == 1
     out, err = capfd.readouterr()
-    assert "[-] Secondary API Rate Limit Hit." in out
+    assert "[!] Secondary API Rate Limit Hit." in out
 
 
 @patch('gato.github.Search.search_enumeration')
