@@ -17,11 +17,13 @@ class Searcher:
         pat: str,
         socks_proxy: str = None,
         http_proxy: str = None
+        github_url: str = None,
     ):
         self.api = Api(
             pat,
             socks_proxy=socks_proxy,
             http_proxy=http_proxy,
+            github_url=github_url,
         )
 
         self.socks_proxy = socks_proxy

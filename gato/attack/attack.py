@@ -24,13 +24,15 @@ class Attacker:
         http_proxy: str = None,
         author_email: str = None,
         author_name: str = None,
-        timeout: int = 30
+        timeout: int = 30,
+        github_url: str = None,
     ):
 
         self.api = Api(
             pat,
             socks_proxy=socks_proxy,
             http_proxy=http_proxy,
+            github_url=github_url,
         )
 
         self.socks_proxy = socks_proxy

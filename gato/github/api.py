@@ -13,12 +13,12 @@ class Api():
     rate limiting or network issues.
     """
 
-    GITHUB_URL = "https://api.github.com"
     RUNNER_RE = re.compile(r'Runner name: \'([\w+-]+)\'')
     MACHINE_RE = re.compile(r'Machine name: \'([\w+-]+)\'')
 
     def __init__(self, pat: str, version: str = "2022-11-28",
-                 http_proxy: str = None, socks_proxy: str = None):
+                 http_proxy: str = None, socks_proxy: str = None,
+                 github_url: str = "https://api.github.com"):
         """Initialize the API abstraction layer to interact with the GitHub
         REST API.
 
@@ -40,6 +40,7 @@ class Api():
             'Authorization': f'Bearer {pat}',
             'X-GitHub-Api-Version': version
         }
+        self.GITHUB_URL = github_url
 
         if http_proxy and socks_proxy:
             raise ValueError('A SOCKS & HTTP proxy cannot be used at the same '
@@ -106,7 +107,7 @@ class Api():
         Returns:
             Response: Returns the requests response object.
         """
-        request_url = Api.GITHUB_URL + url
+        request_url = self.GITHUB_URL + url
 
         logger.debug(f'Making GET API request to {request_url}!')
         api_response = requests.get(request_url, headers=self.headers,
@@ -129,7 +130,7 @@ class Api():
         Returns:
             Response: Returns the requests response object.
         """
-        request_url = Api.GITHUB_URL + url
+        request_url = self.GITHUB_URL + url
         logger.debug(f'Making POST API request to {request_url}!')
 
         api_response = requests.post(request_url, headers=self.headers,
@@ -152,7 +153,7 @@ class Api():
         Returns:
             Response: Returns the requests response object.
         """
-        request_url = Api.GITHUB_URL + url
+        request_url = self.GITHUB_URL + url
         logger.debug(f'Making DELETE API request to {request_url}!')
 
         api_response = requests.delete(request_url, headers=self.headers,
