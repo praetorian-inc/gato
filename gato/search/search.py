@@ -16,7 +16,7 @@ class Searcher:
         self,
         pat: str,
         socks_proxy: str = None,
-        http_proxy: str = None
+        http_proxy: str = None,
         github_url: str = None,
     ):
         self.api = Api(

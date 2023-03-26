@@ -23,8 +23,8 @@ class Enumerator:
         http_proxy: str = None,
         skip_clones: bool = False,
         output_yaml: str = None,
-        skip_log: bool = False
         skip_log: bool = False,
+        github_url: str = None
     ):
         """Initialize enumeration class with arguments sent by user.
 

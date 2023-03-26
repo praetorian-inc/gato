@@ -40,7 +40,7 @@ def cli(args):
     parser.add_argument(
         "--api-url", "-u",
         help=(
-            f"{Fore.RED}{bright('!! Experimental !!')}\n"
+            f"{Fore.RED}{Output.bright('!! Experimental !!')}\n"
             "Github API URL to target. \n"
             "Defaults to 'https://api.github.com'"
         ),
