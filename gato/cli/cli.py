@@ -61,7 +61,7 @@ def cli(args):
 
     arguments = parser.parse_args(args)
 
-    Output(arguments.silent, not arguments.no_color)
+    Output(arguments.supress, not arguments.no_color)
 
     validate_arguments(arguments, parser)
     validate_git_config(parser)
@@ -269,8 +269,8 @@ def configure_parser_general(parser):
     )
 
     parser.add_argument(
-        "--silent", "-s",
-        help="Reduces output to minimal information and removes ASCII arts.",
+        "--supress", "-s",
+        help="Supresses the ASCII art.",
         action='store_true'
     )
 
