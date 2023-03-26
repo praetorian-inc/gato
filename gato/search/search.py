@@ -3,18 +3,9 @@ import logging
 from gato.github import Search
 from gato.github import Api
 
-from colorama import Fore, Style
-from gato.cli import (
-    GREEN_PLUS,
-    GREEN_EXCLAIM,
-    YELLOW_EXCLAIM,
-    RED_DASH,
-    BRIGHT_DASH,
-    bright,
-)
+from gato.cli import Output
 
 logger = logging.getLogger(__name__)
-logging.root.setLevel(logging.DEBUG)
 
 
 class Searcher:
@@ -49,24 +40,20 @@ class Searcher:
         if not self.user_perms:
             self.user_perms = self.api.check_user()
             if not self.user_perms:
-                logger.error("This token cannot be used for enumeration!")
+                Output.error("This token cannot be used for enumeration!")
                 return False
 
-            print(
-                f"{GREEN_PLUS} The authenticated user is:"
-                f' {Style.BRIGHT}{self.user_perms["user"]}{Style.RESET_ALL}'
+            Output.info(
+                f"The authenticated user is: "
+                f"{Output.bright(self.user_perms['user'])}"
             )
             if len(self.user_perms["scopes"]) > 0:
-                print(
-                    f"{GREEN_PLUS} The GitHub Classic PAT has the following"
-                    " scopes:"
-                    f' {Fore.YELLOW}{", ".join(self.user_perms["scopes"])}'
-                    f"{Style.RESET_ALL}!"
+                Output.info(
+                    f"The GitHub Classic PAT has the following scopes: "
+                    f'{Output.yellow(", ".join(self.user_perms["scopes"]))}'
                 )
             else:
-                print(
-                    f"{YELLOW_EXCLAIM} The token has no scopes!"
-                )
+                Output.warn("The token has no scopes!")
 
         return True
 
@@ -93,17 +80,17 @@ class Searcher:
 
         api_search = Search(self.api)
 
-        print(
-            f"{YELLOW_EXCLAIM} Searching repositories within "
-            f"{bright(organization)} using the GitHub Code Search API for"
-            f" 'self-hosted' within YAML files."
+        Output.info(
+                f"Searching repositories within {Output.bright(organization)} "
+                "using the GitHub Code Search API for 'self-hosted' within "
+                "YAML files."
         )
         candidates = api_search.search_enumeration(organization)
 
-        print(
-            f"{GREEN_PLUS} Identified {len(candidates)} non-fork "
-            "repositories that matched the criteria!"
+        Output.result(
+            f"Identified {len(candidates)} non-fork repositories that matched "
+            "the criteria!"
         )
 
         for candidate in candidates:
-            print(candidate)
+            Output.result(candidate)
