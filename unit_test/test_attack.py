@@ -338,7 +338,7 @@ def test_shell_workflow_attack_fail_timeout2(mock_api, mock_time, capsys):
 
     print_output = captured.out
 
-    assert "Workflow still incomplete but hit timeout" in escape_ansi(print_output)
+    assert "The workflow is incomplete but hit the timeout" in escape_ansi(print_output)
 
 
 @patch("gato.attack.attack.time.sleep")
