@@ -1,6 +1,10 @@
 from unittest.mock import patch, MagicMock
 from gato.github.search import Search
 from gato.search import Searcher
+from gato.cli import Output
+
+
+Output(False, True)
 
 
 @patch("gato.github.search.time.sleep")
@@ -60,7 +64,7 @@ def test_search_api_cap(mock_api, mock_time, capfd):
     mock_time.assert_called_once()
     assert len(res) == 1
     out, err = capfd.readouterr()
-    assert "[-] Reached search cap!" in out
+    assert "Reached search cap!" in out
 
 
 @patch("gato.github.search.time.sleep")
@@ -98,7 +102,7 @@ def test_search_api_ratelimit(mock_api, mock_time, capfd):
     assert len(res) == 1
 
     out, err = capfd.readouterr()
-    assert "[-] Secondary rate limit hit! Sleeping 3 minutes!" in out
+    assert "Secondary rate limit hit! Sleeping 3 minutes!" in out
 
 
 @patch("gato.github.search.Api")
@@ -129,7 +133,7 @@ def test_search_api_permission(mock_api, capfd):
     res = searcher.search_enumeration('privateOrg')
     assert len(res) == 0
     out, err = capfd.readouterr()
-    assert "[-] Search failed with reponse code 422!" in out
+    assert "[!] Search failed with reponse code 422!" in out
     assert " listed users and repositories cannot be searched " in out
 
 
