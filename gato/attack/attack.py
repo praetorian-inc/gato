@@ -266,7 +266,7 @@ class Attacker:
             branch_created = self.api.create_branch(target_repo, branch)
 
             if not branch_created:
-                print(f"{RED_DASH} Failed to create branch!")
+                Output.error("Failed to create branch!")
                 return False
 
             rev_hash = self.api.commit_file(
