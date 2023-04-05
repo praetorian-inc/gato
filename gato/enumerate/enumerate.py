@@ -130,7 +130,7 @@ class Enumerator:
         elif repository.can_push():
             Output.result("The user can push to the repository!")
             if "workflow" in self.user_perms["scopes"]:
-                Output.result(
+                Output.owned(
                     "The user also has the workflow scope, which means a "
                     "custom YAML payload can be used!"
                 )
@@ -193,8 +193,8 @@ class Enumerator:
 
                 if self_hosted_jobs:
                     runner_detected = True
-                    print(
-                        f"{GREEN_PLUS} The repository contains a workflow:"
+                    Output.result(
+                        f"The repository contains a workflow:"
                         f" {wf} that executes on self-hosted runners!"
                     )
 
