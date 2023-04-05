@@ -768,3 +768,39 @@ class Api():
                             ymls.append((file['name'], file_data.decode()))
 
         return ymls
+
+    def retrieve_circleci_ymls(self, repo_name: str):
+        """Retrieve all CircleCI config.yaml files within the .circleci
+        directory.
+
+        Args:
+            repo_name (str): Name of the repository in Org/Repo format.
+
+        Returns:
+            (list): List of yml files in text format.
+        """
+        ymls = []
+        resp = self.call_get(f'/repos/{repo_name}/contents/.circleci')
+
+        if resp.status_code == 200:
+            objects = resp.json()
+
+            if type(objects) is not list:
+                return ymls
+
+            for file in objects:
+                if file['type'] == "file" and (
+                    file['name'].endswith("config.yml") or
+                    file['name'].endswith("config.yaml")
+                ):
+
+                    resp = self.call_get(
+                        f'/repos/{repo_name}/contents/{file["path"]}'
+                    )
+                    if resp.status_code == 200:
+                        resp_data = resp.json()
+                        if 'content' in resp_data:
+                            file_data = base64.b64decode(resp_data['content'])
+                            ymls.append((file['name'], file_data.decode()))
+
+        return ymls

@@ -4,7 +4,7 @@ from colorama import Fore, Style
 
 from gato.github import Api
 from gato.git import Git
-from gato.workflow_parser import WorkflowParser
+from gato.workflow_parser import WorkflowParser, CircleCIParser
 from gato.models import Repository
 from gato.cli import (
     GREEN_PLUS,
@@ -234,6 +234,33 @@ class Enumerator:
                 logger.warning("Attmpted to parse invalid yaml!")
 
         return runner_detected
+
+    def __perform_circleci_enumeration(self, repository: Repository):
+        """Enumerates the repository using the API to extract yml files. This
+        does not generate any git clone audit log events.
+
+        Args:
+            repository (Repository): Wrapped repository object.
+        """
+        circleci_used = False
+        ymls = self.api.retrieve_circleci_ymls(repository.name)
+
+        for (wf, yml) in ymls:
+            try:
+                parsed_yml = CircleCIParser(yml, repository.name, wf)
+                circleci_used = True
+                if self.output_yaml:
+                    success = parsed_yml.output(self.output_yaml)
+                    if not success:
+                        logger.warning("Failed to write yml to disk!")
+
+            # At this point we only know the extension, so handle and
+            #  ignore malformed yml files.
+            except Exception as parse_error:
+                print(parse_error)
+                logger.warning("Attmpted to parse invalid yaml!")
+
+        return circleci_used
 
     def __perform_clone_enumeration(self, repository: Repository):
         """Performs enumeration on the repository after cloning it.
@@ -539,6 +566,10 @@ class Enumerator:
             return
 
         if repository.is_admin():
+            print(
+                f"{GREEN_EXCLAIM} The user is an administrator on the"
+                " repository!"
+            )
             runners = self.api.get_repo_runners(repository.name)
             if runners:
                 runner_detected = True
@@ -555,6 +586,9 @@ class Enumerator:
         # regarding logging impact.
         if clone and self.__perform_yml_enumeration(repository):
             runner_detected = True
+
+        if clone and self.__perform_circleci_enumeration(repository) and repository.can_push():
+            print(f"{GREEN_PLUS} The repository contains a CircleCI workflow, and this user can push!")
 
         if runner_detected:
             # Only display permissions (beyond having none) if runner is
