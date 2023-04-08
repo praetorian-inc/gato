@@ -542,9 +542,8 @@ class Enumerator:
             return
 
         if repository.is_admin():
-            print(
-                f"{GREEN_EXCLAIM} The user is an administrator on the"
-                " repository!"
+            Output.owned(
+                " The user is an administrator on the repository!"
             )
             runners = self.api.get_repo_runners(repository.name)
             if runners:
@@ -563,8 +562,10 @@ class Enumerator:
         if clone and self.__perform_yml_enumeration(repository):
             runner_detected = True
 
-        if clone and self.__perform_circleci_enumeration(repository) and repository.can_push():
-            print(f"{GREEN_PLUS} The repository contains a CircleCI workflow, and this user can push!")
+        if clone and self.__perform_circleci_enumeration(repository) \
+                and repository.can_push():
+            Output.result("The repository contains a CircleCI workflow, and "
+                          "this user can push!")
 
         if runner_detected:
             # Only display permissions (beyond having none) if runner is
