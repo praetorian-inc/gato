@@ -1,22 +1,14 @@
 import logging
+import os
 
-from colorama import Fore, Style
 
 from gato.github import Api
 from gato.git import Git
 from gato.workflow_parser import WorkflowParser, CircleCIParser
 from gato.models import Repository
-from gato.cli import (
-    GREEN_PLUS,
-    GREEN_EXCLAIM,
-    YELLOW_EXCLAIM,
-    RED_DASH,
-    BRIGHT_DASH,
-    bright,
-)
+from gato.cli import Output
 
 logger = logging.getLogger(__name__)
-logging.root.setLevel(logging.DEBUG)
 
 
 class Enumerator:
@@ -31,7 +23,7 @@ class Enumerator:
         http_proxy: str = None,
         skip_clones: bool = False,
         output_yaml: str = None,
-        skip_log: bool = False,
+        skip_log: bool = False
     ):
         """Initialize enumeration class with arguments sent by user.
 
@@ -70,21 +62,17 @@ class Enumerator:
                 logger.error("This token cannot be used for enumeration!")
                 return False
 
-            print(
-                f"{GREEN_PLUS} The authenticated user is:"
-                f' {Style.BRIGHT}{self.user_perms["user"]}{Style.RESET_ALL}'
+            Output.info(
+                    "The authenticated user is: "
+                    f"{Output.bright(self.user_perms['user'])}"
             )
             if len(self.user_perms["scopes"]):
-                print(
-                    f"{GREEN_PLUS} The GitHub Classic PAT has the following"
-                    " scopes:"
-                    f' {Fore.YELLOW}{", ".join(self.user_perms["scopes"])}'
-                    f"{Style.RESET_ALL}!"
+                Output.info(
+                    "The GitHub Classic PAT has the following scopes: "
+                    f'{Output.yellow(", ".join(self.user_perms["scopes"]))}'
                 )
             else:
-                print(
-                    f"{YELLOW_EXCLAIM} The token has no scopes!"
-                )
+                Output.warn("The token has no scopes!")
 
         return True
 
@@ -94,87 +82,75 @@ class Enumerator:
             repository (Repository): Wrapped repository object.
         """
         if repository.is_admin():
-            print(
-                f"{GREEN_EXCLAIM} The user is an administrator on the"
-                " repository!"
+            Output.owned(
+                "The user is an administrator on the repository!"
             )
             if "workflow" in self.user_perms["scopes"]:
-                print(
-                    f"{GREEN_EXCLAIM} The user also has the workflow"
-                    " scope, which means a custom YAML payload can be"
-                    " used!"
+                Output.result(
+                    "The PAT also has the workflow scope, which means a "
+                    "custom YAML payload can be used!"
                 )
             else:
-                print(
-                    f"{YELLOW_EXCLAIM} The user does not have the workflow"
-                    " scope, which means an existing workflow trigger must"
-                    " be used!"
+                Output.inform(
+                    "The PAT does not have the workflow scope, which means an "
+                    "existing workflow trigger must be used!"
                 )
-                print(
-                    f"{BRIGHT_DASH} Look for a job in the workflow YAML"
-                    " that checks out the repository, AND then runs code"
-                    " that can be modified within the repository!"
+                Output.tabbed(
+                    "Look for a job in the workflow YAML that checks out the "
+                    "repository, AND then runs code that can be modified "
+                    "within the repository!"
                 )
                 if repository.is_public():
-                    print(
-                        f"{BRIGHT_DASH} Additionally, since the repository"
-                        " is public this token can be used to approve a"
-                        " malicious fork PR!"
+                    Output.tabbed(
+                        "Additionally, since the repository is public this "
+                        "token can be used to approve a malicious fork PR!"
                     )
         elif repository.is_maintainer():
-            print(
-                f"{GREEN_EXCLAIM} The user is a maintainer on the"
-                " repository!"
-            )
+            Output.result("The user is a maintainer on the repository!")
             if "workflow" in self.user_perms["scopes"]:
-                print(
-                    f"{GREEN_EXCLAIM} The user also has the workflow"
-                    " scope, which means a custom YAML payload can be"
-                    " used!"
+                Output.result(
+                    "The user also has the workflow scope, which means a "
+                    "custom YAML payload can be used!"
                 )
             else:
-                print(
-                    f"{YELLOW_EXCLAIM} The user does not have the workflow"
-                    " scope, which means an existing workflow trigger must"
-                    " be used!"
+                Output.inform(
+                    "The user does not have the workflow scope, which means "
+                    "an existing workflow trigger must be used!"
                 )
-                print(
-                    f"{BRIGHT_DASH} Look for a job in the workflow YAML"
-                    " that checks out the repository, AND then runs code"
-                    " that can be modified within the repository!"
+                Output.tabbed(
+                    "Look for a job in the workflow YAML that checks out the "
+                    "repository, AND then runs code that can be modified "
+                    "within the repository!"
                 )
                 if repository.is_public():
-                    print(
-                        f"{BRIGHT_DASH} Additionally, since the repository"
-                        " is public this token can be used to approve a"
-                        " malicious fork PR!"
+                    Output.tabbed(
+                        "Additionally, since the repository is public this "
+                        "token can be used to approve a malicious fork PR!"
                     )
         elif repository.can_push():
-            print(f"{GREEN_PLUS} The user can push to the repository!")
+            Output.result("The user can push to the repository!")
             if "workflow" in self.user_perms["scopes"]:
-                print(
-                    f"{GREEN_EXCLAIM} The user also has the workflow"
-                    " scope, which means a custom YAML payload can be"
-                    " used!"
+                Output.owned(
+                    "The user also has the workflow scope, which means a "
+                    "custom YAML payload can be used!"
                 )
             else:
-                print(
-                    f"{YELLOW_EXCLAIM} The user does not have the workflow"
-                    " scope, which means an existing workflow trigger must"
-                    " be used!"
+                Output.inform(
+                    "The user does not have the workflow scope, which means "
+                    "an existing workflow trigger must be used!"
                 )
-                print(
-                    f"{BRIGHT_DASH} Look for a job in the workflow YAML"
-                    " that checks out the repository, AND then runs code"
-                    " that can be modified within the repository!"
+                Output.tabbed(
+                    "Look for a job in the workflow YAML that checks out the "
+                    "repository, AND then runs code that can be modified "
+                    "within the repository!"
                 )
 
         elif repository.can_pull():
             if repository.can_fork():
-                print(
-                    f"{YELLOW_EXCLAIM} The user can only pull from the"
-                    " repository, but forking is allowed! Only a fork"
-                    " pull-request based attack would be possible."
+                Output.inform(
+                    "The user can only pull from the repository, but forking "
+                    "is allowed! Only a fork pull-request based attack would "
+                    "be possible."
                 )
 
     def __print_runner_info(self, runners: dict):
@@ -190,13 +166,13 @@ class Enumerator:
             runner_status = runner['status']
             labels = ', '.join([elem['name'] for elem in runner['labels']])
 
-            print(
-                f"{BRIGHT_DASH} Name: {bright(runner_name)},"
-                f" OS: {bright(runner_os)} Status: {bright(runner_status)}"
+            Output.tabbed(
+                f"Name: {Output.bright(runner_name)}, OS: "
+                f"{Output.bright(runner_os)} Status: "
+                f"{Output.bright(runner_status)}"
             )
-            print(
-                f"{ BRIGHT_DASH} The runner has the following labels: "
-                f"{Fore.YELLOW}{labels}{Style.RESET_ALL}!"
+            Output.tabbed(
+                f"The runner has the following labels: {labels}!"
             )
 
     def __perform_yml_enumeration(self, repository: Repository):
@@ -217,8 +193,8 @@ class Enumerator:
 
                 if self_hosted_jobs:
                     runner_detected = True
-                    print(
-                        f"{GREEN_PLUS} The repository contains a workflow:"
+                    Output.result(
+                        f"The repository contains a workflow:"
                         f" {wf} that executes on self-hosted runners!"
                     )
 
@@ -293,20 +269,26 @@ class Enumerator:
 
                 if self_hosted_jobs:
                     runner_detected = True
-                    print(
-                        f"{GREEN_PLUS} The repository contains a workflow:"
-                        f" {wf} that executes on self-hosted runners!"
+                    Output.result(
+                        f"The repository contains a workflow: "
+                        f"{Output.bright(wf)} that executes on self-hosted"
+                        f" runners!"
                     )
 
                     if self.output_yaml:
                         success = parsed_yml.output(self.output_yaml)
                         if not success:
                             logger.warning("Failed to write yml to disk!")
+                        else:
+                            path = os.path.join(
+                                self.output_yaml, f'{repository.name}/{wf}'
+                            )
+                            Output.result(f"{wf} saved to {path}")
 
             # At this point we only know the extension, so handle and
             #  ignore malformed yml files.
             except Exception as parse_error:
-                print(parse_error)
+                Output.error(parse_error)
                 logger.warning("Attmpted to parse invalid yaml!")
 
         return runner_detected
@@ -328,16 +310,15 @@ class Enumerator:
             )
 
         if wf_runs:
-            print(
-                f"{GREEN_PLUS} The repository {repository.name} contains a"
-                " previous workflow run that executed on a self-hosted"
-                " runner!"
+            Output.result(
+                    f"The repository {repository.name} contains a previous "
+                    "workflow run that executed on a self-hosted runner!"
             )
-            print(
-                f"{BRIGHT_DASH} The runner name was:"
-                f" {bright(wf_runs[0]['runner_name'])}"
-                " and the machine name was"
-                f" {bright(wf_runs[0]['machine_name'])}"
+            Output.tabbed(
+                "The runner name was: "
+                f"{Output.bright(wf_runs[0]['runner_name'])} "
+                f"and the machine name was "
+                f"{Output.bright(wf_runs[0]['machine_name'])}"
             )
             logger.info(
                 f"The repository {repository.name} contains a previous"
@@ -376,18 +357,18 @@ class Enumerator:
             return False
 
         if 'repo' not in self.user_perms['scopes']:
-            print(f"{RED_DASH} Self-enumeration requires the repo scope!")
+            Output.error("Self-enumeration requires the repo scope!")
             return False
 
         orgs = self.api.check_organizations()
 
-        print(
-            f'{GREEN_PLUS} The user { self.user_perms["user"] } belongs to'
-            f" {len(orgs)} organizations!"
+        Output.info(
+            f'The user { self.user_perms["user"] } belongs to {len(orgs)} '
+            'organizations!'
         )
 
         for org in orgs:
-            print(f"    {BRIGHT_DASH} {org}")
+            Output.tabbed(f"{Output.bright(org)}")
 
         for org in orgs:
             self.enumerate_organization(org)
@@ -409,40 +390,41 @@ class Enumerator:
         details = self.api.get_organization_details(org)
 
         if not details:
-            print(f"{YELLOW_EXCLAIM} Unable to query the org: {bright(org)}!"
-                  f" Ensure the organization exists!")
+            Output.warn(
+                f"Unable to query the org: {Output.bright(org)}! Ensure the "
+                "organization exists!")
             return False
 
-        print(f"{BRIGHT_DASH} Enumerating the {bright(org)} organization!")
+        Output.result(f"Enumerating the {Output.bright(org)} organization!")
 
         # If fields such as billing email are populated, then the user MUST
         # be an organization owner. If not, then the user is a member (for
         # private repos) or
         if "billing_email" in details and details["billing_email"] is not None:
-            print(f"{GREEN_PLUS} The user is an organization owner!")
+            Output.owned("The user is an organization owner!")
 
             if "admin:org" in self.user_perms["scopes"]:
-                print(
-                    f"{GREEN_EXCLAIM} The token also has the"
-                    f" {Fore.YELLOW}org:admin{Style.RESET_ALL} scope. This"
-                    " token has extensive access to the GitHub organization!"
+                Output.result(
+                    f"The token also has the {Output.yellow('org:admin')} "
+                    "scope. This token has extensive access to the GitHub"
+                    " organization!"
                 )
             org_admin_user = True
             check_org_private = True
         elif "billing_email" in details:
-            print(f"{GREEN_PLUS} The user is likely an organization member!")
+            Output.result("The user is likely an organization member!")
             org_admin_user = False
             check_org_private = True
         else:
             org_admin_user = False
             check_org_private = False
-            print(f"{YELLOW_EXCLAIM} The user has only public access!")
+            Output.warn("The user has only public access!")
         if org_admin_user:
             runners = self.api.check_org_runners(org)
             if runners:
-                print(
-                    f"{GREEN_PLUS} The organization has "
-                    f"{len(runners['runners'])} org-level self-hosted runners!"
+                Output.result(
+                    f"The organization has {len(runners['runners'])} org-level"
+                    " self-hosted runners!"
                 )
                 self.__print_runner_info(runners)
 
@@ -455,10 +437,10 @@ class Enumerator:
 
         org_public_repos = self.__assemble_repo_list(org, ['public'])
 
-        print(
-            f"{GREEN_PLUS} About to enumerate"
-            f" {len(org_private_repos) + len(org_public_repos)} repos within"
-            f" the {org} organization!"
+        Output.info(
+            f"About to enumerate "
+            f"{len(org_private_repos) + len(org_public_repos)} repos within "
+            f"the {org} organization!"
         )
 
         if org_private_repos or org_public_repos:
@@ -466,37 +448,31 @@ class Enumerator:
             sso_enabled = self.api.validate_sso(org, all_repos[0].name)
 
             if sso_enabled:
-
                 if org_private_repos:
-                    print(
-                        f"{bright('---')} Enumerating private repos in"
-                        f" {Style.BRIGHT}{org}{Style.RESET_ALL}"
-                        f" {bright('---')}"
+                    Output.header(
+                        f"Enumerating private repos in {Output.bright(org)}"
                     )
                     for repo in org_private_repos:
                         self.enumerate_repository(repo,
                                                   clone=not self.skip_clones)
                 if org_public_repos:
-                    print(
-                        f" {bright('---')}Enumerating public repos in"
-                        f" {bright(org)} {bright('---')} "
+                    Output.header(
+                        f"Enumerating public repos in {Output.bright(org)}"
                     )
                     for repo in org_public_repos:
                         self.enumerate_repository(
                             repo, clone=not self.skip_clones
                         )
             else:
-                print(
-                    f"{RED_DASH} SSO is not enabled for this Org!"
-                )
+                Output.error("SSO is not enabled for this Org!")
                 if org_private_repos:
-                    print(
-                        f"Due to Enterprise Access, this PAT can list the"
-                        f" private repos in {org}:"
+                    Output.result(
+                        f"Due to Enterprise Access, this PAT can list the "
+                        f"private repos in {Output.bright(org)}:"
                     )
                     for i in org_private_repos:
-                        print(
-                            f"- {Style.BRIGHT}{i.name}{Style.RESET_ALL}"
+                        Output.result(
+                            f"- {Output.bright(i.name)}"
                         )
 
     def enumerate_repo_only(self, repo_name: str, clone: bool = True):
@@ -518,9 +494,10 @@ class Enumerator:
 
             self.enumerate_repository(repo, clone=not self.skip_clones)
         else:
-            print(f"{YELLOW_EXCLAIM} Unable to enumerate "
-                  f"{bright(repo_name)}! It may not exist or the user does not"
-                  f" have access.")
+            Output.warn(
+                f"Unable to enumerate {Output.bright(repo_name)}! It may not "
+                " exist or the user does not have access."
+            )
 
     def enumerate_repos(self, repo_names: list, clone: bool = True):
         """Enumerate a list of repositories, each repo must be in Org/Repo name
@@ -535,7 +512,7 @@ class Enumerator:
             return False
 
         if len(repo_names) == 0:
-            print(f"{RED_DASH} The list of repositories was empty!")
+            Output.error("The list of repositories was empty!")
             return
 
         for repo in repo_names:
@@ -555,14 +532,13 @@ class Enumerator:
         if not self.__setup_user_info():
             return False
 
-        print(
-            f"{BRIGHT_DASH} Enumerating:"
-            f" {Style.BRIGHT}{repository.name}{Style.RESET_ALL}!"
+        Output.tabbed(
+            f"Enumerating: {Output.bright(repository.name)}!"
         )
         runner_detected = False
 
         if not repository.can_pull():
-            print(f"{RED_DASH} The user cannot push or pull, skipping.")
+            Output.error("The user cannot push or pull, skipping.")
             return
 
         if repository.is_admin():
@@ -573,9 +549,9 @@ class Enumerator:
             runners = self.api.get_repo_runners(repository.name)
             if runners:
                 runner_detected = True
-                print(
-                    f"{GREEN_PLUS} The repository has "
-                    f"{len(runners)} repo-level self-hosted runners!"
+                Output.result(
+                    f"The repository has {len(runners)} repo-level "
+                    "self-hosted runners!"
                 )
                 self.__print_runner_info({"runners": runners})
 

@@ -1,7 +1,9 @@
 from gato.github import Api
+from gato.cli import Output
 
 import time
 import logging
+
 
 logger = logging.getLogger(__name__)
 
@@ -61,23 +63,24 @@ class Search():
                     query['page'] += 1
                     code = result.json()
                 elif result.status_code == 403:
-                    print(
-                        '[-] Secondary rate limit hit! Sleeping 3 minutes!')
+                    Output.inform(
+                        "Secondary rate limit hit! Sleeping 3 minutes!"
+                    )
                     time.sleep(180)
                 elif result.status_code == 422:
-                    print('[-] Reached search cap!')
+                    Output.warn("Reached search cap!")
                     break
 
             return set(candidates)
         else:
             if result.status_code == 403:
-                print('[-] Secondary rate limit hit!')
+                Output.inform('Secondary rate limit hit!')
             elif result.status_code == 422:
-                print('[-] Search failed with reponse code 422!')
+                Output.warn('Search failed with reponse code 422!')
                 context = result.json()
 
                 if 'errors' in context and len(context['errors']) > 0:
-                    print("\tError message from GitHub:\n"
-                          f"\t{context['errors'][0]['message']}")
+                    Output.warn("\tError message from GitHub:\n"
+                                f"\t{context['errors'][0]['message']}")
 
             return set()

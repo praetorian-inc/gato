@@ -391,7 +391,8 @@ class Api():
         else:
             logger.warning(
                 f"Unable to query runners for {org}! This is likely due to the"
-                " PAT permission level!")
+                " PAT permission level!"
+            )
 
     def check_org_repos(self, org: str, type: str):
         """Check repositories present within an organization.
@@ -509,20 +510,20 @@ class Api():
         Returns:
             list: List of self hosted runners from the repository.
         """
-        logger.info(f'    - Enumerating repo level runners within {full_name}')
+        logger.debug(f'Enumerating repo level runners within {full_name}')
         runners = self.call_get(f'/repos/{full_name}/actions/runners')
 
         if runners.status_code == 200:
             runner_list = runners.json()['runners']
             if len(runner_list) > 0:
-                logger.info(
-                    f'    - Identified {len(runner_list)}'
+                logger.debug(
+                    f'Identified {len(runner_list)}'
                     ' runners in the repository!')
 
             return runner_list
         else:
-            logger.info(
-                f' .   - Did not identify repo-level runners for {full_name}!')
+            logger.debug(
+                f'Did not identify repo-level runners for {full_name}!')
 
         return None
 
@@ -543,7 +544,7 @@ class Api():
         run_logs = []
 
         if runs.status_code == 200:
-            logger.debug(f'    - Enumerating runs within {repo_name}')
+            logger.debug(f'Enumerating runs within {repo_name}')
             for run in runs.json()['workflow_runs']:
                 run_log = self.call_get(
                     f'/repos/{repo_name}/actions/runs/{run["id"]}/'
