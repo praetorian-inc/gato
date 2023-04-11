@@ -769,3 +769,24 @@ class Api():
                             ymls.append((file['name'], file_data.decode()))
 
         return ymls
+
+    def get_secrets(self, repo_name: str):
+        """Issues an API call to the GitHub API to list secrets for a
+        repository. This will succeed as long as the token has the repo scope
+        and the user has write access to the repository.
+
+        Args:
+            repo_name (str): _description_
+        Returns:
+            (list): List of secrets at the repo level, empty list if none.
+        """
+        secrets = []
+
+        resp = self.call_get(f'/repos/{repo_name}/actions/secrets')
+        if resp.status_code == 200:
+            secrets_response = resp.json()
+
+            if secrets_response['total_count'] > 0:
+                secrets = secrets_response['secrets']
+
+        return secrets

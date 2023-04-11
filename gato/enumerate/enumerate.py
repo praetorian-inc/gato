@@ -524,6 +524,21 @@ class Enumerator:
                 )
                 self.__print_runner_info({"runners": runners})
 
+        if repository.can_push():
+            secrets = self.api.get_secrets(repository.name)
+            if secrets:
+                if 'workflow' in self.user_perms['scopes']:
+                    Output.owned(f"The repository has {Output.bright(len(secrets))} secrets and the token can use a workflow to read them!")
+
+                    Output.result("The secret names are:")
+                    for secret in secrets:
+                        Output.tabbed(f"\t{secret['name']}, last updated {secret['updated_at']}")
+
+                else:
+                    Output.info(f"The repository has {Output.bright(len(secrets))} secrets, but the token cannot trigger a new workflow!")
+                    for secret in secrets:
+                        Output.tabbed(f"\t{secret['name']}, last updated {secret['updated_at']}")
+
         if not self.skip_log and self.__perform_runlog_enumeration(repository):
             runner_detected = True
 
