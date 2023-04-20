@@ -401,6 +401,14 @@ class Enumerator:
                 )
                 self.__print_runner_info(runners)
 
+            org_secrets = self.api.get_org_secrets(org)
+
+            if org_secrets:
+                Output.owned(f"The organization has {Output.bright(len(org_secrets))} secrets!")
+                Output.result("The secret names are:")
+                for secret in org_secrets:
+                    Output.tabbed(f"\t{Output.bright(secret['name'])}, last updated {secret['updated_at']}")
+
         if check_org_private:
             org_private_repos = self.__assemble_repo_list(
                 org, ['private', 'internal']
@@ -461,11 +469,10 @@ class Enumerator:
             return False
 
         repo_data = self.api.get_repository(repo_name)
-
         if repo_data:
             repo = Repository(repo_data)
-
             self.enumerate_repository(repo, clone=not self.skip_clones)
+            self.enumerate_repository_secrets(repo, org_secrets=True)
         else:
             Output.warn(
                 f"Unable to enumerate {Output.bright(repo_name)}! It may not "
@@ -491,8 +498,37 @@ class Enumerator:
         for repo in repo_names:
             self.enumerate_repo_only(repo, clone)
 
+    def enumerate_repository_secrets(
+            self, repository: Repository, org_secrets: bool = False):
+        """Enumerate secrets accessible to a repository.
+
+        Args:
+            repository (Repository): Wrapper object created from calling the
+            API and retrieving a repository.
+            org_secrets (bool): Whether print all org secrets accessible.
+        """
+        if repository.can_push():
+            secrets = self.api.get_secrets(repository.name)
+
+            org_secrets = self.api.get_repo_org_secrets(repository.name)
+            if org_secrets:
+                secrets.extend(org_secrets)
+
+            if secrets:
+                if 'workflow' in self.user_perms['scopes']:
+                    Output.owned(f"The repository can access {Output.bright(len(secrets))} secrets and the token can use a workflow to read them!")
+
+                    Output.result("The secret names are:")
+                    for secret in secrets:
+                        Output.tabbed(f"\t{Output.bright(secret['name'])}, last updated {secret['updated_at']}")
+
+                else:
+                    Output.info(f"The repository can access {Output.bright(len(secrets))} secrets, but the token cannot trigger a new workflow!")
+                    for secret in secrets:
+                        Output.tabbed(f"\t{Output.bright(secret['name'])}, last updated {secret['updated_at']}")
+
     def enumerate_repository(self, repository: Repository, clone: bool = True):
-        """Enumerate an entire organization, and check everything relevant to
+        """Enumerate a repository, and check everything relevant to
         self-hosted runner abuse that that the user has permissions to check.
 
         Args:
@@ -523,21 +559,6 @@ class Enumerator:
                     "self-hosted runners!"
                 )
                 self.__print_runner_info({"runners": runners})
-
-        if repository.can_push():
-            secrets = self.api.get_secrets(repository.name)
-            if secrets:
-                if 'workflow' in self.user_perms['scopes']:
-                    Output.owned(f"The repository has {Output.bright(len(secrets))} secrets and the token can use a workflow to read them!")
-
-                    Output.result("The secret names are:")
-                    for secret in secrets:
-                        Output.tabbed(f"\t{secret['name']}, last updated {secret['updated_at']}")
-
-                else:
-                    Output.info(f"The repository has {Output.bright(len(secrets))} secrets, but the token cannot trigger a new workflow!")
-                    for secret in secrets:
-                        Output.tabbed(f"\t{secret['name']}, last updated {secret['updated_at']}")
 
         if not self.skip_log and self.__perform_runlog_enumeration(repository):
             runner_detected = True
