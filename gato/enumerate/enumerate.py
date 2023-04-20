@@ -404,10 +404,15 @@ class Enumerator:
             org_secrets = self.api.get_org_secrets(org)
 
             if org_secrets:
-                Output.owned(f"The organization has {Output.bright(len(org_secrets))} secrets!")
+                Output.owned(
+                    f"The organization has {Output.bright(len(org_secrets))}"
+                    " secret(s)!")
                 Output.result("The secret names are:")
                 for secret in org_secrets:
-                    Output.tabbed(f"\t{Output.bright(secret['name'])}, last updated {secret['updated_at']}")
+                    Output.tabbed(
+                        f"\t{Output.bright(secret['name'])}, "
+                        f"last updated {secret['updated_at']}"
+                    )
 
         if check_org_private:
             org_private_repos = self.__assemble_repo_list(
@@ -516,16 +521,24 @@ class Enumerator:
 
             if secrets:
                 if 'workflow' in self.user_perms['scopes']:
-                    Output.owned(f"The repository can access {Output.bright(len(secrets))} secrets and the token can use a workflow to read them!")
+                    Output.owned(
+                        "The repository can access "
+                        f"{Output.bright(len(secrets))} secrets and the "
+                        "token can use a workflow to read them!")
 
                     Output.result("The secret names are:")
                     for secret in secrets:
-                        Output.tabbed(f"\t{Output.bright(secret['name'])}, last updated {secret['updated_at']}")
+                        Output.tabbed(f"\t{Output.bright(secret['name'])}, "
+                                      f"last updated {secret['updated_at']}")
 
                 else:
-                    Output.info(f"The repository can access {Output.bright(len(secrets))} secrets, but the token cannot trigger a new workflow!")
+                    Output.info(
+                        f"The repository can access "
+                        f"{Output.bright(len(secrets))} secrets, but the "
+                        "token cannot trigger a new workflow!")
                     for secret in secrets:
-                        Output.tabbed(f"\t{Output.bright(secret['name'])}, last updated {secret['updated_at']}")
+                        Output.tabbed(f"\t{Output.bright(secret['name'])},"
+                                      f" last updated {secret['updated_at']}")
 
     def enumerate_repository(self, repository: Repository, clone: bool = True):
         """Enumerate a repository, and check everything relevant to

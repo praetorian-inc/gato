@@ -232,5 +232,20 @@
             }
         ],
         "extra_validation": "function_name"
+    },
+    {
+        "PAT": "ORG_ADMIN_REPO_WORKFLOW_TOKEN",
+        "invocation": "gato e -t GHRunnerPlayground -sr",
+        "assertions": [
+            {
+                "expect": "The organization has 1 secret(s)",
+                "type": "stdout"
+            },
+            {
+                "expect": "INTEGRATION_SECRET, last updated 2023-04-20T17:52:56Z",
+                "type": "stdout"
+            }
+        ],
+        "extra_validation": "function_name"
     }
 ]

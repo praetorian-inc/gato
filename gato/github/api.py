@@ -803,14 +803,18 @@ class Api():
 
                     if secret['visibility'] == "selected":
 
-                        repos_resp = self.call_get(f'/orgs/{org_name}/actions/secrets/{secret["name"]}/repositories')
+                        repos_resp = self.call_get(
+                            f'/orgs/{org_name}/actions/secrets/'
+                            f'{secret["name"]}/repositories'
+                        )
 
                         if repos_resp.status_code == 200:
                             repos_json = repos_resp.json()
-                            repo_names = [repo['full_name'] for repo in repos_json['repositories']]
+                            repo_names = [repo['full_name'] for repo in
+                                          repos_json['repositories']]
 
                         secret['repos'] = repo_names
-   
+
                     secrets.append(secret)
 
         return secrets
@@ -827,8 +831,10 @@ class Api():
             (list): List of org secrets that can be read via a workflow in this
             repository.
         """
-        resp = self.call_get(f'/repos/{repo_name}/actions/organization-secrets')
-
+        resp = self.call_get(
+            f'/repos/{repo_name}/actions/organization-secrets'
+        )
+        secrets = []
         if resp.status_code == 200:
             secrets_response = resp.json()
 
