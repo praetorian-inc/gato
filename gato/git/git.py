@@ -75,7 +75,7 @@ class Git:
 
             if p.returncode != 0:
                 logger.error("Git clone operation did not succeed!")
-                raise Exception("Git clone operation did not suceeed!")
+                raise Exception("Git clone operation did not succeed!")
 
             p = subprocess.Popen(
                 self.config_command1.split(" "),
