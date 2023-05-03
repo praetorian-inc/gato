@@ -189,7 +189,8 @@ class Attacker:
                     "Successfully created a PR! It can be viewed at: "
                     f"{Output.bright(pr_url)}"
                 )
-
+                # Wait for the attack PR job to queue before removing it
+                time.sleep(15)
                 rebase_status = cloned_repo.rewrite_commit()
 
                 if rebase_status:
