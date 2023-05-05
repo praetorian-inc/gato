@@ -164,7 +164,7 @@ class Api():
             url (stre): _description_
             params (dict, optional): _description_. Defaults to None.
         """
-        request_url = Api.GITHUB_URL + url
+        request_url = self.github_url + url
         logger.debug(f'Making PUT API request to {request_url}!')
 
         api_response = requests.put(request_url, headers=self.headers,
