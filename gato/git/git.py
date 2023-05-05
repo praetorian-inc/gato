@@ -32,7 +32,10 @@ class Git:
             Defaults to None.
         """
         self.cloned = False
-        self.github_url = github_url
+        if not github_url:
+            self.github_url = "github.com"
+        else:
+            self.github_url = github_url
 
         if self.github_url != "github.com" or proxies:
             os.environ["GIT_SSL_NO_VERIFY"] = 'True'

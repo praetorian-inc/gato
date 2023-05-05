@@ -45,7 +45,6 @@ def cli(args):
             "Defaults to 'https://api.github.com'"
         ),
         metavar="https://api.github-url.com/api/v3",
-        default="https://api.github.com",
         required=False,
     )
 
@@ -479,9 +478,9 @@ def configure_parser_enumerate(parser):
     parser.add_argument(
         "--skip-clones", "-sc",
         help=(
-            f"Do {Output.bright('NOT')} perform any git clone operations as part of\n"
-            "enumeration, as this generates log events for GitHub Enterprise\n"
-            "Cloud customers."
+            f"Do {Output.bright('NOT')} perform any repo contents API requests\n"
+            " during enumeration, as this may have an additional logging\n"
+            " impact."
         ),
         action="store_true",
     )
