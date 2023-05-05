@@ -15,12 +15,12 @@ class Api():
     rate limiting or network issues.
     """
 
-    GITHUB_URL = "https://api.github.com"
     RUNNER_RE = re.compile(r'Runner name: \'([\w+-]+)\'')
     MACHINE_RE = re.compile(r'Machine name: \'([\w+-]+)\'')
 
     def __init__(self, pat: str, version: str = "2022-11-28",
-                 http_proxy: str = None, socks_proxy: str = None):
+                 http_proxy: str = None, socks_proxy: str = None,
+                 github_url: str = "https://api.github.com"):
         """Initialize the API abstraction layer to interact with the GitHub
         REST API.
 
@@ -42,6 +42,10 @@ class Api():
             'Authorization': f'Bearer {pat}',
             'X-GitHub-Api-Version': version
         }
+        if not github_url:
+            self.github_url = "https://api.github.com"
+        else:
+            self.github_url = github_url
 
         if http_proxy and socks_proxy:
             raise ValueError('A SOCKS & HTTP proxy cannot be used at the same '
@@ -60,6 +64,10 @@ class Api():
                 'http': f'socks5://{socks_proxy}',
                 'https': f'socks5://{socks_proxy}'
             }
+
+        if self.github_url != "https://api.github.com":
+            self.verify_ssl = False
+            requests.packages.urllib3.disable_warnings()
 
     def __process_run_log(self, log_content: bytes, run_info: dict):
         """Utility method to process a run log zip file.
@@ -110,7 +118,7 @@ class Api():
         Returns:
             Response: Returns the requests response object.
         """
-        request_url = Api.GITHUB_URL + url
+        request_url = self.github_url + url
 
         get_header = copy.deepcopy(self.headers)
         if strip_auth:
@@ -137,7 +145,7 @@ class Api():
         Returns:
             Response: Returns the requests response object.
         """
-        request_url = Api.GITHUB_URL + url
+        request_url = self.github_url + url
         logger.debug(f'Making POST API request to {request_url}!')
 
         api_response = requests.post(request_url, headers=self.headers,
@@ -156,7 +164,7 @@ class Api():
             url (stre): _description_
             params (dict, optional): _description_. Defaults to None.
         """
-        request_url = Api.GITHUB_URL + url
+        request_url = self.github_url + url
         logger.debug(f'Making PUT API request to {request_url}!')
 
         api_response = requests.put(request_url, headers=self.headers,
@@ -176,7 +184,7 @@ class Api():
         Returns:
             Response: Returns the requests response object.
         """
-        request_url = Api.GITHUB_URL + url
+        request_url = self.github_url + url
         logger.debug(f'Making DELETE API request to {request_url}!')
 
         api_response = requests.delete(request_url, headers=self.headers,
