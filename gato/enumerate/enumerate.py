@@ -23,7 +23,8 @@ class Enumerator:
         http_proxy: str = None,
         skip_clones: bool = False,
         output_yaml: str = None,
-        skip_log: bool = False
+        skip_log: bool = False,
+        github_url: str = None
     ):
         """Initialize enumeration class with arguments sent by user.
 
@@ -46,6 +47,7 @@ class Enumerator:
             pat,
             socks_proxy=socks_proxy,
             http_proxy=http_proxy,
+            github_url=github_url,
         )
 
         self.socks_proxy = socks_proxy
@@ -54,6 +56,7 @@ class Enumerator:
         self.skip_log = skip_log
         self.output_yaml = output_yaml
         self.user_perms = None
+        self.github_url = github_url
 
     def __setup_user_info(self):
         if not self.user_perms:
@@ -226,6 +229,7 @@ class Enumerator:
             self.api.pat,
             repository.name,
             proxies=self.api.proxies,
+            github_url=self.github_url.split('/')[2] if self.github_url else None
         )
 
         status = cloned_repo.perform_clone()
