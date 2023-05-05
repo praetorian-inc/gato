@@ -445,6 +445,9 @@ class Enumerator:
                     for repo in org_private_repos:
                         self.enumerate_repository(repo,
                                                   clone=not self.skip_clones)
+                        self.enumerate_repository_secrets(
+                            repo, org_secrets=False
+                        )
                 if org_public_repos:
                     Output.header(
                         f"Enumerating public repos in {Output.bright(org)}"
@@ -452,6 +455,9 @@ class Enumerator:
                     for repo in org_public_repos:
                         self.enumerate_repository(
                             repo, clone=not self.skip_clones
+                        )
+                        self.enumerate_repository_secrets(
+                            repo, org_secrets=False
                         )
             else:
                 Output.error("SSO is not enabled for this Org!")
@@ -519,8 +525,8 @@ class Enumerator:
         if repository.can_push():
             secrets = self.api.get_secrets(repository.name)
 
-            org_secrets = self.api.get_repo_org_secrets(repository.name)
             if org_secrets:
+                org_secrets = self.api.get_repo_org_secrets(repository.name)
                 secrets.extend(org_secrets)
 
             if secrets:
