@@ -235,14 +235,33 @@
     },
     {
         "PAT": "ORG_ADMIN_REPO_WORKFLOW_TOKEN",
-        "invocation": "gato e -t GHRunnerPlayground -sr",
+        "invocation": "gato -s e -t GHRunnerPlayground -sr",
         "assertions": [
             {
                 "expect": "The organization has 1 secret(s)",
                 "type": "stdout"
             },
             {
-                "expect": "INTEGRATION_SECRET, last updated 2023-04-20T17:52:56Z",
+                "expect": "INTEGRATION_SECRET, last updated 2023-05-18T19:36:13Z",
+                "type": "stdout"
+            }
+        ],
+        "extra_validation": "function_name"
+    },
+    {
+        "PAT": "ORG_ADMIN_REPO_WORKFLOW_TOKEN",
+        "invocation": "gato -s e -r GHRunnerPlayground/md-test -sr",
+        "assertions": [
+            {
+                "expect": "The repository can access 2 secrets and the token can use a workflow to read",
+                "type": "stdout"
+            },
+            {
+                "expect": "REPO_SECRET, last updated 2023-04-20T18:01:37Z",
+                "type": "stdout"
+            },
+            {
+                "expect": "INTEGRATION_SECRET, last updated 2023-05-18T19:36:13Z",
                 "type": "stdout"
             }
         ],
