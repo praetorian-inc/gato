@@ -425,11 +425,7 @@ class Api():
             "page": 1
         }
 
-        unauth_req = type == 'public'
-
-        org_repos = self.call_get(
-            f'/orgs/{org}/repos', params=get_params, strip_auth=unauth_req
-        )
+        org_repos = self.call_get(f'/orgs/{org}/repos', params=get_params)
 
         repos = []
         if org_repos.status_code == 200:
@@ -441,8 +437,7 @@ class Api():
                 get_params['page'] += 1
                 org_repos = self.call_get(
                     f'/orgs/{org}/repos',
-                    params=get_params,
-                    strip_auth=unauth_req
+                    params=get_params
                 )
                 if org_repos.status_code == 200:
                     listing = org_repos.json()
