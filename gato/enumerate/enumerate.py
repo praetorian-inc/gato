@@ -396,7 +396,7 @@ class Enumerator:
             org_admin_user = False
             check_org_private = False
             Output.warn("The user has only public access!")
-        if org_admin_user:
+        if org_admin_user and 'admin:org' in self.user_perms['scopes']:
             runners = self.api.check_org_runners(org)
             if runners:
                 Output.result(
@@ -404,6 +404,19 @@ class Enumerator:
                     " self-hosted runners!"
                 )
                 self.__print_runner_info(runners)
+
+            org_secrets = self.api.get_org_secrets(org)
+
+            if org_secrets:
+                Output.owned(
+                    f"The organization has {Output.bright(len(org_secrets))}"
+                    " secret(s)!")
+                Output.result("The secret names are:")
+                for secret in org_secrets:
+                    Output.tabbed(
+                        f"\t{Output.bright(secret['name'])}, "
+                        f"last updated {secret['updated_at']}"
+                    )
 
         if check_org_private:
             org_private_repos = self.__assemble_repo_list(
@@ -432,6 +445,9 @@ class Enumerator:
                     for repo in org_private_repos:
                         self.enumerate_repository(repo,
                                                   clone=not self.skip_clones)
+                        self.enumerate_repository_secrets(
+                            repo, org_secrets=False
+                        )
                 if org_public_repos:
                     Output.header(
                         f"Enumerating public repos in {Output.bright(org)}"
@@ -439,6 +455,9 @@ class Enumerator:
                     for repo in org_public_repos:
                         self.enumerate_repository(
                             repo, clone=not self.skip_clones
+                        )
+                        self.enumerate_repository_secrets(
+                            repo, org_secrets=False
                         )
             else:
                 Output.error("SSO is not enabled for this Org!")
@@ -465,11 +484,10 @@ class Enumerator:
             return False
 
         repo_data = self.api.get_repository(repo_name)
-
         if repo_data:
             repo = Repository(repo_data)
-
             self.enumerate_repository(repo, clone=not self.skip_clones)
+            self.enumerate_repository_secrets(repo, org_secrets=True)
         else:
             Output.warn(
                 f"Unable to enumerate {Output.bright(repo_name)}! It may not "
@@ -495,8 +513,45 @@ class Enumerator:
         for repo in repo_names:
             self.enumerate_repo_only(repo, clone)
 
+    def enumerate_repository_secrets(
+            self, repository: Repository, org_secrets: bool = False):
+        """Enumerate secrets accessible to a repository.
+
+        Args:
+            repository (Repository): Wrapper object created from calling the
+            API and retrieving a repository.
+            org_secrets (bool): Whether print all org secrets accessible.
+        """
+        if repository.can_push():
+            secrets = self.api.get_secrets(repository.name)
+
+            if org_secrets:
+                org_secrets = self.api.get_repo_org_secrets(repository.name)
+                secrets.extend(org_secrets)
+
+            if secrets:
+                if 'workflow' in self.user_perms['scopes']:
+                    Output.owned(
+                        "The repository can access "
+                        f"{Output.bright(len(secrets))} secrets and the "
+                        "token can use a workflow to read them!")
+
+                    Output.result("The secret names are:")
+                    for secret in secrets:
+                        Output.tabbed(f"\t{Output.bright(secret['name'])}, "
+                                      f"last updated {secret['updated_at']}")
+
+                else:
+                    Output.info(
+                        f"The repository can access "
+                        f"{Output.bright(len(secrets))} secrets, but the "
+                        "token cannot trigger a new workflow!")
+                    for secret in secrets:
+                        Output.tabbed(f"\t{Output.bright(secret['name'])},"
+                                      f" last updated {secret['updated_at']}")
+
     def enumerate_repository(self, repository: Repository, clone: bool = True):
-        """Enumerate an entire organization, and check everything relevant to
+        """Enumerate a repository, and check everything relevant to
         self-hosted runner abuse that that the user has permissions to check.
 
         Args:

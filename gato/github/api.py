@@ -425,11 +425,7 @@ class Api():
             "page": 1
         }
 
-        unauth_req = type == 'public'
-
-        org_repos = self.call_get(
-            f'/orgs/{org}/repos', params=get_params, strip_auth=unauth_req
-        )
+        org_repos = self.call_get(f'/orgs/{org}/repos', params=get_params)
 
         repos = []
         if org_repos.status_code == 200:
@@ -441,8 +437,7 @@ class Api():
                 get_params['page'] += 1
                 org_repos = self.call_get(
                     f'/orgs/{org}/repos',
-                    params=get_params,
-                    strip_auth=unauth_req
+                    params=get_params
                 )
                 if org_repos.status_code == 200:
                     listing = org_repos.json()
@@ -777,3 +772,76 @@ class Api():
                             ymls.append((file['name'], file_data.decode()))
 
         return ymls
+
+    def get_secrets(self, repo_name: str):
+        """Issues an API call to the GitHub API to list secrets for a
+        repository. This will succeed as long as the token has the repo scope
+        and the user has write access to the repository.
+
+        Args:
+            repo_name (str): Name of repository to list secrets for.
+        Returns:
+            (list): List of secrets at the repo level, empty list if none.
+        """
+        secrets = []
+
+        resp = self.call_get(f'/repos/{repo_name}/actions/secrets')
+        if resp.status_code == 200:
+            secrets_response = resp.json()
+
+            if secrets_response['total_count'] > 0:
+                secrets = secrets_response['secrets']
+
+        return secrets
+
+    def get_org_secrets(self, org_name: str):
+        secrets = []
+
+        resp = self.call_get(f'/orgs/{org_name}/actions/secrets')
+        if resp.status_code == 200:
+            secrets_response = resp.json()
+
+            if secrets_response['total_count'] > 0:
+                for secret in secrets_response['secrets']:
+
+                    if secret['visibility'] == "selected":
+
+                        repos_resp = self.call_get(
+                            f'/orgs/{org_name}/actions/secrets/'
+                            f'{secret["name"]}/repositories'
+                        )
+
+                        if repos_resp.status_code == 200:
+                            repos_json = repos_resp.json()
+                            repo_names = [repo['full_name'] for repo in
+                                          repos_json['repositories']]
+
+                        secret['repos'] = repo_names
+
+                    secrets.append(secret)
+
+        return secrets
+
+    def get_repo_org_secrets(self, repo_name: str):
+        """Issues an API call to the GitHub API to list org secrets for a
+        repository. This will succeed as long as the token has the repo scope
+        and the user has write access to the repository.
+
+        Args:
+            repo_name (str): Name of repository to list secrets for.
+
+        Returns:
+            (list): List of org secrets that can be read via a workflow in this
+            repository.
+        """
+        resp = self.call_get(
+            f'/repos/{repo_name}/actions/organization-secrets'
+        )
+        secrets = []
+        if resp.status_code == 200:
+            secrets_response = resp.json()
+
+            if secrets_response['total_count'] > 0:
+                secrets = secrets_response['secrets']
+
+        return secrets
