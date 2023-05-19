@@ -396,7 +396,7 @@ class Enumerator:
             org_admin_user = False
             check_org_private = False
             Output.warn("The user has only public access!")
-        if org_admin_user and 'admin:org' in self.user_perms:
+        if org_admin_user and 'admin:org' in self.user_perms['scopes']:
             runners = self.api.check_org_runners(org)
             if runners:
                 Output.result(
