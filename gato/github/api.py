@@ -698,6 +698,8 @@ class Api():
 
         if resp.status_code == 201:
             return True
+        else:
+            return False
 
     def delete_branch(self, repo_name: str, branch_name: str):
         """Deletes the specified branch within the repository.
