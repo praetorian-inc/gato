@@ -786,3 +786,112 @@ def test_workflow_ymls(mock_get):
 
     assert len(ymls) == 1
     assert ymls[0][1] == "FooBarBaz"
+
+
+@patch("gato.github.api.requests.get")
+def test_get_secrets(mock_get):
+    """Test getting repo secret names.
+    """
+    test_pat = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+    api = Api(test_pat, "2022-11-28")
+
+    mock_get.return_value.status_code = 200
+    mock_get.return_value.json.return_value = {
+        "total_count": 3,
+        "secrets": [
+            {},
+            {},
+            {}
+        ]
+    }
+
+    secrets = api.get_secrets("testOrg/testRepo")
+
+    assert len(secrets) == 3
+
+
+@patch("gato.github.api.requests.get")
+def test_get_org_secrets(mock_get):
+    """Tests getting org secrets
+    """
+    test_pat = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+    api = Api(test_pat, "2022-11-28")
+
+    mock_get.return_value.status_code = 200
+    mock_get.return_value.json.side_effect = [
+        {
+            "total_count": 2,
+            "secrets": [
+                {
+                    "name": "DEPLOY_TOKEN",
+                    "created_at": "2019-08-10T14:59:22Z",
+                    "updated_at": "2020-01-10T14:59:22Z",
+                    "visibility": "all"
+                },
+                {
+                    "name": "GH_TOKEN",
+                    "created_at": "2019-08-10T14:59:22Z",
+                    "updated_at": "2020-01-10T14:59:22Z",
+                    "visibility": "selected",
+                    "selected_repositories_url": "https://api.github.com/orgs/testOrg/actions/secrets/GH_TOKEN/repositories"
+                }
+            ]
+        },
+        {
+            "total_count": 2,
+            "repositories": [
+                {
+                    "full_name": "testOrg/testRepo1"
+                },
+                {
+                    "full_name": "testOrg/testRepo2"
+                }
+            ]
+        }
+    ]
+
+    secrets = api.get_org_secrets("testOrg")
+
+    assert len(secrets) == 2
+    assert secrets[0]["name"] == "DEPLOY_TOKEN"
+    assert secrets[1]["name"] == "GH_TOKEN"
+    assert len(secrets[1]["repos"]) == 2
+
+
+@patch("gato.github.api.requests.get")
+def test_get_org_secrets_empty(mock_get):
+    """Tests getting org secrets
+    """
+    test_pat = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+    api = Api(test_pat, "2022-11-28")
+
+    mock_get.return_value.status_code = 200
+    mock_get.return_value.json.return_value = {
+        "total_count": 0,
+        "secrets": []
+    }
+
+    secrets = api.get_org_secrets("testOrg")
+
+    assert secrets == []
+
+
+@patch("gato.github.api.requests.get")
+def test_get_repo_org_secrets(mock_get):
+    """Tests getting org secrets accessible to a repo.
+    """
+    test_pat = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+    api = Api(test_pat, "2022-11-28")
+
+    mock_get.return_value.status_code = 200
+    mock_get.return_value.json.return_value = {
+        "total_count": 3,
+        "secrets": [
+            {},
+            {}
+        ]
+    }
+
+    secrets = api.get_repo_org_secrets("testOrg/testRepo")
+
+    assert len(secrets) == 2
