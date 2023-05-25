@@ -1,3 +1,5 @@
+from typing import List
+
 from gato.models.runner import Runner
 from gato.models.repository import Repository
 from gato.models.secret import Secret
@@ -37,7 +39,7 @@ class Organization():
             self.org_admin_user = False
             self.org_member = False
 
-    def set_secrets(self, secrets: list[Secret]):
+    def set_secrets(self, secrets: List[Secret]):
         """Set repo-level secrets.
 
         Args:
@@ -45,12 +47,12 @@ class Organization():
         """
         self.secrets = secrets
 
-    def set_public_repos(self, repos: list[Repository]):
+    def set_public_repos(self, repos: List[Repository]):
         """Set list of public repos
         """
         self.public_repos = repos
 
-    def set_private_repos(self, repos: list[Repository]):
+    def set_private_repos(self, repos: List[Repository]):
         """_summary_
 
         Args:
@@ -58,7 +60,7 @@ class Organization():
         """
         self.private_repos = repos
 
-    def set_runners(self, runners: list[Runner]):
+    def set_runners(self, runners: List[Runner]):
         """_summary_
 
         Args:

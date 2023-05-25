@@ -1,3 +1,5 @@
+from typing import List
+
 from gato.models import Organization, Repository, Secret, Runner
 from gato.github import Api
 
@@ -12,7 +14,7 @@ class OrganizationEnum():
         self.api = api
 
     def __assemble_repo_list(
-            self, organization: str, visibilities: list) -> list[Repository]:
+            self, organization: str, visibilities: list) -> List[Repository]:
         """Get a list of repositories that match the visibility types.
 
         Args:

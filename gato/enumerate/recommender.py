@@ -90,7 +90,7 @@ class Recommender:
                 )
 
     @staticmethod
-    def print_repo_secrets(scopes, secrets: list[Secret]):
+    def print_repo_secrets(scopes, secrets: List[Secret]):
         """_summary_
 
         Args:
