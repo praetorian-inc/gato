@@ -57,26 +57,26 @@ class Repository():
         this repository.
 
         Args:
-            secrets (list): _description_
+            secrets (List[Secret]): List of Secret wrapper objects.
         """
         self.org_secrets = secrets
 
     def set_secrets(self, secrets: List[Secret]):
-        """Set repo-level secrets.
+        """Sets secrets that are attached to this repository.
 
         Args:
-            secrets (list): _description_
+            secrets (List[Secret]): List of repo level secret wrapper objects.
         """
         self.secrets = secrets
 
     def set_runners(self, runners: List[Runner]):
-        """
+        """Sets list of self-hosted runners attached at the repository level.
         """
         self.sh_runner_access = True
         self.runners = runners
 
     def add_self_hosted_workflows(self, workflows: list):
-        """
+        """Add a list of workflow file names that run on self-hosted runners.
         """
         self.sh_workflow_names.extend(workflows)
 
@@ -85,19 +85,19 @@ class Repository():
         level or repo level.
 
         Args:
-            runner (Runner): _description_
+            runner (Runner): Runner wrapper object
         """
         self.sh_runner_access = True
         self.accessible_runners.append(runner)
 
     def toJSON(self):
-        """_summary_
+        """Converts the repository to a Gato JSON representation.
         """
         representation = {
             "name": self.name,
             "permissions": self.permission_data,
+            "runner_workflows": [wf for wf in self.sh_workflow_names],
             "accessible_runners": [runner.toJSON() for runner in self.accessible_runners],
-            "runners": [runner.toJSON() for runner in self.runners],
             "repo_runners": [runner.toJSON() for runner in self.runners],
             "repo_secrets": [secret.toJSON() for secret in self.secrets],
             "org_secrets": [secret.toJSON() for secret in self.org_secrets],

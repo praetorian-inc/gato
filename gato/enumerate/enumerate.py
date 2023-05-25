@@ -1,4 +1,5 @@
 import logging
+import json
 
 from gato.github import Api
 from gato.models import Repository, Organization
@@ -147,7 +148,8 @@ class Enumerator:
 
         Output.info(
             f"About to enumerate "
-            f"{len(organization.private_repos) + len(organization.public_repos)} repos within "
+            f"{len(organization.private_repos) + len(organization.public_repos)}"
+            " repos within "
             f"the {organization.name} organization!"
         )
 
@@ -156,7 +158,7 @@ class Enumerator:
             Output.tabbed(
                 f"Enumerating: {Output.bright(repo.name)}!"
             )
-            self.repo_e.enumerate_repository(repo) 
+            self.repo_e.enumerate_repository(repo)
             self.repo_e.enumerate_repository_secrets(repo)
 
             Recommender.print_repo_secrets(

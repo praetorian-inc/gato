@@ -5,11 +5,14 @@ from gato.github import Api
 
 
 class OrganizationEnum():
-    """_summary_
+    """Helper class to wrap organization specific enumeration funcionality.
     """
 
     def __init__(self, api: Api):
-        """_summary_
+        """Simple init method.
+
+        Args:
+            api (Api): Insantiated GitHub API wrapper object.
         """
         self.api = api
 
@@ -32,10 +35,14 @@ class OrganizationEnum():
 
     def construct_repo_enum_list(
             self, organization: Organization) -> List[Repository]:
-        """_summary_
+        """Constructs a list of repositories that a user has access to within
+        an organization.
 
         Args:
-            organization (_type_): _description_
+            organization (Organization): Organization wrapper object.
+
+        Returns:
+            List[Repository]: List of repositories to enumerate.
         """
         if organization.org_member:
             org_private_repos = self.__assemble_repo_list(

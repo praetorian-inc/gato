@@ -137,7 +137,7 @@ class RepositoryEnum():
 
         Args:
             repository (Repository): Wrapper object created from calling the
-            API and retrieving a repository. 
+            API and retrieving a repository.
         """
         if repository.can_push():
             secrets = self.api.get_secrets(repository.name)

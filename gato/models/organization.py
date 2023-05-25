@@ -7,20 +7,23 @@ from gato.models.secret import Secret
 
 class Organization():
 
-    def __init__(self, org_data: dict, user_scopes):
-        """_summary_
+    def __init__(self, org_data: dict, user_scopes: list):
+        """Wrapper object for an organization.
 
         Args:
-            org_data (dict): _description_
+            org_data (dict): Org data from GitHub API
+            user_scopes (list): List of OAuth scopes that the PAT has
         """
         self.name = None
         self.org_admin_user = False
         self.org_admin_scopes = False
-        self.org_admin_user = False
         self.org_member = False
         self.secrets = []
         self.runners = []
         self.sso_enabled = False
+
+        self.public_repos = []
+        self.private_repos = []
 
         self.name = org_data['login']
 
@@ -43,28 +46,49 @@ class Organization():
         """Set repo-level secrets.
 
         Args:
-            secrets (list): _description_
+            secrets (list): List of secrets at the organization level.
         """
         self.secrets = secrets
 
     def set_public_repos(self, repos: List[Repository]):
-        """Set list of public repos
+        """List of public repos for the org.
+
+        Args:
+            repos (List[Repository]): List of Repository wrapper objects.
         """
         self.public_repos = repos
 
     def set_private_repos(self, repos: List[Repository]):
-        """_summary_
+        """List of private repos for the org.
 
         Args:
-            repos (List[Repository]): _description_
+            repos (List[Repository]): List of Repository wrapper objects.
         """
         self.private_repos = repos
 
     def set_runners(self, runners: List[Runner]):
-        """_summary_
+        """Set a list of runners that the organization can access.
 
         Args:
-            runners (List[Runner]): _description_
+            runners (List[Runner]): List of runners that are attached to the
+            organization.
         """
-
         self.runners = runners
+
+    def toJSON(self):
+        """Converts the repository to a Gato JSON representation.
+        """
+        representation = {
+            "name": self.name,
+            "org_admin_user": self.org_admin_user,
+            "org_member": self.org_member,
+            "org_runners": [runner.toJSON() for runner in self.runners],
+            "org_secrets": [secret.toJSON() for secret in self.secrets],
+            "sso_access": self.sso_enabled,
+            "public_repos":
+                [repository.toJSON() for repository in self.public_repos],
+            "private_repos":
+                [repository.toJSON() for repository in self.private_repos]
+        }
+
+        return representation

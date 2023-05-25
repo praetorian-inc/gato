@@ -10,12 +10,14 @@ from gato.models import Secret
 class Recommender:
 
     @staticmethod
-    def print_repo_attack_recommendations(scopes, repository: Repository):
-        """_summary_
+    def print_repo_attack_recommendations(
+        scopes: list, repository: Repository
+    ):
+        """Prints attack recommendations for repositories.
 
         Args:
-            scopes (_type_): _description_
-            repository (_type_): _description_
+            scopes (list): List of scopes for user who ran Gato.
+            repository (Repository): Repository wrapper object.
         """
         if repository.is_admin():
             Output.owned(
@@ -91,11 +93,11 @@ class Recommender:
 
     @staticmethod
     def print_repo_secrets(scopes, secrets: List[Secret]):
-        """_summary_
+        """Prints list of repository level secrets.
 
         Args:
-            scopes (_type_): _description_
-            secrets (list[Secret]): _description_
+            scopes (list): List of OAuth scopes.
+            secrets (list[Secret]): List of secret wrapper objects.
         """
 
         if not secrets:
@@ -120,12 +122,24 @@ class Recommender:
 
     @staticmethod
     def print_repo_runner_info(repository: Repository):
+        """Prints information about repository level self-hosted runners.
+
+        Args:
+            repository (Repository): Repository wrapper object.
+        """
+
+        if repository.sh_workflow_names:
+            Output.result(
+                f"The repository contains a workflow: "
+                f"{repository.sh_workflow_names[0]} that executes on "
+                "self-hosted runners!"
+            )
 
         if repository.accessible_runners:
 
             Output.result(
-                f"The repository {repository.name} contains a previous "
-                "workflow run that executed on a self-hosted runner!"
+                f"The repository {Output.bright(repository.name)} contains a "
+                "previous workflow run that executed on a self-hosted runner!"
             )
 
             Output.tabbed(
@@ -169,10 +183,11 @@ class Recommender:
 
     @staticmethod
     def print_org_findings(scopes, organization: Organization):
-        """_summary_
+        """Prints findings related to an organization, and provides context for
+        attacks/future investigation based on the scopes a user has.
 
         Args:
-            organization (Organization): _description_
+            organization (Organization): Organization wrapper object.
         """
         if organization.org_admin_user:
             Output.owned("The user is an organization owner!")

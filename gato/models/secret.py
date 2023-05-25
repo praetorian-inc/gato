@@ -26,3 +26,16 @@ class Secret():
             bool: True if this is a repository level secret.
         """
         return '/' in self.parent
+
+    def toJSON(self):
+        """Converts the repository to a Gato JSON representation.
+        """
+        representation = {
+            "name": self.name,
+            "updated_at": self.secret_data['updated_at'],
+            "created_at": self.secret_data['created_at'],
+            "visibiliy": self.visibility,
+            "repo_level": self.is_repo_level()
+        }
+
+        return representation
