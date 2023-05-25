@@ -2,17 +2,12 @@ import os
 import pathlib
 import pytest
 import json
-import re
 
-from unittest.mock import patch
 from unittest.mock import MagicMock
 
 from gato.models.repository import Repository
-from gato.enumerate import Enumerator
 from gato.enumerate.repository import RepositoryEnum
 from gato.cli import Output
-
-from unit_test.utils import escape_ansi as escape_ansi
 
 TEST_REPO_DATA = None
 TEST_WORKFLOW_YML = None
@@ -92,5 +87,3 @@ def test_enumerate_repo_admin():
     )
 
     assert test_repo.is_admin()
-
-

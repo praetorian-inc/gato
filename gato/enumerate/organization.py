@@ -42,10 +42,13 @@ class OrganizationEnum():
                 organization.name, ['private', 'internal']
             )
 
-            sso_enabled = self.api.validate_sso(
-                organization.name, org_private_repos[0].name
-            )
-            organization.sso_enabled = sso_enabled
+            # We might legitimately have no private repos despite being a
+            # member.
+            if org_private_repos:
+                sso_enabled = self.api.validate_sso(
+                    organization.name, org_private_repos[0].name
+                )
+                organization.sso_enabled = sso_enabled
         else:
             org_private_repos = []
 
@@ -71,7 +74,7 @@ class OrganizationEnum():
             if runners:
                 org_runners = [
                     Runner(
-                        runner,
+                        runner['name'],
                         machine_name=None,
                         os=runner['os'],
                         status=runner['status'],
@@ -79,11 +82,9 @@ class OrganizationEnum():
                     )
                     for runner in runners['runners']
                 ]
-
                 organization.set_runners(org_runners)
 
             org_secrets = self.api.get_org_secrets(organization.name)
-
             if org_secrets:
                 org_secrets = [
                     Secret(secret, organization.name) for secret in org_secrets

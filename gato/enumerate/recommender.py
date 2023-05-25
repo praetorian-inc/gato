@@ -192,6 +192,7 @@ class Recommender:
                 f"The organization has {len(organization.runners)} org-level"
                 " self-hosted runners!"
             )
+            Recommender.print_runner_info(organization.runners)
 
         if organization.secrets:
             Output.owned(

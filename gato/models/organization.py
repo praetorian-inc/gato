@@ -27,7 +27,7 @@ class Organization():
         if "billing_email" in org_data and org_data["billing_email"] is not None:
             if "admin:org" in user_scopes:
                 self.org_admin_scopes = True
-                self.org_admin_user = True
+            self.org_admin_user = True
             self.org_member = True
         elif "billing_email" in org_data:
             self.org_admin_user = False

@@ -143,11 +143,6 @@ class Enumerator:
             self.user_perms['scopes'], organization
         )
 
-        if organization.runners:
-            Recommender.print_runner_info(
-                organization.runners
-            )
-
         enum_list = self.org_e.construct_repo_enum_list(organization)
 
         Output.info(

@@ -14,6 +14,7 @@ from unit_test.utils import escape_ansi as escape_ansi
 
 TEST_REPO_DATA = None
 TEST_WORKFLOW_YML = None
+TEST_ORG_DATA = None
 
 Output(False, True)
 
@@ -21,13 +22,18 @@ Output(False, True)
 @pytest.fixture(scope="session", autouse=True)
 def load_test_files(request):
     global TEST_REPO_DATA
+    global TEST_ORG_DATA
     global TEST_WORKFLOW_YML
     curr_path = pathlib.Path(__file__).parent.resolve()
     test_repo_path = os.path.join(curr_path, "files/example_repo.json")
+    test_org_path = os.path.join(curr_path, "files/example_org.json")
     test_wf_path = os.path.join(curr_path, 'files/main.yaml')
 
     with open(test_repo_path, 'r') as repo_data:
         TEST_REPO_DATA = json.load(repo_data)
+
+    with open(test_org_path, 'r') as repo_data:
+        TEST_ORG_DATA = json.load(repo_data)     
 
     with open(test_wf_path, 'r') as wf_data:
         TEST_WORKFLOW_YML = wf_data.read()
@@ -312,6 +318,99 @@ def test_enum_repo(mock_api, capfd):
 
 
 @patch("gato.enumerate.enumerate.Api")
+def test_enum_org(mock_api, capfd):
+
+    mock_api.return_value.check_user.return_value = {
+        "user": 'testUser',
+        "scopes": ['repo', 'workflow', 'admin:org']
+    }
+
+    mock_api.return_value.get_repository.return_value = TEST_REPO_DATA
+    mock_api.return_value.get_organization_details.return_value = TEST_ORG_DATA
+
+    mock_api.return_value.get_org_secrets.return_value = [
+        {
+            "name": "DEPLOY_TOKEN",
+            "created_at": "2019-08-10T14:59:22Z",
+            "updated_at": "2020-01-10T14:59:22Z",
+            "visibility": "all"
+        },
+        {
+            "name": "GH_TOKEN",
+            "created_at": "2019-08-10T14:59:22Z",
+            "updated_at": "2020-01-10T14:59:22Z",
+            "visibility": "selected",
+            "selected_repositories_url": "https://api.github.com/orgs/testOrg/actions/secrets/GH_TOKEN/repositories"
+        }
+    ]
+
+    mock_api.return_value.check_org_runners.return_value = {
+        "total_count": 1,
+        "runners": [
+            {
+                "id": 21,
+                "name": "ghrunner-test",
+                "os": "Linux",
+                "status": "online",
+                "busy": False,
+                "labels": [
+                    {
+                        "id": 1,
+                        "name": "self-hosted",
+                        "type": "read-only"
+                    },
+                    {
+                        "id": 2,
+                        "name": "Linux",
+                        "type": "read-only"
+                    },
+                    {
+                        "id": 3,
+                        "name": "X64",
+                        "type": "read-only"
+                    }
+                ]
+            }
+        ]
+    }
+
+    mock_api.return_value.check_org_repos.side_effect = [
+        [TEST_REPO_DATA],
+        [],
+        []
+    ]
+
+    mock_api.return_value.get_secrets.return_value = [
+        {
+            "name": "TEST_SECRET",
+            "created_at": "2019-08-10T14:59:22Z",
+            "updated_at": "2020-01-10T14:59:22Z"
+        }
+    ]
+
+    mock_api.return_value.get_repo_org_secrets.return_value = []
+
+    gh_enumeration_runner = Enumerator(
+        "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+        socks_proxy=None,
+        http_proxy=None,
+        skip_clones=True,
+        output_yaml=False,
+        skip_log=True,
+    )
+
+    gh_enumeration_runner.enumerate_organization('github')
+
+    out, err = capfd.readouterr()
+    print(out)
+
+    escaped_output = escape_ansi(out)
+    assert "The repository can access 1 secrets and the token can use a workflow to read them!" in escaped_output
+    assert "TEST_SECRET" in escaped_output
+    assert "ghrunner-test" in escaped_output
+
+
+@patch("gato.enumerate.enumerate.Api")
 def test_enum_repo_runner(mock_api, capfd):
 
     mock_api.return_value.check_user.return_value = {
@@ -445,3 +544,27 @@ def test_bad_token(mock_api):
     val = gh_enumeration_runner.self_enumeration()
 
     assert val is False
+
+
+@patch("gato.enumerate.enumerate.Api")
+def test_unscoped_token(mock_api, capfd):
+
+    gh_enumeration_runner = Enumerator(
+        "ghp_BADTOKEN",
+        socks_proxy=None,
+        http_proxy=None,
+        skip_clones=True,
+        output_yaml=False,
+        skip_log=True,
+    )
+
+    mock_api.return_value.check_user.return_value = {
+        "user": 'testUser',
+        "scopes": ['public_repo']
+    }
+
+    status = gh_enumeration_runner.self_enumeration()
+
+    out, _ = capfd.readouterr()
+    assert "Self-enumeration requires the repo scope!" in escape_ansi(out)
+    assert status is False
