@@ -31,7 +31,7 @@ class OrganizationEnum():
         return repos
 
     def construct_repo_enum_list(
-            self, organization: Organization) -> list[Repository]:
+            self, organization: Organization) -> List[Repository]:
         """_summary_
 
         Args:
