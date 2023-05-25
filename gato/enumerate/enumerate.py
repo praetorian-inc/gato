@@ -21,7 +21,6 @@ class Enumerator:
         pat: str,
         socks_proxy: str = None,
         http_proxy: str = None,
-        skip_clones: bool = False,
         output_yaml: str = None,
         skip_log: bool = False,
         github_url: str = None
@@ -34,12 +33,8 @@ class Enumerator:
             Defaults to None.
             http_proxy (str, optional): Proxy gettings for HTTP proxy.
             Defaults to None.
-            skip_clones (bool, optional): Whether to skip git clone operations
-            (which will prevent scanning workflow yml files).
-            Defaults to False.
             output_yaml (str, optional): If set, directory to save all yml
-            files.
-            to (if clones are not skipped). Defaults to None.
+            files to . Defaults to None.
             skip_log (bool, optional): If set, then run logs will not be
             downloaded.
         """
@@ -52,7 +47,6 @@ class Enumerator:
 
         self.socks_proxy = socks_proxy
         self.http_proxy = http_proxy
-        self.skip_clones = skip_clones
         self.skip_log = skip_log
         self.output_yaml = output_yaml
         self.user_perms = None
@@ -170,7 +164,7 @@ class Enumerator:
                 self.user_perms['scopes'], repo
             )
 
-    def enumerate_repo_only(self, repo_name: str, clone: bool = True):
+    def enumerate_repo_only(self, repo_name: str):
         """Enumerate only a single repository. No checks for org-level
         self-hosted runners will be performed in this case.
 
@@ -205,14 +199,12 @@ class Enumerator:
                 " exist or the user does not have access."
             )
 
-    def enumerate_repos(self, repo_names: list, clone: bool = True):
+    def enumerate_repos(self, repo_names: list):
         """Enumerate a list of repositories, each repo must be in Org/Repo name
         format.
 
         Args:
             repo_names (list): Repository name in {Org/Owner}/Repo format.
-            clone (bool, optional):  Whether to clone the repo
-            in order to analayze the yaml files. Defaults to True.
         """
         if not self.__setup_user_info():
             return False
@@ -222,4 +214,4 @@ class Enumerator:
             return
 
         for repo in repo_names:
-            self.enumerate_repo_only(repo, clone)
+            self.enumerate_repo_only(repo)

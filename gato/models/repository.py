@@ -19,14 +19,14 @@ class Repository():
         self.repo_data = repo_data
         self.name = self.repo_data['full_name']
         self.org_name = self.name.split('/')[0]
-        self.secrets = []
-        self.org_secrets = []
+        self.secrets: List[Secret] = []
+        self.org_secrets: List[Secret] = []
         self.sh_workflow_names = []
 
         self.permission_data = self.repo_data['permissions']
         self.sh_runner_access = False
-        self.accessible_runners = []
-        self.runners = []
+        self.accessible_runners: List[Runner] = []
+        self.runners: List[Runner] = []
 
     def is_admin(self):
         return self.permission_data.get('admin', False)

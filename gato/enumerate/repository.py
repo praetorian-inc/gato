@@ -18,7 +18,7 @@ class RepositoryEnum():
         parameters.
 
         Args:
-            api (Api): _description_
+            api (Api): GitHub API wraper object.
         """
         self.api = api
         self.skip_log = skip_log

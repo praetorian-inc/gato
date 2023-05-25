@@ -18,8 +18,8 @@ class Organization():
         self.org_admin_user = False
         self.org_admin_scopes = False
         self.org_member = False
-        self.secrets = []
-        self.runners = []
+        self.secrets: List[Secret] = []
+        self.runners: List[Runner] = []
         self.sso_enabled = False
 
         self.public_repos = []
@@ -30,7 +30,8 @@ class Organization():
         # If fields such as billing email are populated, then the user MUST
         # be an organization owner. If not, then the user is a member (for
         # private repos) or
-        if "billing_email" in org_data and org_data["billing_email"] is not None:
+        if "billing_email" in org_data and \
+                org_data["billing_email"] is not None:
             if "admin:org" in user_scopes:
                 self.org_admin_scopes = True
             self.org_admin_user = True
