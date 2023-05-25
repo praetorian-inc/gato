@@ -10,6 +10,8 @@ from gato.models.repository import Repository
 from gato.enumerate import Enumerator
 from gato.cli import Output
 
+from unit_test.utils import escape_ansi as escape_ansi
+
 TEST_REPO_DATA = None
 TEST_WORKFLOW_YML = None
 
@@ -29,16 +31,6 @@ def load_test_files(request):
 
     with open(test_wf_path, 'r') as wf_data:
         TEST_WORKFLOW_YML = wf_data.read()
-
-
-# From https://stackoverflow.com/questions/14693701/
-# how-can-i-remove-the-ansi-escape-sequences-from-a-string-in-python
-def escape_ansi(line):
-    ansi_escape = re.compile(
-        r'(?:\x1B[@-_]|[\x80-\x9F])[0-?]*[ -/]*[@-~]',
-        re.MULTILINE
-    )
-    return ansi_escape.sub('', line)
 
 
 def test_init():
@@ -89,48 +81,6 @@ def test_self_enumerate(mock_api, capsys):
 
 
 @patch("gato.enumerate.enumerate.Api")
-def test_enumerate_repo(mock_api, capsys):
-    """Test constructor for enumerator.
-    """
-
-    gh_enumeration_runner = Enumerator(
-        "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
-        socks_proxy=None,
-        http_proxy="localhost:8080",
-        skip_clones=False,
-        output_yaml=True,
-        skip_log=False,
-    )
-
-    mock_api.return_value.check_user.return_value = {
-        "user": 'testUser',
-        "scopes": ['repo', 'workflow']
-    }
-
-    mock_api.return_value.retrieve_run_logs.return_value = [
-        {"machine_name": "unittest1", "runner_name": "much_unit_such_test"}
-    ]
-
-    repo_data = json.loads(json.dumps(TEST_REPO_DATA))
-    test_repo = Repository(repo_data)
-
-    gh_enumeration_runner.enumerate_repository(
-        test_repo, clone=False
-    )
-
-    captured = capsys.readouterr()
-
-    print_output = captured.out
-    assert "The runner name was: much_unit_such_test" in escape_ansi(
-        print_output
-    )
-
-    assert "the machine name was unittest1" in escape_ansi(
-        print_output
-    )
-
-
-@patch("gato.enumerate.enumerate.Api")
 def test_enumerate_repo_admin(mock_api, capsys):
     """Test constructor for enumerator.
     """
@@ -155,10 +105,11 @@ def test_enumerate_repo_admin(mock_api, capsys):
 
     repo_data = json.loads(json.dumps(TEST_REPO_DATA))
     repo_data['permissions']['admin'] = True
-    test_repo = Repository(repo_data)
 
-    gh_enumeration_runner.enumerate_repository(
-        test_repo, clone=False
+    mock_api.return_value.get_repository.return_value = repo_data
+
+    gh_enumeration_runner.enumerate_repo_only(
+        repo_data['full_name']
     )
 
     captured = capsys.readouterr()
@@ -194,12 +145,12 @@ def test_enumerate_repo_admin_no_wf(mock_api, capsys):
     ]
 
     repo_data = json.loads(json.dumps(TEST_REPO_DATA))
-
     repo_data['permissions']['admin'] = True
-    test_repo = Repository(repo_data)
 
-    gh_enumeration_runner.enumerate_repository(
-        test_repo, clone=False
+    mock_api.return_value.get_repository.return_value = repo_data
+
+    gh_enumeration_runner.enumerate_repo_only(
+        repo_data['full_name']
     )
 
     captured = capsys.readouterr()
@@ -236,10 +187,11 @@ def test_enumerate_repo_no_wf_no_admin(mock_api, capsys):
 
     repo_data = json.loads(json.dumps(TEST_REPO_DATA))
     repo_data['permissions']['admin'] = False
-    test_repo = Repository(repo_data)
 
-    gh_enumeration_runner.enumerate_repository(
-        test_repo, clone=False
+    mock_api.return_value.get_repository.return_value = repo_data
+
+    gh_enumeration_runner.enumerate_repo_only(
+        repo_data['full_name']
     )
 
     captured = capsys.readouterr()
@@ -276,12 +228,12 @@ def test_enumerate_repo_no_wf_maintain(mock_api, capsys):
     repo_data = json.loads(json.dumps(TEST_REPO_DATA))
 
     repo_data['permissions']['maintain'] = True
-    test_repo = Repository(repo_data)
 
-    gh_enumeration_runner.enumerate_repository(
-        test_repo, clone=False
+    mock_api.return_value.get_repository.return_value = repo_data
+
+    gh_enumeration_runner.enumerate_repo_only(
+        repo_data['full_name']
     )
-
     captured = capsys.readouterr()
 
     print_output = captured.out
@@ -291,189 +243,45 @@ def test_enumerate_repo_no_wf_maintain(mock_api, capsys):
     )
 
 
-@patch("gato.enumerate.enumerate.WorkflowParser.output")
-@patch("gato.enumerate.enumerate.Git")
-def test_clone_enumeration(mock_git, mock_wfout):
-    """Test enumerating via parsing workflow files.
-    """
-
-    mock_wfout.return_value = True
-
-    mock_git().extract_workflow_ymls.return_value = [
-        ('main.yml', TEST_WORKFLOW_YML)
-    ]
-
-    gh_enumeration_runner = Enumerator(
-        "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
-        socks_proxy=None,
-        http_proxy=None,
-        skip_clones=False,
-        output_yaml="files/",
-        skip_log=False,
-    )
-
-    test_repo = Repository(TEST_REPO_DATA)
-
-    self_hosted = gh_enumeration_runner._Enumerator__perform_clone_enumeration(
-        test_repo
-    )
-
-    assert self_hosted is True
-    mock_wfout.assert_called_once()
-
-
-@patch("gato.enumerate.enumerate.WorkflowParser.output")
-@patch("gato.enumerate.enumerate.Git")
-def test_clone_enumeration_writeerror(mock_git, mock_wfout):
-    """Test enumerating via parsing workflow files.
-    """
-
-    mock_wfout.return_value = False
-
-    mock_git().extract_workflow_ymls.return_value = [
-        ('main.yml', TEST_WORKFLOW_YML)
-    ]
-
-    gh_enumeration_runner = Enumerator(
-        "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
-        socks_proxy=None,
-        http_proxy=None,
-        skip_clones=False,
-        output_yaml="files/bad_dir",
-        skip_log=False,
-    )
-
-    test_repo = Repository(TEST_REPO_DATA)
-
-    self_hosted = gh_enumeration_runner._Enumerator__perform_clone_enumeration(
-        test_repo
-    )
-
-    assert self_hosted is True
-    mock_wfout.assert_called_once()
-
-
-@patch("gato.enumerate.enumerate.Git")
-def test_clone_enumeration_parse_error(mock_git):
-    """Test enumerating via parsing workflow files.
-    """
-    mock_git().extract_workflow_ymls.return_value = [
-        ('main.yml', "FOOBARBAZ")
-    ]
-
-    gh_enumeration_runner = Enumerator(
-        "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
-        socks_proxy=None,
-        http_proxy=None,
-        skip_clones=False,
-        output_yaml=False,
-        skip_log=False,
-    )
-
-    test_repo = Repository(TEST_REPO_DATA)
-
-    self_hosted = gh_enumeration_runner._Enumerator__perform_clone_enumeration(
-        test_repo
-    )
-
-    assert self_hosted is False
-
-
-@patch("gato.enumerate.enumerate.Git")
-def test_clone_enumeration_none(mock_git):
-    mock_git().extract_workflow_ymls.return_value = []
-
-    gh_enumeration_runner = Enumerator(
-        "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
-        socks_proxy=None,
-        http_proxy=None,
-        skip_clones=False,
-        output_yaml=False,
-        skip_log=False,
-    )
-
-    test_repo = Repository(TEST_REPO_DATA)
-
-    self_hosted = gh_enumeration_runner._Enumerator__perform_clone_enumeration(
-        test_repo
-    )
-
-    assert self_hosted is False
-
-
-def test_print_runners(capfd):
-
-    gh_enumeration_runner = Enumerator(
-        "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
-        socks_proxy=None,
-        http_proxy=None,
-        skip_clones=False,
-        output_yaml=False,
-        skip_log=False,
-    )
-
-    runners_json = """
-    {
-    "total_count":1,
-    "runners":[
-        {
-            "id":21,
-            "name":"ghrunner-test",
-            "os":"Linux",
-            "status":"online",
-            "busy":false,
-            "labels":[
-                {
-                "id":1,
-                "name":"self-hosted",
-                "type":"read-only"
-                },
-                {
-                "id":2,
-                "name":"Linux",
-                "type":"read-only"
-                },
-                {
-                "id":3,
-                "name":"X64",
-                "type":"read-only"
-                }
-            ]
-        }
-    ]
-    }
-    """
-
-    gh_enumeration_runner._Enumerator__print_runner_info(
-        json.loads(runners_json)
-    )
-
-    out, err = capfd.readouterr()
-
-    assert "The runner has the following labels: self-hosted, Linux, X64" in \
-        escape_ansi(out)
-
-
 @patch("gato.enumerate.enumerate.Api")
-def test_assemble_repo_list(mock_api):
-
-    mock_api().check_org_repos.return_value = [TEST_REPO_DATA]
+def test_enumerate_repo_only(mock_api, capsys):
+    """Test constructor for enumerator.
+    """
 
     gh_enumeration_runner = Enumerator(
         "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
         socks_proxy=None,
-        http_proxy=None,
+        http_proxy="localhost:8080",
         skip_clones=False,
-        output_yaml=False,
+        output_yaml=True,
         skip_log=False,
     )
 
-    repos = gh_enumeration_runner._Enumerator__assemble_repo_list(
-        "testOrg", ['public']
+    mock_api.return_value.check_user.return_value = {
+        "user": 'testUser',
+        "scopes": ['repo', 'workflow']
+    }
+
+    mock_api.return_value.retrieve_run_logs.return_value = [
+        {"machine_name": "unittest1", "runner_name": "much_unit_such_test"}
+    ]
+
+    repo_data = json.loads(json.dumps(TEST_REPO_DATA))
+
+    gh_enumeration_runner.enumerate_repo_only(
+        repo_data['full_name']
     )
 
-    assert len(repos) == 1
-    assert repos[0].is_public() is True
+    captured = capsys.readouterr()
+
+    print_output = captured.out
+    assert "The runner name was: much_unit_such_test" in escape_ansi(
+        print_output
+    )
+
+    assert "the machine name was unittest1" in escape_ansi(
+        print_output
+    )
 
 
 @patch("gato.enumerate.enumerate.Api")

@@ -135,6 +135,13 @@ class Recommender:
                 f"{Output.bright(repository.accessible_runners[0].machine_name)}"
             )
 
+        if repository.runners:
+            Output.result(
+                f"The repository has {len(repository.runners)} repo-level"
+                " self-hosted runners!"
+            )
+            Recommender.print_runner_info(repository.runners)
+
     @staticmethod
     def print_runner_info(runners: List[Runner]):
         """Print information about runners.

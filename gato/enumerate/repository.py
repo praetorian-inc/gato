@@ -40,8 +40,9 @@ class RepositoryEnum():
         )
 
         if wf_runs:
-
-            runner = Runner(wf_runs[0]['runner_name'], wf_runs[0]['machine_name'])
+            runner = Runner(
+                wf_runs[0]['runner_name'], wf_runs[0]['machine_name']
+            )
 
             repository.add_accessible_runner(runner)
             runner_detected = True
@@ -93,10 +94,6 @@ class RepositoryEnum():
             clone (bool, optional):  Whether to use repo contents API
             in order to analayze the yaml files. Defaults to True.
         """
-
-        Output.tabbed(
-            f"Enumerating: {Output.bright(repository.name)}!"
-        )
         runner_detected = False
 
         if not repository.can_pull():
@@ -105,8 +102,20 @@ class RepositoryEnum():
 
         if repository.is_admin():
             runners = self.api.get_repo_runners(repository.name)
+
             if runners:
-                repository.set_runners(runners)
+                repo_runners = [
+                    Runner(
+                        runner,
+                        machine_name=None,
+                        os=runner['os'],
+                        status=runner['status'],
+                        labels=runner['labels']
+                    )
+                    for runner in runners
+                ]
+
+                repository.set_runners(repo_runners)
 
         if not self.skip_log and self.__perform_runlog_enumeration(repository):
             runner_detected = True
@@ -128,7 +137,7 @@ class RepositoryEnum():
 
         Args:
             repository (Repository): Wrapper object created from calling the
-            API and retrieving a repository.
+            API and retrieving a repository. 
         """
         if repository.can_push():
             secrets = self.api.get_secrets(repository.name)

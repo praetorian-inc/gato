@@ -157,17 +157,21 @@ class Enumerator:
         )
 
         for repo in enum_list:
+
+            Output.tabbed(
+                f"Enumerating: {Output.bright(repo.name)}!"
+            )
             self.repo_e.enumerate_repository(repo) 
             self.repo_e.enumerate_repository_secrets(repo)
 
-            Recommender.print_repo_attack_recommendations(
-                self.user_perms['scopes'], repo
-            )
             Recommender.print_repo_secrets(
                 self.user_perms['scopes'],
                 repo.secrets
             )
             Recommender.print_repo_runner_info(repo)
+            Recommender.print_repo_attack_recommendations(
+                self.user_perms['scopes'], repo
+            )
 
     def enumerate_repo_only(self, repo_name: str, clone: bool = True):
         """Enumerate only a single repository. No checks for org-level
@@ -184,15 +188,20 @@ class Enumerator:
         repo_data = self.api.get_repository(repo_name)
         if repo_data:
             repo = Repository(repo_data)
+
+            Output.tabbed(
+                f"Enumerating: {Output.bright(repo.name)}!"
+            )
             self.repo_e.enumerate_repository(repo)
             self.repo_e.enumerate_repository_secrets(repo)
-
-            Recommender.print_repo_attack_recommendations(self.user_perms['scopes'], repo)
             Recommender.print_repo_secrets(
                 self.user_perms['scopes'],
                 repo.secrets + repo.org_secrets
             )
             Recommender.print_repo_runner_info(repo)
+            Recommender.print_repo_attack_recommendations(
+                self.user_perms['scopes'], repo
+            )
         else:
             Output.warn(
                 f"Unable to enumerate {Output.bright(repo_name)}! It may not "
