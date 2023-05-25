@@ -1,5 +1,3 @@
-from typing import List
-
 from gato.models import Organization, Repository, Secret, Runner
 from gato.github import Api
 

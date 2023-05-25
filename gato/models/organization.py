@@ -1,6 +1,7 @@
-from typing import List
+from gato.models.runner import Runner
+from gato.models.repository import Repository
+from gato.models.secret import Secret
 
-from gato.models import Runner, Secret, Repository
 
 class Organization():
 
