@@ -160,9 +160,13 @@ class Enumerator:
                 repo.secrets
             )
             Recommender.print_repo_runner_info(repo)
-            Recommender.print_repo_attack_recommendations(
-                self.user_perms['scopes'], repo
-            )
+
+            # Only print info about individual repos if user is admin OR
+            # we detect a runner.
+            if repo.is_admin() or repo.sh_runner_access:
+                Recommender.print_repo_attack_recommendations(
+                    self.user_perms['scopes'], repo
+                )
 
     def enumerate_repo_only(self, repo_name: str):
         """Enumerate only a single repository. No checks for org-level
