@@ -41,6 +41,9 @@ def test_fork_pr(mock_git, mock_api, mock_time, capsys):
         "scopes": ['repo','workflow']
     }
 
+    mock_api.return_value.get_recent_workflow.return_value = \
+        12345
+
     mock_api.return_value.fork_repository.return_value = \
         'testOrg/targetRepo'
     mock_api.return_value.create_fork_pr.return_value = \

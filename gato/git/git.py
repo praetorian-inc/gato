@@ -241,7 +241,7 @@ class Git:
 
             if p.returncode != 0:
                 logger.error("Git add operation did not succeed!")
-                raise Exception("Git add operation did not suceeed!")
+                raise Exception("Git add operation did not succeed!")
 
             cmd = commit_command.split(' ')
             cmd.append(message)
