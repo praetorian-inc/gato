@@ -248,16 +248,6 @@ def test_enum_bad_args3(capfd):
     assert "select one enumeration" in err
 
 
-def test_enum_bad_args4(capfd):
-    """Test enum command with conflicting params.
-    """
-    with pytest.raises(SystemExit):
-        cli.cli(["enum", "-t", "test", "-sc", "-o", "test"])
-
-    out, err = capfd.readouterr()
-    assert "if cloning is not" in err
-
-
 @mock.patch("gato.enumerate.Enumerator.self_enumeration")
 def test_enum_self(mock_enumerate):
     """Test enum command using the self enumerattion.

@@ -1,3 +1,5 @@
+import base64
+import copy
 import requests
 import logging
 import zipfile
@@ -13,12 +15,12 @@ class Api():
     rate limiting or network issues.
     """
 
-    GITHUB_URL = "https://api.github.com"
     RUNNER_RE = re.compile(r'Runner name: \'([\w+-]+)\'')
     MACHINE_RE = re.compile(r'Machine name: \'([\w+-]+)\'')
 
     def __init__(self, pat: str, version: str = "2022-11-28",
-                 http_proxy: str = None, socks_proxy: str = None):
+                 http_proxy: str = None, socks_proxy: str = None,
+                 github_url: str = "https://api.github.com"):
         """Initialize the API abstraction layer to interact with the GitHub
         REST API.
 
@@ -40,6 +42,10 @@ class Api():
             'Authorization': f'Bearer {pat}',
             'X-GitHub-Api-Version': version
         }
+        if not github_url:
+            self.github_url = "https://api.github.com"
+        else:
+            self.github_url = github_url
 
         if http_proxy and socks_proxy:
             raise ValueError('A SOCKS & HTTP proxy cannot be used at the same '
@@ -58,6 +64,10 @@ class Api():
                 'http': f'socks5://{socks_proxy}',
                 'https': f'socks5://{socks_proxy}'
             }
+
+        if self.github_url != "https://api.github.com":
+            self.verify_ssl = False
+            requests.packages.urllib3.disable_warnings()
 
     def __process_run_log(self, log_content: bytes, run_info: dict):
         """Utility method to process a run log zip file.
@@ -94,22 +104,28 @@ class Api():
                             }
                             return log_package
 
-    def call_get(self, url: str, params: dict = None):
+    def call_get(self, url: str, params: dict = None, strip_auth=False):
         """Internal method to wrap a GET request so that proxies and headers
         do not need to be repeated.
 
         Args:
             url (str): Url path for the API request
             params (dict, optional): Parameters to pass to the request.
+            strip_auth (bool): Whether to make the request without any auth
+            token. Defaults to False.
             Defaults to None.
 
         Returns:
             Response: Returns the requests response object.
         """
-        request_url = Api.GITHUB_URL + url
+        request_url = self.github_url + url
+
+        get_header = copy.deepcopy(self.headers)
+        if strip_auth:
+            del get_header['Authorization']
 
         logger.debug(f'Making GET API request to {request_url}!')
-        api_response = requests.get(request_url, headers=self.headers,
+        api_response = requests.get(request_url, headers=get_header,
                                     proxies=self.proxies, params=params,
                                     verify=self.verify_ssl)
         logger.debug(
@@ -129,7 +145,7 @@ class Api():
         Returns:
             Response: Returns the requests response object.
         """
-        request_url = Api.GITHUB_URL + url
+        request_url = self.github_url + url
         logger.debug(f'Making POST API request to {request_url}!')
 
         api_response = requests.post(request_url, headers=self.headers,
@@ -138,6 +154,22 @@ class Api():
         logger.debug(
             f'The POST request to {request_url} returned a '
             f'{api_response.status_code}!')
+
+        return api_response
+
+    def call_put(self, url: str, params: dict = None):
+        """_summary_
+
+        Args:
+            url (stre): _description_
+            params (dict, optional): _description_. Defaults to None.
+        """
+        request_url = self.github_url + url
+        logger.debug(f'Making PUT API request to {request_url}!')
+
+        api_response = requests.put(request_url, headers=self.headers,
+                                    proxies=self.proxies, json=params,
+                                    verify=self.verify_ssl)
 
         return api_response
 
@@ -152,7 +184,7 @@ class Api():
         Returns:
             Response: Returns the requests response object.
         """
-        request_url = Api.GITHUB_URL + url
+        request_url = self.github_url + url
         logger.debug(f'Making DELETE API request to {request_url}!')
 
         api_response = requests.delete(request_url, headers=self.headers,
@@ -404,7 +436,9 @@ class Api():
             while len(listing) == 100:
                 get_params['page'] += 1
                 org_repos = self.call_get(
-                    f'/orgs/{org}/repos', params=get_params)
+                    f'/orgs/{org}/repos',
+                    params=get_params
+                )
                 if org_repos.status_code == 200:
                     listing = org_repos.json()
                     repos.extend(listing)
@@ -638,3 +672,178 @@ class Api():
         with open(f"{workflow_id}.zip", "wb+") as f:
             f.write(req.content)
         return True
+
+    def create_branch(self, repo_name: str, branch_name: str):
+        """Create a branch with the provided name.
+
+        Args:
+            repo_name (str): Name of repository in Org/Repo format.
+            branch_name (str): Name of branch to create.
+        """
+
+        resp = self.call_get(f'/repos/{repo_name}/git/refs/heads')
+
+        json_resp = resp.json()
+
+        sha = json_resp[0]['object']['sha']
+
+        branch_data = {
+            "ref": f"refs/heads/{branch_name}",
+            "sha": sha
+        }
+
+        resp = self.call_post(
+            f'/repos/{repo_name}/git/refs', params=branch_data
+        )
+
+        if resp.status_code == 201:
+            return True
+        else:
+            return False
+
+    def delete_branch(self, repo_name: str, branch_name: str):
+        """Deletes the specified branch within the repository.
+
+        Args:
+            repo_name (str): Name of the repository in Owner/Repo format.
+            branch_name (str): Name of the branch to delete.
+        """
+        resp = self.call_delete(
+            f'/repos/{repo_name}/git/refs/heads/{branch_name}'
+        )
+
+        if resp.status_code == 204:
+            return True
+
+    def commit_file(self, repo_name: str, branch_name: str, file_path: str,
+                    file_content: bytes, message="Testing"):
+        """Commits a file to the specified branch on a repository.
+
+        Args:
+            repo_name (str): Name of repository to target.
+            branch_name (str): Branch name to commit to. Must exist, otherwise
+            the operation will fail.
+            file_path (str): Path within to repository to commit file to.
+            file_content (bytes): Content of the file to commit in bytes.
+        """
+        b64_contents = base64.b64encode(file_content)
+        commit_data = {
+            "message": message,
+            "content": b64_contents.decode('utf-8'),
+            "branch": branch_name
+        }
+
+        resp = self.call_put(
+            f'/repos/{repo_name}/contents/{file_path}', params=commit_data
+        )
+
+        if resp.status_code == 201:
+            resp_json = resp.json()
+            return resp_json['commit']['sha']
+
+    def retrieve_workflow_ymls(self, repo_name: str):
+        """Retrieve all .yml or .yaml files within the workflows directory.
+        Utilizes the GitHub Repository contents API.
+
+        Args:
+            repo_name (str): Name of the repository in Org/Repo format.
+
+        Returns:
+            (list): List of yml files in text format.
+        """
+        ymls = []
+
+        resp = self.call_get(f'/repos/{repo_name}/contents/.github/workflows/')
+
+        if resp.status_code == 200:
+            objects = resp.json()
+
+            for file in objects:
+                if file['type'] == "file" and (
+                    file['name'].endswith(".yml") or
+                    file['name'].endswith(".yaml")
+                ):
+
+                    resp = self.call_get(
+                        f'/repos/{repo_name}/contents/{file["path"]}'
+                    )
+                    if resp.status_code == 200:
+                        resp_data = resp.json()
+                        if 'content' in resp_data:
+                            file_data = base64.b64decode(resp_data['content'])
+                            ymls.append((file['name'], file_data.decode()))
+
+        return ymls
+
+    def get_secrets(self, repo_name: str):
+        """Issues an API call to the GitHub API to list secrets for a
+        repository. This will succeed as long as the token has the repo scope
+        and the user has write access to the repository.
+
+        Args:
+            repo_name (str): Name of repository to list secrets for.
+        Returns:
+            (list): List of secrets at the repo level, empty list if none.
+        """
+        secrets = []
+
+        resp = self.call_get(f'/repos/{repo_name}/actions/secrets')
+        if resp.status_code == 200:
+            secrets_response = resp.json()
+
+            if secrets_response['total_count'] > 0:
+                secrets = secrets_response['secrets']
+
+        return secrets
+
+    def get_org_secrets(self, org_name: str):
+        secrets = []
+
+        resp = self.call_get(f'/orgs/{org_name}/actions/secrets')
+        if resp.status_code == 200:
+            secrets_response = resp.json()
+
+            if secrets_response['total_count'] > 0:
+                for secret in secrets_response['secrets']:
+
+                    if secret['visibility'] == "selected":
+
+                        repos_resp = self.call_get(
+                            f'/orgs/{org_name}/actions/secrets/'
+                            f'{secret["name"]}/repositories'
+                        )
+
+                        if repos_resp.status_code == 200:
+                            repos_json = repos_resp.json()
+                            repo_names = [repo['full_name'] for repo in
+                                          repos_json['repositories']]
+
+                        secret['repos'] = repo_names
+
+                    secrets.append(secret)
+
+        return secrets
+
+    def get_repo_org_secrets(self, repo_name: str):
+        """Issues an API call to the GitHub API to list org secrets for a
+        repository. This will succeed as long as the token has the repo scope
+        and the user has write access to the repository.
+
+        Args:
+            repo_name (str): Name of repository to list secrets for.
+
+        Returns:
+            (list): List of org secrets that can be read via a workflow in this
+            repository.
+        """
+        resp = self.call_get(
+            f'/repos/{repo_name}/actions/organization-secrets'
+        )
+        secrets = []
+        if resp.status_code == 200:
+            secrets_response = resp.json()
+
+            if secrets_response['total_count'] > 0:
+                secrets = secrets_response['secrets']
+
+        return secrets
