@@ -93,4 +93,4 @@ class Searcher:
         )
 
         for candidate in candidates:
-            Output.result(candidate)
+            Output.tabbed(candidate)

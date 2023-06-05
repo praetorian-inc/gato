@@ -47,13 +47,13 @@ class Output(metaclass=Singleton):
         print(f"{Output().red_dash} {message}")
 
     @classmethod
-    def info(cls, message: str):
+    def info(cls, message: str, end='\n', flush=False):
         """Prints info text, this adds a green [+] to the message.
 
         Args:
             message (str): The message to print.
         """
-        print(f"{Output().green_plus} {message}")
+        print(f"{Output().green_plus} {message}", end=end, flush=flush)
 
     @classmethod
     def tabbed(cls, message: str):
