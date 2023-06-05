@@ -82,7 +82,7 @@ class Search():
 
                 return candidates
 
-            if 'incomplete_results' in data:
+            if 'incomplete_results' in data and data['incomplete_results']:
                 print()
                 Output.warn('Search results incomplete due to GitHub timeout!')
 
