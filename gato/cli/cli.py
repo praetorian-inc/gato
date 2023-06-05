@@ -206,16 +206,10 @@ def enumerate(args, parser):
             "enumeration type."
         )
 
-    if args.skip_clones and args.output_yaml:
-        parser.error(
-            f"{Fore.RED}[-] Cannot output ymls if cloning is not enabled!"
-        )
-
     gh_enumeration_runner = Enumerator(
             args.gh_token,
             socks_proxy=args.socks_proxy,
             http_proxy=args.http_proxy,
-            skip_clones=args.skip_clones,
             output_yaml=args.output_yaml,
             skip_log=args.skip_runlog,
             github_url=args.api_url
@@ -473,16 +467,6 @@ def configure_parser_enumerate(parser):
         ),
         metavar="DIR",
         type=WriteableDir()
-    )
-
-    parser.add_argument(
-        "--skip-clones", "-sc",
-        help=(
-            f"Do {Output.bright('NOT')} perform any repo contents API requests\n"
-            " during enumeration, as this may have an additional logging\n"
-            " impact."
-        ),
-        action="store_true",
     )
 
     parser.add_argument(
