@@ -76,6 +76,28 @@ class Enumerator:
 
         return True
 
+    def validate_only(self):
+        """Validates the PAT access and exits.
+        """
+        self.__setup_user_info()
+
+        if not self.user_perms:
+            return False
+
+        if 'repo' not in self.user_perms['scopes']:
+            Output.warn("Token does not have sufficient access to list orgs!")
+            return False
+
+        orgs = self.api.check_organizations()
+
+        Output.info(
+            f'The user { self.user_perms["user"] } belongs to {len(orgs)} '
+            'organizations!'
+        )
+
+        for org in orgs:
+            Output.tabbed(f"{Output.bright(org)}")
+
     def self_enumeration(self):
         """Enumerates all organizations associated with the authenticated user.
 
