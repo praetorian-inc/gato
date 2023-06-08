@@ -247,7 +247,18 @@ def search(args, parser):
         github_url=args.api_url
     )
 
-    gh_search_runner.use_search_api(args.target)
+    if not (args.query or args.target):
+        parser.error(
+            f"{Fore.RED}[-]{Style.RESET_ALL} You must select an organization "
+            "or pass a custom query!."
+        )
+
+    if args.query:
+        gh_search_runner.use_search_api(
+            organization=args.target, query=args.query
+        )
+    else:
+        gh_search_runner.use_search_api(organization=args.target)
 
 
 def configure_parser_general(parser):
@@ -490,5 +501,12 @@ def configure_parser_search(parser):
         "--target", "-t",
         help="Organization to enumerate using GitHub code search.",
         metavar=f"{Fore.RED}ORGANIZATION{Style.RESET_ALL}",
-        required=True,
+        required=False,
+    )
+
+    parser.add_argument(
+        "--query", "-q",
+        help="Pass a custom query to GitHub code search",
+        metavar="QUERY",
+        required=False
     )
