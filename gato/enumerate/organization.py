@@ -44,18 +44,17 @@ class OrganizationEnum():
         Returns:
             List[Repository]: List of repositories to enumerate.
         """
-        if organization.org_member:
-            org_private_repos = self.__assemble_repo_list(
-                organization.name, ['private', 'internal']
-            )
+        org_private_repos = self.__assemble_repo_list(
+            organization.name, ['private', 'internal']
+        )
 
-            # We might legitimately have no private repos despite being a
-            # member.
-            if org_private_repos:
-                sso_enabled = self.api.validate_sso(
-                    organization.name, org_private_repos[0].name
-                )
-                organization.sso_enabled = sso_enabled
+        # We might legitimately have no private repos despite being a
+        # member.
+        if org_private_repos:
+            sso_enabled = self.api.validate_sso(
+                organization.name, org_private_repos[0].name
+            )
+            organization.sso_enabled = sso_enabled
         else:
             org_private_repos = []
 
