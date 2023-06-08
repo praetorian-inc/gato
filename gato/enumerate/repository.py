@@ -22,7 +22,7 @@ class RepositoryEnum():
         """
         self.api = api
         self.skip_log = skip_log
-        self.output_yaml = None
+        self.output_yaml = output_yaml
 
     def __perform_runlog_enumeration(self, repository: Repository):
         """Enumerate for the presence of a self-hosted runner based on
