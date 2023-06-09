@@ -82,7 +82,7 @@ class Api():
             gh_date = headers['Date']
             reset_utc = int(headers['X-Ratelimit-Reset'])
             # Convert date to UTC
-            date = datetime.strptime(gh_date, '%a, %d %B %Y %H:%M:%S %Z')
+            date = datetime.strptime(gh_date, '%a, %d %b %Y %H:%M:%S %Z')
             date = date.replace(tzinfo=timezone.utc)
             reset_time = date.fromtimestamp(reset_utc,  tz=timezone.utc)
 
