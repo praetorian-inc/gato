@@ -19,6 +19,14 @@ class Recommender:
             scopes (list): List of scopes for user who ran Gato.
             repository (Repository): Repository wrapper object.
         """
+        if not repository.sh_runner_access:
+            if repository.is_admin():
+                Output.owned(
+                    "The user is an administrator on the repository, but no "
+                    "self-hosted runners were detected!"
+                )
+            return
+
         if repository.is_admin():
             Output.owned(
                 "The user is an administrator on the repository!"
