@@ -133,13 +133,15 @@ def test_validate_sso_fail(mock_get):
 
     assert res is False
 
-
-def test_invalid_pat():
+@patch("gato.github.api.requests.get")
+def test_invalid_pat(mock_get):
     """Test calling a request with an invalid PAT
     """
     test_pat = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
 
     abstraction_layer = Api( test_pat, "2022-11-28")
+
+    mock_get().status_code = 401
 
     assert abstraction_layer.check_user() is None
 
