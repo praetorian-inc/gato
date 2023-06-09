@@ -897,3 +897,21 @@ def test_get_repo_org_secrets(mock_get):
     secrets = api.get_repo_org_secrets("testOrg/testRepo")
 
     assert len(secrets) == 2
+
+
+@patch("gato.github.api.time")
+def test_handle_ratelimit(mock_time):
+    """Test rate limit handling
+    """
+    test_pat = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+    api = Api(test_pat, "2022-11-28")
+
+    test_headers = {
+        'X-Ratelimit-Remaining': 100,
+        'Date': "Fri, 09 Jun 2023 22:12:41 GMT",
+        "X-Ratelimit-Reset": 1686351401,
+    }
+
+    api._Api__check_rate_limit(test_headers)
+
+    mock_time.sleep.assert_called_once()
