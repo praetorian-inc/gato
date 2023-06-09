@@ -910,6 +910,7 @@ def test_handle_ratelimit(mock_time):
         'X-Ratelimit-Remaining': 100,
         'Date': "Fri, 09 Jun 2023 22:12:41 GMT",
         "X-Ratelimit-Reset": 1686351401,
+        "X-Ratelimit-Resource": "core"
     }
 
     api._Api__check_rate_limit(test_headers)
