@@ -1,11 +1,15 @@
 import base64
 import tempfile
 import copy
+import time
 import requests
 import logging
 import zipfile
 import re
 import io
+
+from gato.cli import Output
+from datetime import datetime, timezone
 
 logger = logging.getLogger(__name__)
 
@@ -69,6 +73,34 @@ class Api():
         if self.github_url != "https://api.github.com":
             self.verify_ssl = False
             requests.packages.urllib3.disable_warnings()
+
+    def __check_rate_limit(self, headers):
+        """Checks the rate limit, and pauses Gato execution until the rate 
+        limit resets.
+        """
+        if 'X-Ratelimit-Remaining' in headers and \
+                int(headers['X-Ratelimit-Remaining']) < 250 and \
+                headers['X-Ratelimit-Resource'] == 'core':
+            gh_date = headers['Date']
+            reset_utc = int(headers['X-Ratelimit-Reset'])
+            # Convert date to UTC
+            date = datetime.strptime(gh_date, '%a, %d %b %Y %H:%M:%S %Z')
+            date = date.replace(tzinfo=timezone.utc)
+            reset_time = date.fromtimestamp(reset_utc,  tz=timezone.utc)
+
+            sleep_time = (reset_time - date).seconds
+            sleep_time_mins = str(sleep_time // 60)
+
+            # Yes, we are breaking the "don't print in API code" rule; however,
+            # the alternative would be to handle a rate limit exception in
+            # all calling code. We inform the here user that we are sleeping.
+            # very large orgs will take several hours to enumerate, especially
+            # if runlog enumeration is enabled.
+            Output.warn(
+                f"Sleeping for {Output.bright( sleep_time_mins + ' minutes')} "
+                "to prevent rate limit exhaustion!")
+
+            time.sleep(sleep_time + 1)
 
     def __process_run_log(self, log_content: bytes, run_info: dict):
         """Utility method to process a run log zip file.
@@ -152,6 +184,8 @@ class Api():
             f'The GET request to {request_url} returned a'
             f' {api_response.status_code}!')
 
+        self.__check_rate_limit(api_response.headers)
+
         return api_response
 
     def call_post(self, url: str, params: dict = None):
@@ -175,6 +209,8 @@ class Api():
             f'The POST request to {request_url} returned a '
             f'{api_response.status_code}!')
 
+        self.__check_rate_limit(api_response.headers)
+
         return api_response
 
     def call_put(self, url: str, params: dict = None):
@@ -190,6 +226,8 @@ class Api():
         api_response = requests.put(request_url, headers=self.headers,
                                     proxies=self.proxies, json=params,
                                     verify=self.verify_ssl)
+
+        self.__check_rate_limit(api_response.headers)
 
         return api_response
 
@@ -213,6 +251,8 @@ class Api():
         logger.debug(
             f'The POST request to {request_url} returned a '
             f'{api_response.status_code}!')
+
+        self.__check_rate_limit(api_response.headers)
 
         return api_response
 
