@@ -133,13 +133,15 @@ def test_validate_sso_fail(mock_get):
 
     assert res is False
 
-
-def test_invalid_pat():
+@patch("gato.github.api.requests.get")
+def test_invalid_pat(mock_get):
     """Test calling a request with an invalid PAT
     """
     test_pat = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
 
     abstraction_layer = Api( test_pat, "2022-11-28")
+
+    mock_get().status_code = 401
 
     assert abstraction_layer.check_user() is None
 
@@ -895,3 +897,22 @@ def test_get_repo_org_secrets(mock_get):
     secrets = api.get_repo_org_secrets("testOrg/testRepo")
 
     assert len(secrets) == 2
+
+
+@patch("gato.github.api.time")
+def test_handle_ratelimit(mock_time):
+    """Test rate limit handling
+    """
+    test_pat = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+    api = Api(test_pat, "2022-11-28")
+
+    test_headers = {
+        'X-Ratelimit-Remaining': 100,
+        'Date': "Fri, 09 Jun 2023 22:12:41 GMT",
+        "X-Ratelimit-Reset": 1686351401,
+        "X-Ratelimit-Resource": "core"
+    }
+
+    api._Api__check_rate_limit(test_headers)
+
+    mock_time.sleep.assert_called_once()
