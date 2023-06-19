@@ -16,8 +16,7 @@ class Search():
 
     def __init__(self, api_accessor: Api):
         """Initialize class to call GH search methods. Due to the late limiting
-        associated with these API calls, this class will run the enumeration
-        in a thread.
+        associated with these API calls.
 
 
         Args:
@@ -26,22 +25,29 @@ class Search():
         """
         self.api_accessor = api_accessor
 
-    def search_enumeration(self, organization: str):
+    def search_enumeration(
+            self, organization: str = None, custom_query: str = None):
         """Search for self-hosted in yml files within a given organization.
 
         Args:
             organization (str): Name of the github organization.
+            custom_query (str, optional): Optional query to override default.
 
         Returns:
             set: Set containing repositories that are of interest.
         """
 
         query = {
-            'q': f'self-hosted org:{organization} language:yaml path:.github/workflows',
             'sort': 'indexed',
             'per_page': '100',
             "page": 1
         }
+
+        if custom_query:
+            query['q'] = custom_query
+        else:
+            query['q'] = f'self-hosted org:{organization} language:yaml path:.github/workflows',
+
         next_page = f"/search/code?q={query['q']}&sort={query['sort']}" \
                     f"&per_page={query['per_page']}&page={query['page']}"
 
