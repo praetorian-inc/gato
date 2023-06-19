@@ -197,6 +197,18 @@ def test_search(mock_api, mock_search):
     assert res is not False
 
 
+@patch('gato.github.Search.search_enumeration')
+@patch("gato.search.search.Api")
+def test_search_query(mock_api, mock_search, capfd):
+    mock_search.return_value = ['candidate1', 'candidate2']
+    gh_search_runner = Searcher('ghp_AAAA')
+
+    res = gh_search_runner.use_search_api(None, query="pull_request_target self-hosted")
+    mock_search.assert_called_once()
+    out, err = capfd.readouterr()
+    assert "GitHub with the following query: pull_request_target self-hosted" in out
+
+
 @patch("gato.search.search.Api.check_user")
 def test_search_bad_token(mock_api):
     mock_api.return_value = False
