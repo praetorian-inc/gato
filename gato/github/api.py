@@ -78,7 +78,7 @@ class Api():
         limit resets.
         """
         if 'X-Ratelimit-Remaining' in headers and \
-                int(headers['X-Ratelimit-Remaining']) < 250 and \
+                int(headers['X-Ratelimit-Remaining']) < int(headers['X-RateLimit-Limit']) // 20 and \
                 headers['X-Ratelimit-Resource'] == 'core':
             gh_date = headers['Date']
             reset_utc = int(headers['X-Ratelimit-Reset'])

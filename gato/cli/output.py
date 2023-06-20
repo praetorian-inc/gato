@@ -1,3 +1,5 @@
+import json
+
 from gato.cli import (RED_DASH, GREEN_PLUS, GREEN_EXCLAIM, RED_EXCLAIM,
                       BRIGHT_DASH, YELLOW_EXCLAIM, SPLASH, YELLOW_DASH)
 
@@ -29,6 +31,18 @@ class Output(metaclass=Singleton):
         self.bright_dash = BRIGHT_DASH if color else '-'
         self.yellow_exclaim = YELLOW_EXCLAIM if color else "[!]"
         self.yellow_dash = YELLOW_DASH if color else "[-]"
+
+    @classmethod
+    def write_json(cls, execution_wrapper, output_json):
+        """Writes JSON to path specified earlier.
+
+        Args:
+            execution_wrapper (Execution): Wrapper object for Gato
+            enumeration run.
+            output_json (str): Path to Json file
+        """
+        with open(output_json, 'w') as json_out:
+            json_out.write(json.dumps(execution_wrapper.toJSON(), indent=4))
 
     @classmethod
     def splash(cls):

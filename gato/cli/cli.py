@@ -10,6 +10,7 @@ from gato.cli import RED_DASH
 from gato.enumerate import Enumerator
 from gato.attack import Attacker
 from gato.search import Searcher
+from gato.models import Execution
 
 from gato import util
 from gato.util.arg_utils import StringType
@@ -215,26 +216,41 @@ def enumerate(args, parser):
             github_url=args.api_url
         )
 
+    exec_wrapper = Execution()
+
     if args.self_enumeration:
-        gh_enumeration_runner.self_enumeration()
+        orgs = gh_enumeration_runner.self_enumeration()
+        exec_wrapper.set_user_details(gh_enumeration_runner.user_perms)
+        exec_wrapper.add_organizations(orgs)
     elif args.target:
-        gh_enumeration_runner.enumerate_organization(
+        org = gh_enumeration_runner.enumerate_organization(
             args.target
         )
+        exec_wrapper.set_user_details(gh_enumeration_runner.user_perms)
+        exec_wrapper.add_organizations([org])
     elif args.repositories:
         try:
             repo_list = util.read_file_and_validate_lines(
                 args.repositories,
                 r"[A-Za-z0-9-_.]+\/[A-Za-z0-9-_.]+"
             )
-            gh_enumeration_runner.enumerate_repos(repo_list)
+            repos = gh_enumeration_runner.enumerate_repos(repo_list)
+            exec_wrapper.set_user_details(gh_enumeration_runner.user_perms)
+            exec_wrapper.add_repositories(repos)
         except argparse.ArgumentError as e:
             parser.error(
                 f"{RED_DASH} The file contained an invalid repository name!"
                 f"{Output.bright(e)}"
             )
     elif args.repository:
-        gh_enumeration_runner.enumerate_repo_only(args.repository)
+        repo = gh_enumeration_runner.enumerate_repo_only(
+            args.repository
+        )
+        exec_wrapper.set_user_details(gh_enumeration_runner.user_perms)
+        exec_wrapper.add_repositories([repo])
+
+    if args.output_json:
+        Output.write_json(exec_wrapper, args.output_json)
 
 
 def search(args, parser):
@@ -488,6 +504,15 @@ def configure_parser_enumerate(parser):
             "non-admin users."
         ),
         action="store_true",
+    )
+
+    parser.add_argument(
+        "--output-json", "-oJ",
+        help=(
+            "Save enumeration output to JSON file."
+        ),
+        metavar="JSON_FILE",
+        type=StringType(256)
     )
 
 
