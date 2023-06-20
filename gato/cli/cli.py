@@ -193,14 +193,15 @@ def enumerate(args, parser):
     parser = parser.choices["enumerate"]
 
     if not (args.target or args.self_enumeration or
-            args.repository or args.repositories):
+            args.repository or args.repositories or args.validate):
         parser.error(
             f"{Fore.RED}[-]{Style.RESET_ALL} No enumeration type was"
             " specified!"
         )
 
     if sum(bool(x) for x in [args.target, args.self_enumeration,
-                             args.repository, args.repositories]) != 1:
+                             args.repository, args.repositories,
+                             args.validate]) != 1:
         parser.error(
             f"{Fore.RED}[-]{Style.RESET_ALL} You must only select one "
             "enumeration type."
@@ -215,7 +216,9 @@ def enumerate(args, parser):
             github_url=args.api_url
         )
 
-    if args.self_enumeration:
+    if args.validate:
+        gh_enumeration_runner.validate_only()
+    elif args.self_enumeration:
         gh_enumeration_runner.self_enumeration()
     elif args.target:
         gh_enumeration_runner.enumerate_organization(
@@ -465,6 +468,14 @@ def configure_parser_enumerate(parser):
             "Enumerate the configured token's access and all repositories or\n"
             "organizations the user has write access to that use self-hosted\n"
             "runners."
+        ),
+        action="store_true",
+    )
+
+    parser.add_argument(
+        "--validate", "-v",
+        help=(
+            "Validate if the token is valid and print organization memberships."
         ),
         action="store_true",
     )
