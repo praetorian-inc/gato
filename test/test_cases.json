@@ -12,7 +12,7 @@
                 "type": "stdout"
             }
         ],
-        "extra_validation": "function_name"
+        "extra_validation": {"type":"none"}
     },
     {
         "PAT": "ORG_MEMBER_REPO_TOKEN",
@@ -31,7 +31,7 @@
                 "type": "stdout"
             }
         ],
-        "extra_validation": "function_name"
+        "extra_validation": {"type":"none"}
     },
     {
         "PAT": "ORG_ADMIN_REPO_WORKFLOW_ADMIN_TOKEN",
@@ -58,7 +58,7 @@
                 "type": "stdout"
             }
         ],
-        "extra_validation": "function_name"
+        "extra_validation": {"type":"none"}
     },
     {
         "PAT": "LOW_PRIV_PAT",
@@ -77,7 +77,7 @@
                 "type": "stdout"
             }
         ],
-        "extra_validation": "function_name"
+        "extra_validation": {"type":"none"}
     },
     {
         "PAT": "ORG_MEMBER_REPO_TOKEN",
@@ -96,7 +96,7 @@
                 "type": "stdout"
             }
         ],
-        "extra_validation": "function_name"
+        "extra_validation": {"type":"none"}
     },
     {
         "PAT": "ORG_ADMIN_REPO_WORKFLOW_TOKEN",
@@ -123,7 +123,7 @@
                 "type": "stdout"
             }
         ],
-        "extra_validation": "function_name"
+        "extra_validation": {"type":"none"}
     },
     {
         "PAT": "ORG_MEMBER_REPO_TOKEN",
@@ -142,7 +142,7 @@
                 "type": "stdout"
             }
         ],
-        "extra_validation": "function_name"
+        "extra_validation": {"type":"none"}
     },
 
     {
@@ -166,7 +166,7 @@
                 "type": "stdout"
             }
         ],
-        "extra_validation": "function_name"
+        "extra_validation": {"type":"none"}
     },
     {
         "PAT": "ORG_ADMIN_REPO_WORKFLOW_TOKEN",
@@ -189,7 +189,7 @@
                 "type": "stdout"
             }
         ],
-        "extra_validation": "function_name"
+        "extra_validation": {"type":"none"}
     },
     {
         "PAT": "ORG_ADMIN_REPO_WORKFLOW_TOKEN",
@@ -208,7 +208,7 @@
                 "type": "stdout"
             }
         ],
-        "extra_validation": "function_name"
+        "extra_validation": {"type":"none"}
     },
     {
         "PAT": "ORG_ADMIN_REPO_WORKFLOW_ADMIN_DELETE_TOKEN",
@@ -231,7 +231,7 @@
                 "type": "stdout"
             }
         ],
-        "extra_validation": "function_name"
+        "extra_validation": {"type":"none"}
     },
     {
         "PAT": "ORG_ADMIN_REPO_WORKFLOW_ADMIN_TOKEN",
@@ -246,7 +246,7 @@
                 "type": "stdout"
             }
         ],
-        "extra_validation": "function_name"
+        "extra_validation": {"type":"none"}
     },
     {
         "PAT": "ORG_ADMIN_REPO_WORKFLOW_TOKEN",
@@ -265,6 +265,33 @@
                 "type": "stdout"
             }
         ],
-        "extra_validation": "function_name"
+        "extra_validation": {"type":"none"}
+    },
+    {
+        "PAT": "ORG_MEMBER_REPO_TOKEN",
+        "invocation": "gato -s enum --self-enumeration -oJ integration_test.json",
+        "assertions": [
+            {
+                "expect": "[+] The user main-feature-LINT-DocumentationUpdate belongs to 1 organizations!",
+                "type": "stdout"
+            },
+            {
+                "expect": "About to enumerate 4 repos within the GHRunnerPlayground organization!",
+                "type": "stdout"
+            },
+            {
+                "expect": "The GitHub Classic PAT has the following scopes: repo",
+                "type": "stdout"
+            }
+        ],
+        "extra_validation": {
+            "type": "file",
+            "filename": "integration_test.json",
+            "assertions": [
+                "\"username\": \"main-feature-LINT-DocumentationUpdate\"",
+                "\"accessible_runners\": [",
+                "\"name\": \"ghrunner-test\","
+            ]
+        }
     }
 ]
