@@ -284,6 +284,32 @@ def test_enumerate_repo_only(mock_api, capsys):
 
 
 @patch("gato.enumerate.enumerate.Api")
+def test_enum_validate(mock_api, capfd):
+
+    mock_api.return_value.check_user.return_value = {
+        "user": 'testUser',
+        "scopes": ['repo', 'workflow']
+    }
+
+    mock_api.return_value.check_organizations.return_value = []
+
+    gh_enumeration_runner = Enumerator(
+        "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+        socks_proxy=None,
+        http_proxy=None,
+        output_yaml=False,
+        skip_log=True,
+    )
+
+    gh_enumeration_runner.validate_only()
+    out, err = capfd.readouterr()
+    assert "authenticated user is: testUser" in escape_ansi(out)
+    assert "The user testUser belongs to 0 organizations!" in escape_ansi(
+        out
+    )
+
+
+@patch("gato.enumerate.enumerate.Api")
 def test_enum_repo(mock_api, capfd):
 
     mock_api.return_value.check_user.return_value = {
