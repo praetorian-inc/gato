@@ -1,5 +1,4 @@
 import logging
-import json
 
 from gato.github import Api
 from gato.models import Repository, Organization
@@ -23,7 +22,8 @@ class Enumerator:
         http_proxy: str = None,
         output_yaml: str = None,
         skip_log: bool = False,
-        github_url: str = None
+        github_url: str = None,
+        output_json: str = None
     ):
         """Initialize enumeration class with arguments sent by user.
 
@@ -37,6 +37,8 @@ class Enumerator:
             files to . Defaults to None.
             skip_log (bool, optional): If set, then run logs will not be
             downloaded.
+            output_json (str, optional): JSON file to output enumeration
+            results.
         """
         self.api = Api(
             pat,
@@ -51,6 +53,7 @@ class Enumerator:
         self.output_yaml = output_yaml
         self.user_perms = None
         self.github_url = github_url
+        self.output_json = output_json
 
         self.repo_e = RepositoryEnum(self.api, skip_log, output_yaml)
         self.org_e = OrganizationEnum(self.api)
@@ -59,7 +62,7 @@ class Enumerator:
         if not self.user_perms:
             self.user_perms = self.api.check_user()
             if not self.user_perms:
-                logger.error("This token cannot be used for enumeration!")
+                Output.error("This token cannot be used for enumeration!")
                 return False
 
             Output.info(
@@ -75,6 +78,26 @@ class Enumerator:
                 Output.warn("The token has no scopes!")
 
         return True
+
+    def validate_only(self):
+        """Validates the PAT access and exits.
+        """
+        if not self.__setup_user_info():
+            return False
+
+        if 'repo' not in self.user_perms['scopes']:
+            Output.warn("Token does not have sufficient access to list orgs!")
+            return False
+
+        orgs = self.api.check_organizations()
+
+        Output.info(
+            f'The user { self.user_perms["user"] } belongs to {len(orgs)} '
+            'organizations!'
+        )
+
+        for org in orgs:
+            Output.tabbed(f"{Output.bright(org)}")
 
     def self_enumeration(self):
         """Enumerates all organizations associated with the authenticated user.
@@ -102,8 +125,9 @@ class Enumerator:
         for org in orgs:
             Output.tabbed(f"{Output.bright(org)}")
 
-        for org in orgs:
-            self.enumerate_organization(org)
+        org_wrappers = list(map(self.enumerate_organization, orgs))
+
+        return org_wrappers
 
     def enumerate_organization(self, org: str):
         """Enumerate an entire organization, and check everything relevant to
@@ -168,6 +192,8 @@ class Enumerator:
                     self.user_perms['scopes'], repo
                 )
 
+        return organization
+
     def enumerate_repo_only(self, repo_name: str):
         """Enumerate only a single repository. No checks for org-level
         self-hosted runners will be performed in this case.
@@ -197,6 +223,8 @@ class Enumerator:
             Recommender.print_repo_attack_recommendations(
                 self.user_perms['scopes'], repo
             )
+
+            return repo
         else:
             Output.warn(
                 f"Unable to enumerate {Output.bright(repo_name)}! It may not "
@@ -217,5 +245,10 @@ class Enumerator:
             Output.error("The list of repositories was empty!")
             return
 
+        repo_wrappers = []
         for repo in repo_names:
-            self.enumerate_repo_only(repo)
+            repo_obj = self.enumerate_repo_only(repo)
+            if repo_obj:
+                repo_wrappers.append(repo_obj)
+
+        return repo_wrappers
