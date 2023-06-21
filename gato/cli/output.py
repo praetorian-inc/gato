@@ -40,9 +40,15 @@ class Output(metaclass=Singleton):
             execution_wrapper (Execution): Wrapper object for Gato
             enumeration run.
             output_json (str): Path to Json file
+        Returns:
+            True if successful, false otherwise.
         """
-        with open(output_json, 'w') as json_out:
-            json_out.write(json.dumps(execution_wrapper.toJSON(), indent=4))
+        if execution_wrapper.user_details:
+            with open(output_json, 'w') as json_out:
+                json_out.write(
+                    json.dumps(execution_wrapper.toJSON(), indent=4)
+                )
+            return True
 
     @classmethod
     def splash(cls):
