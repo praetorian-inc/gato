@@ -1,3 +1,5 @@
+import datetime
+
 from typing import List
 
 from gato.models.organization import Organization
@@ -15,6 +17,7 @@ class Execution():
         self.user_details = None
         self.organizations: List[Organization] = []
         self.repositories: List[Repository] = []
+        self.timestamp = datetime.datetime.now()
 
     def add_organizations(self, organizations: List[Organization]):
         """Add list of organization wrapper objects.
@@ -48,6 +51,7 @@ class Execution():
                 "username": self.user_details['user'],
                 "scopes": self.user_details['scopes'],
                 "enumeration": {
+                    "timestamp": self.timestamp.ctime(),
                     "organizations": [organization.toJSON() for organization in
                                       self.organizations],
                     "repositories": [repository.toJSON() for
