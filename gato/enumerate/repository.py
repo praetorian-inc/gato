@@ -96,6 +96,8 @@ class RepositoryEnum():
         """
         runner_detected = False
 
+        repository.update_time()
+
         if not repository.can_pull():
             Output.error("The user cannot push or pull, skipping.")
             return

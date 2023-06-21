@@ -48,3 +48,14 @@ def test_gato(test_details, test_creds, capsys):
             assert assertion['expect'] in output
         else:
             assert assertion['expect'] in error
+
+    if 'extra_validation' in test_details:
+        validation = test_details['extra_validation']
+
+        if validation['type'] == 'file':
+
+            with open(validation['filename']) as file_check:
+                file_contents = file_check.read()
+
+                for assertion in validation['assertions']:
+                    assert assertion in file_contents

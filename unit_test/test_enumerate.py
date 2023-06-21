@@ -39,7 +39,8 @@ def load_test_files(request):
         TEST_WORKFLOW_YML = wf_data.read()
 
 
-def test_init():
+@patch("gato.enumerate.enumerate.Api")
+def test_init(mock_api):
     """Test constructor for enumerator.
     """
 
@@ -58,6 +59,12 @@ def test_init():
 def test_self_enumerate(mock_api, capsys):
     """Test constructor for enumerator.
     """
+    mock_api.return_value.check_user.return_value = {
+        "user": 'testUser',
+        "scopes": ['repo', 'workflow']
+    }
+
+    mock_api.return_value.check_organizations.return_value = []
 
     gh_enumeration_runner = Enumerator(
         "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
@@ -66,13 +73,6 @@ def test_self_enumerate(mock_api, capsys):
         output_yaml=True,
         skip_log=False,
     )
-
-    mock_api.return_value.check_user.return_value = {
-        "user": 'testUser',
-        "scopes": ['repo', 'workflow']
-    }
-
-    mock_api.return_value.check_organizations.return_value = []
 
     gh_enumeration_runner.self_enumeration()
 

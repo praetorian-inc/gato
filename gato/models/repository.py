@@ -1,3 +1,5 @@
+import datetime
+
 from typing import List
 
 from gato.models.runner import Runner
@@ -22,6 +24,7 @@ class Repository():
         self.secrets: List[Secret] = []
         self.org_secrets: List[Secret] = []
         self.sh_workflow_names = []
+        self.enum_time = datetime.datetime.now()
 
         self.permission_data = self.repo_data['permissions']
         self.sh_runner_access = False
@@ -51,6 +54,11 @@ class Repository():
 
     def can_fork(self):
         return self.repo_data.get('allow_forking', False)
+
+    def update_time(self):
+        """Update timestamp.
+        """
+        self.enum_time = datetime.datetime.now()
 
     def set_accessible_org_secrets(self, secrets: List[Secret]):
         """Sets organization secrets that can be read using a workflow in
@@ -95,6 +103,7 @@ class Repository():
         """
         representation = {
             "name": self.name,
+            "enum_time": self.enum_time.ctime(),
             "permissions": self.permission_data,
             "can_fork": self.can_fork(),
             "runner_workflows": [wf for wf in self.sh_workflow_names],
