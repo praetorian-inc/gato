@@ -293,5 +293,30 @@
                 "\"name\": \"ghrunner-test\","
             ]
         }
+    },
+    {
+        "PAT": "ORG_MEMBER_REPO_TOKEN",
+        "invocation": "gato -s enum --target GHRunnerPlayground -oJ integration_test.json",
+        "assertions": [
+            {
+                "expect": "About to enumerate 4 repos within the GHRunnerPlayground organization!",
+                "type": "stdout"
+            },
+            {
+                "expect": "The GitHub Classic PAT has the following scopes: repo",
+                "type": "stdout"
+            }
+        ],
+        "extra_validation": {
+            "type": "file",
+            "filename": "integration_test.json",
+            "assertions": [
+                "\"username\": \"main-feature-LINT-DocumentationUpdate\"",
+                "\"accessible_runners\": [",
+                "\"name\": \"ghrunner-test\",",
+                "\"org_member\": true,",
+                "\"org_admin_user\": false,"
+            ]
+        }
     }
 ]

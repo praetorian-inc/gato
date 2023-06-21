@@ -62,7 +62,7 @@ class Enumerator:
         if not self.user_perms:
             self.user_perms = self.api.check_user()
             if not self.user_perms:
-                logger.error("This token cannot be used for enumeration!")
+                Output.error("This token cannot be used for enumeration!")
                 return False
 
             Output.info(
@@ -82,9 +82,7 @@ class Enumerator:
     def validate_only(self):
         """Validates the PAT access and exits.
         """
-        self.__setup_user_info()
-
-        if not self.user_perms:
+        if not self.__setup_user_info():
             return False
 
         if 'repo' not in self.user_perms['scopes']:
