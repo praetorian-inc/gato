@@ -59,6 +59,17 @@ Gato also requires that `git` version `2.27` or above is installed and on the
 system's PATH. In order to run the fork PR attack module, `sed` must also be 
 installed and present on the system's path.
 
+#### Dev Branch
+
+We maintain a development branch that contains newer Gato features that are not yet added to main.
+There is an increased chance you will run into bugs; however, we still run our integration test
+suite on the `dev` branch, so there should not be any _blatant_ bugs.
+
+If you want to use the `dev` branch, just check it out prior to running pip install - that's it!
+
+If you do run into any for your specific use case, by all means open an issue!
+
+
 ### Usage
 
 After installing the tool, it can be launched by running `gato` or

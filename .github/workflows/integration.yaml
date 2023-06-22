@@ -4,6 +4,11 @@ on:
    branches:
     - 'main'
     - 'dev'
+   paths:
+    - 'gato/**'
+    - 'setup.py'
+    - 'pyproject.toml'
+    - 'test/**'
   workflow_dispatch:
   schedule:
   - cron: "0 0 * * *"
