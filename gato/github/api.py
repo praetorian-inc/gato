@@ -794,7 +794,8 @@ class Api():
             return True
 
     def commit_file(self, repo_name: str, branch_name: str, file_path: str,
-                    file_content: bytes, message="Testing"):
+                    file_content: bytes, commit_author: str,
+                    commit_email: str, message="Testing",):
         """Commits a file to the specified branch on a repository.
 
         Args:
@@ -803,12 +804,19 @@ class Api():
             the operation will fail.
             file_path (str): Path within to repository to commit file to.
             file_content (bytes): Content of the file to commit in bytes.
+            commit_author (str): Author of the commit.
+            commit_email (str): Email for commit.
+            message (str): Commit message for testing.
         """
         b64_contents = base64.b64encode(file_content)
         commit_data = {
             "message": message,
             "content": b64_contents.decode('utf-8'),
-            "branch": branch_name
+            "branch": branch_name,
+            "committer": {
+                "name": commit_author,
+                "email": commit_email
+            }
         }
 
         resp = self.call_put(

