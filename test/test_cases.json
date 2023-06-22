@@ -242,7 +242,7 @@
                 "type": "stdout"
             },
             {
-                "expect": "INTEGRATION_SECRET, last updated 2023-05-18T19:36:13Z",
+                "expect": "INTEGRATION_SECRET, last updated 2023-06-22T01:47:43Z",
                 "type": "stdout"
             }
         ],
@@ -261,7 +261,7 @@
                 "type": "stdout"
             },
             {
-                "expect": "INTEGRATION_SECRET, last updated 2023-05-18T19:36:13Z",
+                "expect": "INTEGRATION_SECRET, last updated 2023-06-22T01:47:43Z",
                 "type": "stdout"
             }
         ],
