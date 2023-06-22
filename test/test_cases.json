@@ -353,7 +353,7 @@
                 "type": "stdout"
             },
             {
-                "expect": "The repository has 1 accessible secrets!",
+                "expect": "The repository has 1 accessible secret(s)!",
                 "type": "stdout"
             },
             {
