@@ -794,8 +794,9 @@ class Api():
             return True
 
     def commit_file(self, repo_name: str, branch_name: str, file_path: str,
-                    file_content: bytes, commit_author: str,
-                    commit_email: str, message="Testing",):
+                    file_content: bytes, commit_author: str = "Gato",
+                    commit_email: str = "gato@gato.infosec", message="Testing"
+                    ):
         """Commits a file to the specified branch on a repository.
 
         Args:
@@ -826,6 +827,9 @@ class Api():
         if resp.status_code == 201:
             resp_json = resp.json()
             return resp_json['commit']['sha']
+        else:
+            print(resp.status_code)
+            print(resp.text)
 
     def retrieve_workflow_ymls(self, repo_name: str):
         """Retrieve all .yml or .yaml files within the workflows directory.

@@ -157,15 +157,24 @@ class Attacker:
             Output.error("Failed to create branch!")
             return False
 
-        rev_hash = self.api.commit_file(
-            target_repo,
-            branch,
-            f".github/workflows/{yaml_name}.yml",
-            yaml_contents.encode(),
-            self.author_name,
-            self.author_email,
-            message=commit_message
-        )
+        if self.author_email and self.author_name:
+            rev_hash = self.api.commit_file(
+                target_repo,
+                branch,
+                f".github/workflows/{yaml_name}.yml",
+                yaml_contents.encode(),
+                commit_author=self.author_name,
+                commit_email=self.author_email,
+                message=commit_message
+            )
+        else:
+            rev_hash = self.api.commit_file(
+                target_repo,
+                branch,
+                f".github/workflows/{yaml_name}.yml",
+                yaml_contents.encode(),
+                message=commit_message
+            )
 
         if not rev_hash:
             Output.error("Failed to push the malicious workflow!")
