@@ -362,5 +362,5 @@
             }
         ],
         "extra_validation": {"type":"none"}
-    },
+    }
 ]
