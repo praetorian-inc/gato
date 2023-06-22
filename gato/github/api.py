@@ -1,4 +1,5 @@
 import base64
+import tempfile
 import copy
 import time
 import requests
@@ -135,6 +136,25 @@ class Api():
                                 "run_attempt": run_info["run_attempt"]
                             }
                             return log_package
+
+    def __get_full_runlog(self, log_content: bytes, run_name: str):
+        """Gets the full text of the runlog from the zip file by matching the
+         filename.
+
+        Args:
+            log_content (bytes): zip file binary
+            run_name (str): Name of file to look for
+
+        Returns:
+            str: Runlog content
+        """
+        with zipfile.ZipFile(io.BytesIO(log_content)) as runres:
+            for zipinfo in runres.infolist():
+                if run_name in zipinfo.filename:
+                    with runres.open(zipinfo) as run_log:
+                        content = run_log.read().decode()
+
+                        return content
 
     def call_get(self, url: str, params: dict = None, strip_auth=False):
         """Internal method to wrap a GET request so that proxies and headers
@@ -713,6 +733,24 @@ class Api():
             f.write(req.content)
         return True
 
+    def retrieve_workflow_log(self, repo_name: str, workflow_id: int, job_name: str):
+        """Download single run log and returns the text output from the zip.
+
+        Args:
+            repo_name (str): Name of the repository that has the workflow.
+            workflow_id (int): ID of the workflow.
+            job_name (str): Name of job to get output from.
+        Returns:
+            str: String content of the run log matching the job name, if found.
+        """
+        req = self.call_get(f"/repos/{repo_name}/actions/runs/"
+                            f"{workflow_id}/logs")
+
+        if req.status_code != 200:
+            return False
+
+        return self.__get_full_runlog(req.content, job_name)
+
     def create_branch(self, repo_name: str, branch_name: str):
         """Create a branch with the provided name.
 
@@ -756,7 +794,9 @@ class Api():
             return True
 
     def commit_file(self, repo_name: str, branch_name: str, file_path: str,
-                    file_content: bytes, message="Testing"):
+                    file_content: bytes, commit_author: str = "Gato",
+                    commit_email: str = "gato@gato.infosec", message="Testing"
+                    ):
         """Commits a file to the specified branch on a repository.
 
         Args:
@@ -765,12 +805,19 @@ class Api():
             the operation will fail.
             file_path (str): Path within to repository to commit file to.
             file_content (bytes): Content of the file to commit in bytes.
+            commit_author (str): Author of the commit.
+            commit_email (str): Email for commit.
+            message (str): Commit message for testing.
         """
         b64_contents = base64.b64encode(file_content)
         commit_data = {
             "message": message,
             "content": b64_contents.decode('utf-8'),
-            "branch": branch_name
+            "branch": branch_name,
+            "committer": {
+                "name": commit_author,
+                "email": commit_email
+            }
         }
 
         resp = self.call_put(
@@ -780,6 +827,9 @@ class Api():
         if resp.status_code == 201:
             resp_json = resp.json()
             return resp_json['commit']['sha']
+        else:
+            print(resp.status_code)
+            print(resp.text)
 
     def retrieve_workflow_ymls(self, repo_name: str):
         """Retrieve all .yml or .yaml files within the workflows directory.

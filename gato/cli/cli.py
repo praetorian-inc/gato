@@ -137,14 +137,19 @@ def validate_git_config(parser):
 
 def attack(args, parser):
     parser = parser.choices["attack"]
-    if not (args.workflow != args.pull_request):
+    if not (args.workflow or args.pull_request or args.secrets):
         parser.error(f"{Fore.RED}[!] You must select one of the attack modes, "
-                     "workflow or pr.")
+                     "workflow, pr, or secrets.")
 
     if args.custom_file and (args.command or
                              args.name):
         parser.error(f"{Fore.RED}[!] A shell command or workflow name"
                      f" cannot be used with a custom workflow.")
+
+    if args.secrets and args.command:
+        parser.error(
+            f"{Fore.RED}[!] A command cannot be used with secrets exfil!."
+        )
 
     if not args.custom_file:
         args.command = args.command if args.command else "whoami"
@@ -183,6 +188,14 @@ def attack(args, parser):
             args.target,
             args.command,
             args.custom_file,
+            args.branch,
+            args.message,
+            args.delete_action,
+            args.file_name
+        )
+    elif args.secrets:
+        gh_attack_runner.secrets_dump(
+            args.target,
             args.branch,
             args.message,
             args.delete_action,
@@ -384,6 +397,12 @@ def configure_parser_attack(parser):
     parser.add_argument(
         "--pull-request", "-pr",
         help="Attack with a malicious pull request.",
+        action="store_true",
+    )
+
+    parser.add_argument(
+        "--secrets", "-sc",
+        help="Attack to exfiltrate pipeline secrets.",
         action="store_true",
     )
 

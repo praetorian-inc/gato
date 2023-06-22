@@ -24,7 +24,8 @@ dependencies = [
     "colorama",
     "requests",
     "pyyaml",
-    "packaging"
+    "packaging",
+    "cryptography"
 ]
 
 [project.optional-dependencies]

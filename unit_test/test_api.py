@@ -745,7 +745,8 @@ def test_commit_file(mock_put):
     api = Api(test_pat, "2022-11-28")
 
     commit_sha = api.commit_file(
-        "testOrg/testRepo", "testBranch", "test/newFile", test_filedata)
+        "testOrg/testRepo", "testBranch", "test/newFile", test_filedata,
+        commit_author="testUser", commit_email="testemail@example.org")
 
     assert commit_sha == test_sha
 
