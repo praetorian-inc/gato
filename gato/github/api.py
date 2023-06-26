@@ -1,5 +1,4 @@
 import base64
-import tempfile
 import copy
 import time
 import requests
@@ -75,7 +74,7 @@ class Api():
             requests.packages.urllib3.disable_warnings()
 
     def __check_rate_limit(self, headers):
-        """Checks the rate limit, and pauses Gato execution until the rate 
+        """Checks the rate limit, and pauses Gato execution until the rate
         limit resets.
         """
         if 'X-Ratelimit-Remaining' in headers and \

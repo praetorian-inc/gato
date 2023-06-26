@@ -107,7 +107,7 @@ class Repository():
             "permissions": self.permission_data,
             "can_fork": self.can_fork(),
             "runner_workflows": [wf for wf in self.sh_workflow_names],
-            "accessible_runners": [runner.toJSON() for runner 
+            "accessible_runners": [runner.toJSON() for runner
                                    in self.accessible_runners],
             "repo_runners": [runner.toJSON() for runner in self.runners],
             "repo_secrets": [secret.toJSON() for secret in self.secrets],
