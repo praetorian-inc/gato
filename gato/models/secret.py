@@ -1,13 +1,16 @@
 class Secret():
-    """Simple wrapper class to parse secret response JSON from GitHub.
+    """Simple wrapper class to parse secret response JSON from GitHub. Used
+        primarily to facilitate JSON generation and to support future
+        in-depth analysis of run logs and/or workflows.
     """
 
     def __init__(self, secret_data: dict, parent: str):
-        """_summary_
+        """Initialize wrapper object for secret.
 
         Args:
-            secret_data (dict): _description_
-            selected_repos 
+            secret_data (dict): Data about secret returned from the GitHub API.
+            parent (str): Repository or organization name that this secret
+            belongs to.
         """
         self.secret_data = secret_data
         self.name = secret_data['name']

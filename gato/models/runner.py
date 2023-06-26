@@ -12,7 +12,16 @@ class Runner:
             os=None,
             status=None,
             labels=[]):
+        """Constructor for runner wrapper object.
 
+        Args:
+            runner_name (str): Name of self-hosted runner.
+            machine_name (str, optional): Machine name of runner gathered from
+            run logs. Defaults to None.
+            os (str, optional): OS of runner. Defaults to None.
+            status (str, optional): Status of runner. Defaults to None.
+            labels (list, optional): Labels applied to runner. Defaults to [].
+        """
         self.runner_name = runner_name
         self.machine_name = machine_name
         self.os = os
