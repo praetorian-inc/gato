@@ -231,19 +231,17 @@ def enumerate(args, parser):
         )
 
     exec_wrapper = Execution()
+    orgs = []
+    repos = []
 
     if args.validate:
-        gh_enumeration_runner.validate_only()
+        orgs = gh_enumeration_runner.validate_only()
     elif args.self_enumeration:
         orgs = gh_enumeration_runner.self_enumeration()
-        exec_wrapper.set_user_details(gh_enumeration_runner.user_perms)
-        exec_wrapper.add_organizations(orgs)
     elif args.target:
-        org = gh_enumeration_runner.enumerate_organization(
+        orgs = [gh_enumeration_runner.enumerate_organization(
             args.target
-        )
-        exec_wrapper.set_user_details(gh_enumeration_runner.user_perms)
-        exec_wrapper.add_organizations([org])
+        )]
     elif args.repositories:
         try:
             repo_list = util.read_file_and_validate_lines(
@@ -251,19 +249,19 @@ def enumerate(args, parser):
                 r"[A-Za-z0-9-_.]+\/[A-Za-z0-9-_.]+"
             )
             repos = gh_enumeration_runner.enumerate_repos(repo_list)
-            exec_wrapper.set_user_details(gh_enumeration_runner.user_perms)
-            exec_wrapper.add_repositories(repos)
         except argparse.ArgumentError as e:
             parser.error(
                 f"{RED_DASH} The file contained an invalid repository name!"
                 f"{Output.bright(e)}"
             )
     elif args.repository:
-        repo = gh_enumeration_runner.enumerate_repo_only(
+        repos = [gh_enumeration_runner.enumerate_repo_only(
             args.repository
-        )
-        exec_wrapper.set_user_details(gh_enumeration_runner.user_perms)
-        exec_wrapper.add_repositories([repo])
+        )]
+
+    exec_wrapper.set_user_details(gh_enumeration_runner.user_perms)
+    exec_wrapper.add_organizations(orgs)
+    exec_wrapper.add_repositories(repos)
 
     if args.output_json:
         Output.write_json(exec_wrapper, args.output_json)

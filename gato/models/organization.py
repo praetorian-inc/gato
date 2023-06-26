@@ -7,12 +7,13 @@ from gato.models.secret import Secret
 
 class Organization():
 
-    def __init__(self, org_data: dict, user_scopes: list):
+    def __init__(self, org_data: dict, user_scopes: list, limited_data: bool = False):
         """Wrapper object for an organization.
 
         Args:
             org_data (dict): Org data from GitHub API
             user_scopes (list): List of OAuth scopes that the PAT has
+            limited_data (bool): Whether limited org_data is present (default: False)
         """
         self.name = None
         self.org_admin_user = False
@@ -21,6 +22,8 @@ class Organization():
         self.secrets: List[Secret] = []
         self.runners: List[Runner] = []
         self.sso_enabled = False
+
+        self.limited_data = limited_data
 
         self.public_repos = []
         self.private_repos = []
@@ -79,17 +82,22 @@ class Organization():
     def toJSON(self):
         """Converts the repository to a Gato JSON representation.
         """
-        representation = {
-            "name": self.name,
-            "org_admin_user": self.org_admin_user,
-            "org_member": self.org_member,
-            "org_runners": [runner.toJSON() for runner in self.runners],
-            "org_secrets": [secret.toJSON() for secret in self.secrets],
-            "sso_access": self.sso_enabled,
-            "public_repos":
-                [repository.toJSON() for repository in self.public_repos],
-            "private_repos":
-                [repository.toJSON() for repository in self.private_repos]
-        }
+        if self.limited_data:
+            representation = {
+                "name": self.name
+            }
+        else:
+            representation = {
+                "name": self.name,
+                "org_admin_user": self.org_admin_user,
+                "org_member": self.org_member,
+                "org_runners": [runner.toJSON() for runner in self.runners],
+                "org_secrets": [secret.toJSON() for secret in self.secrets],
+                "sso_access": self.sso_enabled,
+                "public_repos":
+                    [repository.toJSON() for repository in self.public_repos],
+                "private_repos":
+                    [repository.toJSON() for repository in self.private_repos]
+            }
 
         return representation
