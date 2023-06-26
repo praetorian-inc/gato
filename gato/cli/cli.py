@@ -10,6 +10,7 @@ from gato.cli import RED_DASH
 from gato.enumerate import Enumerator
 from gato.attack import Attacker
 from gato.search import Searcher
+from gato.models import Execution
 
 from gato import util
 from gato.util.arg_utils import StringType
@@ -36,6 +37,17 @@ def cli(args):
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     configure_parser_general(parser)
+
+    parser.add_argument(
+        "--api-url", "-u",
+        help=(
+            f"{Fore.RED}{Output.bright('!! Experimental !!')}\n"
+            "Github API URL to target. \n"
+            "Defaults to 'https://api.github.com'"
+        ),
+        metavar="https://api.github-url.com/api/v3",
+        required=False,
+    )
 
     attack_parser = subparsers.add_parser(
         "attack", help="CI/CD Attack Capabilities", aliases=["a"],
@@ -125,14 +137,19 @@ def validate_git_config(parser):
 
 def attack(args, parser):
     parser = parser.choices["attack"]
-    if not (args.workflow != args.pull_request):
+    if not (args.workflow or args.pull_request or args.secrets):
         parser.error(f"{Fore.RED}[!] You must select one of the attack modes, "
-                     "workflow or pr.")
+                     "workflow, pr, or secrets.")
 
     if args.custom_file and (args.command or
                              args.name):
         parser.error(f"{Fore.RED}[!] A shell command or workflow name"
                      f" cannot be used with a custom workflow.")
+
+    if args.secrets and args.command:
+        parser.error(
+            f"{Fore.RED}[!] A command cannot be used with secrets exfil!."
+        )
 
     if not args.custom_file:
         args.command = args.command if args.command else "whoami"
@@ -146,7 +163,8 @@ def attack(args, parser):
         author_name=args.author_name,
         socks_proxy=args.socks_proxy,
         http_proxy=args.http_proxy,
-        timeout=timeout
+        timeout=timeout,
+        github_url=args.api_url
     )
 
     if args.pull_request:
@@ -175,59 +193,78 @@ def attack(args, parser):
             args.delete_action,
             args.file_name
         )
+    elif args.secrets:
+        gh_attack_runner.secrets_dump(
+            args.target,
+            args.branch,
+            args.message,
+            args.delete_action,
+            args.file_name
+        )
 
 
 def enumerate(args, parser):
     parser = parser.choices["enumerate"]
 
     if not (args.target or args.self_enumeration or
-            args.repository or args.repositories):
+            args.repository or args.repositories or args.validate):
         parser.error(
             f"{Fore.RED}[-]{Style.RESET_ALL} No enumeration type was"
             " specified!"
         )
 
     if sum(bool(x) for x in [args.target, args.self_enumeration,
-                             args.repository, args.repositories]) != 1:
+                             args.repository, args.repositories,
+                             args.validate]) != 1:
         parser.error(
             f"{Fore.RED}[-]{Style.RESET_ALL} You must only select one "
             "enumeration type."
-        )
-
-    if args.skip_clones and args.output_yaml:
-        parser.error(
-            f"{Fore.RED}[-] Cannot output ymls if cloning is not enabled!"
         )
 
     gh_enumeration_runner = Enumerator(
             args.gh_token,
             socks_proxy=args.socks_proxy,
             http_proxy=args.http_proxy,
-            skip_clones=args.skip_clones,
             output_yaml=args.output_yaml,
             skip_log=args.skip_runlog,
+            github_url=args.api_url
         )
 
-    if args.self_enumeration:
-        gh_enumeration_runner.self_enumeration()
+    exec_wrapper = Execution()
+    orgs = []
+    repos = []
+
+    if args.validate:
+        orgs = gh_enumeration_runner.validate_only()
+    elif args.self_enumeration:
+        orgs = gh_enumeration_runner.self_enumeration()
     elif args.target:
-        gh_enumeration_runner.enumerate_organization(
+        orgs = [gh_enumeration_runner.enumerate_organization(
             args.target
-        )
+        )]
     elif args.repositories:
         try:
             repo_list = util.read_file_and_validate_lines(
                 args.repositories,
                 r"[A-Za-z0-9-_.]+\/[A-Za-z0-9-_.]+"
             )
-            gh_enumeration_runner.enumerate_repos(repo_list)
+            repos = gh_enumeration_runner.enumerate_repos(repo_list)
         except argparse.ArgumentError as e:
             parser.error(
                 f"{RED_DASH} The file contained an invalid repository name!"
                 f"{Output.bright(e)}"
             )
     elif args.repository:
-        gh_enumeration_runner.enumerate_repo_only(args.repository)
+        repos = [gh_enumeration_runner.enumerate_repo_only(
+            args.repository
+        )]
+
+    exec_wrapper.set_user_details(gh_enumeration_runner.user_perms)
+    exec_wrapper.add_organizations(orgs)
+    exec_wrapper.add_repositories(repos)
+
+    if args.output_json:
+        Output.write_json(exec_wrapper, args.output_json)
 
 
 def search(args, parser):
@@ -236,10 +273,22 @@ def search(args, parser):
     gh_search_runner = Searcher(
         args.gh_token,
         socks_proxy=args.socks_proxy,
-        http_proxy=args.http_proxy
+        http_proxy=args.http_proxy,
+        github_url=args.api_url
     )
 
-    gh_search_runner.use_search_api(args.target)
+    if not (args.query or args.target):
+        parser.error(
+            f"{Fore.RED}[-]{Style.RESET_ALL} You must select an organization "
+            "or pass a custom query!."
+        )
+
+    if args.query:
+        gh_search_runner.use_search_api(
+            organization=args.target, query=args.query
+        )
+    else:
+        gh_search_runner.use_search_api(organization=args.target)
 
 
 def configure_parser_general(parser):
@@ -350,6 +399,12 @@ def configure_parser_attack(parser):
     )
 
     parser.add_argument(
+        "--secrets", "-sc",
+        help="Attack to exfiltrate pipeline secrets.",
+        action="store_true",
+    )
+
+    parser.add_argument(
         "--source-branch", "-sb",
         default="test",
         help="Name of the PR source branch, this will be displayed as\n"
@@ -451,6 +506,14 @@ def configure_parser_enumerate(parser):
     )
 
     parser.add_argument(
+        "--validate", "-v",
+        help=(
+            "Validate if the token is valid and print organization memberships."
+        ),
+        action="store_true",
+    )
+
+    parser.add_argument(
         "--output-yaml", "-o",
         help=(
             "Directory to save gathered workflow yml files to. Will be\n"
@@ -462,16 +525,6 @@ def configure_parser_enumerate(parser):
     )
 
     parser.add_argument(
-        "--skip-clones", "-sc",
-        help=(
-            f"Do {Output.bright('NOT')} perform any git clone operations as part of\n"
-            "enumeration, as this generates log events for GitHub Enterprise\n"
-            "Cloud customers."
-        ),
-        action="store_true",
-    )
-
-    parser.add_argument(
         "--skip-runlog", "-sr",
         help=(
             f"Do {Output.bright('NOT')} download any workflow run logs, this will\n"
@@ -479,6 +532,15 @@ def configure_parser_enumerate(parser):
             "non-admin users."
         ),
         action="store_true",
+    )
+
+    parser.add_argument(
+        "--output-json", "-oJ",
+        help=(
+            "Save enumeration output to JSON file."
+        ),
+        metavar="JSON_FILE",
+        type=StringType(256)
     )
 
 
@@ -492,5 +554,12 @@ def configure_parser_search(parser):
         "--target", "-t",
         help="Organization to enumerate using GitHub code search.",
         metavar=f"{Fore.RED}ORGANIZATION{Style.RESET_ALL}",
-        required=True,
+        required=False,
+    )
+
+    parser.add_argument(
+        "--query", "-q",
+        help="Pass a custom query to GitHub code search",
+        metavar="QUERY",
+        required=False
     )

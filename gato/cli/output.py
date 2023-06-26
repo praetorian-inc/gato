@@ -1,3 +1,5 @@
+import json
+
 from gato.cli import (RED_DASH, GREEN_PLUS, GREEN_EXCLAIM, RED_EXCLAIM,
                       BRIGHT_DASH, YELLOW_EXCLAIM, SPLASH, YELLOW_DASH)
 
@@ -31,6 +33,24 @@ class Output(metaclass=Singleton):
         self.yellow_dash = YELLOW_DASH if color else "[-]"
 
     @classmethod
+    def write_json(cls, execution_wrapper, output_json):
+        """Writes JSON to path specified earlier.
+
+        Args:
+            execution_wrapper (Execution): Wrapper object for Gato
+            enumeration run.
+            output_json (str): Path to Json file
+        Returns:
+            True if successful, false otherwise.
+        """
+        if execution_wrapper.user_details:
+            with open(output_json, 'w') as json_out:
+                json_out.write(
+                    json.dumps(execution_wrapper.toJSON(), indent=4)
+                )
+            return True
+
+    @classmethod
     def splash(cls):
         """Prints the Gato mascot.
         """
@@ -47,13 +67,13 @@ class Output(metaclass=Singleton):
         print(f"{Output().red_dash} {message}")
 
     @classmethod
-    def info(cls, message: str):
+    def info(cls, message: str, end='\n', flush=False):
         """Prints info text, this adds a green [+] to the message.
 
         Args:
             message (str): The message to print.
         """
-        print(f"{Output().green_plus} {message}")
+        print(f"{Output().green_plus} {message}", end=end, flush=flush)
 
     @classmethod
     def tabbed(cls, message: str):

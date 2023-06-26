@@ -26,6 +26,7 @@ def test_search_api(mock_api, mock_time):
     }, {
         "items": []
     }]
+    mock_api.call_get.return_value.links = {}
 
     searcher = Search(mock_api)
 
@@ -52,6 +53,11 @@ def test_search_api_cap(mock_api, mock_time, capfd):
             }
         ]
     }
+    mock1.links = {
+            "next": {
+                "url": "test"
+            }
+    }
 
     mock2 = MagicMock()
     mock2.status_code = 422
@@ -61,11 +67,9 @@ def test_search_api_cap(mock_api, mock_time, capfd):
     searcher = Search(mock_api)
 
     res = searcher.search_enumeration('testOrganization')
-    mock_time.assert_called_once()
     assert len(res) == 1
     out, err = capfd.readouterr()
-    assert "Reached search cap!" in out
-
+    assert "[-] Search failed with response code 422" in out
 
 @patch("gato.github.search.time.sleep")
 @patch("gato.github.search.Api")
@@ -85,6 +89,11 @@ def test_search_api_ratelimit(mock_api, mock_time, capfd):
             }
         ]
     }
+    mock1.links = {
+            "next": {
+                "url": "test"
+            }
+    }
 
     mock2 = MagicMock()
     mock2.status_code = 403
@@ -92,17 +101,18 @@ def test_search_api_ratelimit(mock_api, mock_time, capfd):
     mock3 = MagicMock()
     mock3.status_code = 200
     mock3.json.return_value = {"items": []}
+    mock3.links = {}
 
     mock_api.call_get.side_effect = [mock1, mock2, mock3]
 
     searcher = Search(mock_api)
 
     res = searcher.search_enumeration('testOrganization')
-    assert mock_time.call_count == 3
+    assert mock_time.call_count == 2
     assert len(res) == 1
 
     out, err = capfd.readouterr()
-    assert "Secondary rate limit hit! Sleeping 3 minutes!" in out
+    assert "[!] Secondary API Rate Limit Hit." in out
 
 
 @patch("gato.github.search.Api")
@@ -133,12 +143,13 @@ def test_search_api_permission(mock_api, capfd):
     res = searcher.search_enumeration('privateOrg')
     assert len(res) == 0
     out, err = capfd.readouterr()
-    assert "[!] Search failed with reponse code 422!" in out
+    assert "[-] Search failed with response code 422!" in out
     assert " listed users and repositories cannot be searched " in out
 
 
+@patch("gato.github.search.time.sleep")
 @patch("gato.github.search.Api")
-def test_search_api_iniitalrl(mock_api, capfd):
+def test_search_api_iniitalrl(mock_api, mock_time, capfd):
 
     mock1 = MagicMock()
     mock1.status_code = 403
@@ -150,14 +161,29 @@ def test_search_api_iniitalrl(mock_api, capfd):
         ". Please wait a few minutes before you try again."
     }
 
-    mock_api.call_get.side_effect = [mock1]
+    mock2 = MagicMock()
+    mock2.status_code = 200
+    mock2.json.return_value = {
+        "items": [
+            {
+                "path": ".github/workflows/yaml_wf.yml",
+                "repository": {
+                    "fork": False,
+                    "full_name": 'testOrg/testRepo'
+                },
+            }
+        ]
+    }
+    mock2.links = {}
+
+    mock_api.call_get.side_effect = [mock1, mock2]
 
     searcher = Search(mock_api)
 
     res = searcher.search_enumeration('testOrg')
-    assert len(res) == 0
+    assert len(res) == 1
     out, err = capfd.readouterr()
-    assert "[-] Secondary rate limit hit!" in out
+    assert "[!] Secondary API Rate Limit Hit." in out
 
 
 @patch('gato.github.Search.search_enumeration')
@@ -169,6 +195,18 @@ def test_search(mock_api, mock_search):
     res = gh_search_runner.use_search_api('targetOrg')
     mock_search.assert_called_once()
     assert res is not False
+
+
+@patch('gato.github.Search.search_enumeration')
+@patch("gato.search.search.Api")
+def test_search_query(mock_api, mock_search, capfd):
+    mock_search.return_value = ['candidate1', 'candidate2']
+    gh_search_runner = Searcher('ghp_AAAA')
+
+    res = gh_search_runner.use_search_api(None, query="pull_request_target self-hosted")
+    mock_search.assert_called_once()
+    out, err = capfd.readouterr()
+    assert "GitHub with the following query: pull_request_target self-hosted" in out
 
 
 @patch("gato.search.search.Api.check_user")

@@ -13,7 +13,8 @@ class Git:
     """
 
     def __init__(self, pat, repo_name: str, username="Gato",
-                 email="gato@gato.infosec", proxies=None):
+                 email="gato@gato.infosec", proxies=None,
+                 github_url="github.com"):
         """Initialize the git abstraction class. This class managed a
         checked-out git repository located in a temporary directory.
 
@@ -31,13 +32,20 @@ class Git:
             Defaults to None.
         """
         self.cloned = False
-        if proxies:
+        if not github_url:
+            self.github_url = "github.com"
+        else:
+            self.github_url = github_url
+
+        if self.github_url != "github.com" or proxies:
             os.environ["GIT_SSL_NO_VERIFY"] = 'True'
+
+        if proxies:
             os.environ["ALL_PROXY"] = proxies["https"]
 
         self.clone_comamnd = (
             "git clone --depth 1 --filter=blob:none --sparse"
-            f" https://{pat}@github.com/{repo_name}"
+            f" https://{pat}@{self.github_url}/{repo_name}"
         )
 
         self.config_command1 = (
@@ -233,7 +241,7 @@ class Git:
 
             if p.returncode != 0:
                 logger.error("Git add operation did not succeed!")
-                raise Exception("Git add operation did not suceeed!")
+                raise Exception("Git add operation did not succeed!")
 
             cmd = commit_command.split(' ')
             cmd.append(message)

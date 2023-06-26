@@ -16,12 +16,14 @@ class Searcher:
         self,
         pat: str,
         socks_proxy: str = None,
-        http_proxy: str = None
+        http_proxy: str = None,
+        github_url: str = None,
     ):
         self.api = Api(
             pat,
             socks_proxy=socks_proxy,
             http_proxy=http_proxy,
+            github_url=github_url,
         )
 
         self.socks_proxy = socks_proxy
@@ -55,7 +57,7 @@ class Searcher:
 
         return True
 
-    def use_search_api(self, organization: str):
+    def use_search_api(self, organization: str, query=None):
         """Utilize GitHub Code Search API to try and identify repositories
         using self-hosted runners. This is subject to a high false-positive
         rate because any occurance of 'self-hosted' within a YAML file will
@@ -66,6 +68,7 @@ class Searcher:
         Args:
             organization (str): Organization to enumerate using
             the GitHub code search API.
+            query (str, optional): Custom code-search query.
 
         Returns:
             list: List of repositories suspected of using self-hosted runners
@@ -78,12 +81,19 @@ class Searcher:
 
         api_search = Search(self.api)
 
-        Output.info(
+        if query:
+            Output.info(
+                f"Searching GitHub with the following query: {Output.bright(query)}"
+            )
+        else:
+            Output.info(
                 f"Searching repositories within {Output.bright(organization)} "
                 "using the GitHub Code Search API for 'self-hosted' within "
                 "YAML files."
+            )
+        candidates = api_search.search_enumeration(
+            organization, custom_query=query
         )
-        candidates = api_search.search_enumeration(organization)
 
         Output.result(
             f"Identified {len(candidates)} non-fork repositories that matched "
@@ -91,4 +101,4 @@ class Searcher:
         )
 
         for candidate in candidates:
-            Output.result(candidate)
+            Output.tabbed(candidate)

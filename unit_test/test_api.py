@@ -1,3 +1,4 @@
+import base64
 import os
 import pytest
 import pathlib
@@ -132,13 +133,15 @@ def test_validate_sso_fail(mock_get):
 
     assert res is False
 
-
-def test_invalid_pat():
+@patch("gato.github.api.requests.get")
+def test_invalid_pat(mock_get):
     """Test calling a request with an invalid PAT
     """
     test_pat = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
 
     abstraction_layer = Api( test_pat, "2022-11-28")
+
+    mock_get().status_code = 401
 
     assert abstraction_layer.check_user() is None
 
@@ -655,3 +658,263 @@ def test_get_repo_branch(mock_get):
 
     mock_get.return_value.status_code = 401
     assert api.get_repo_branch("repo", "branch") == -1
+
+
+@patch("gato.github.api.requests.post")
+@patch("gato.github.api.requests.get")
+def test_create_branch(mock_get, mock_post):
+    """Test creating a new branch
+    """
+    test_pat = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+    mock_get.return_value.status_code = 200
+
+    mock_get.return_value.json.return_value = [
+        {
+            "ref": "refs/heads/dev",
+            "node_id": "REF_AAAAAAAAAAAAAAAAAAAAAAAAAAA",
+            "url": "https://api.github.com/repos/testOrg/testRepo/git/refs/heads/dev",
+            "object": {
+                "sha": "988881adc9fc3655077dc2d4d757d480b5ea0e11",
+                "type": "commit",
+                "url": "https://api.github.com/repos/praetorian-inc/testOrg/commits/988881adc9fc3655077dc2d4d757d480b5ea0e11"
+            }
+        }
+    ]
+
+    mock_post.return_value.status_code = 201
+
+    api = Api(test_pat, "2022-11-28")
+
+    assert api.create_branch("test_repo", "abcdefg") is True
+
+
+@patch("gato.github.api.requests.post")
+@patch("gato.github.api.requests.get")
+def test_create_branch_fail(mock_get, mock_post):
+    """Test creating a new branch
+    """
+    test_pat = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+    mock_get.return_value.status_code = 200
+
+    mock_get.return_value.json.return_value = [
+        {
+            "ref": "refs/heads/dev",
+            "node_id": "REF_AAAAAAAAAAAAAAAAAAAAAAAAAAA",
+            "url": "https://api.github.com/repos/testOrg/testRepo/git/refs/heads/dev",
+            "object": {
+                "sha": "988881adc9fc3655077dc2d4d757d480b5ea0e11",
+                "type": "commit",
+                "url": "https://api.github.com/repos/praetorian-inc/testOrg/commits/988881adc9fc3655077dc2d4d757d480b5ea0e11"
+            }
+        }
+    ]
+
+    mock_post.return_value.status_code = 422
+
+    api = Api(test_pat, "2022-11-28")
+
+    assert api.create_branch("test_repo", "abcdefg") is False
+
+
+@patch("gato.github.api.requests.delete")
+def test_delete_branch(mock_delete):
+    """Test deleting branch"""
+
+    test_pat = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+    mock_delete.return_value.status_code = 204
+    api = Api(test_pat, "2022-11-28")
+
+    assert api.delete_branch("testRepo", "testBranch")
+
+
+@patch("gato.github.api.requests.put")
+def test_commit_file(mock_put):
+    """Test commiting a file"""
+    test_pat = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+    test_filedata = b'foobarbaz'
+
+    test_sha = "f1d2d2f924e986ac86fdf7b36c94bcdf32beec15"
+
+    mock_put.return_value.status_code = 201
+    mock_put.return_value.json.return_value = {
+        "commit": {
+            "sha": test_sha
+        }
+    }
+
+    api = Api(test_pat, "2022-11-28")
+
+    commit_sha = api.commit_file(
+        "testOrg/testRepo", "testBranch", "test/newFile", test_filedata,
+        commit_author="testUser", commit_email="testemail@example.org")
+
+    assert commit_sha == test_sha
+
+
+@patch("gato.github.api.requests.get")
+def test_workflow_ymls(mock_get):
+    """Test retrieving workflow yml files using the API.
+    """
+    test_pat = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+    test_return = [{
+        "name": "integration.yaml",
+        "path": ".github/workflows/integration.yaml",
+        "sha": "a38970d0b6a86e1ac108854979d47ec412789708",
+        "size": 2095,
+        "url": "https://api.github.com/repos/praetorian-inc/gato/contents/.github/workflows/integration.yaml?ref=main",
+        "html_url": "https://github.com/praetorian-inc/gato/blob/main/.github/workflows/integration.yaml",
+        "git_url": "https://api.github.com/repos/praetorian-inc/gato/git/blobs/a38970d0b6a86e1ac108854979d47ec412789708",
+        "download_url": "https://raw.githubusercontent.com/praetorian-inc/gato/main/.github/workflows/integration.yaml",
+        "type": "file",
+        "_links": {
+            "self": "https://api.github.com/repos/praetorian-inc/gato/contents/.github/workflows/integration.yaml?ref=main",
+            "git": "https://api.github.com/repos/praetorian-inc/gato/git/blobs/a38970d0b6a86e1ac108854979d47ec412789708",
+            "html": "https://github.com/praetorian-inc/gato/blob/main/.github/workflows/integration.yaml"
+        }
+    }]
+
+    base64_enc = base64.b64encode(b"FooBarBaz")
+
+    test_file_content = {
+        "content": base64_enc
+    }
+    mock_get.return_value.status_code = 200
+    mock_get.return_value.json.side_effect = [
+        test_return,
+        test_file_content,
+    ]
+
+    api = Api(test_pat, "2022-11-28")
+    ymls = api.retrieve_workflow_ymls("testOrg/testRepo")
+
+    assert len(ymls) == 1
+    assert ymls[0][1] == "FooBarBaz"
+
+
+@patch("gato.github.api.requests.get")
+def test_get_secrets(mock_get):
+    """Test getting repo secret names.
+    """
+    test_pat = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+    api = Api(test_pat, "2022-11-28")
+
+    mock_get.return_value.status_code = 200
+    mock_get.return_value.json.return_value = {
+        "total_count": 3,
+        "secrets": [
+            {},
+            {},
+            {}
+        ]
+    }
+
+    secrets = api.get_secrets("testOrg/testRepo")
+
+    assert len(secrets) == 3
+
+
+@patch("gato.github.api.requests.get")
+def test_get_org_secrets(mock_get):
+    """Tests getting org secrets
+    """
+    test_pat = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+    api = Api(test_pat, "2022-11-28")
+
+    mock_get.return_value.status_code = 200
+    mock_get.return_value.json.side_effect = [
+        {
+            "total_count": 2,
+            "secrets": [
+                {
+                    "name": "DEPLOY_TOKEN",
+                    "created_at": "2019-08-10T14:59:22Z",
+                    "updated_at": "2020-01-10T14:59:22Z",
+                    "visibility": "all"
+                },
+                {
+                    "name": "GH_TOKEN",
+                    "created_at": "2019-08-10T14:59:22Z",
+                    "updated_at": "2020-01-10T14:59:22Z",
+                    "visibility": "selected",
+                    "selected_repositories_url": "https://api.github.com/orgs/testOrg/actions/secrets/GH_TOKEN/repositories"
+                }
+            ]
+        },
+        {
+            "total_count": 2,
+            "repositories": [
+                {
+                    "full_name": "testOrg/testRepo1"
+                },
+                {
+                    "full_name": "testOrg/testRepo2"
+                }
+            ]
+        }
+    ]
+
+    secrets = api.get_org_secrets("testOrg")
+
+    assert len(secrets) == 2
+    assert secrets[0]["name"] == "DEPLOY_TOKEN"
+    assert secrets[1]["name"] == "GH_TOKEN"
+    assert len(secrets[1]["repos"]) == 2
+
+
+@patch("gato.github.api.requests.get")
+def test_get_org_secrets_empty(mock_get):
+    """Tests getting org secrets
+    """
+    test_pat = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+    api = Api(test_pat, "2022-11-28")
+
+    mock_get.return_value.status_code = 200
+    mock_get.return_value.json.return_value = {
+        "total_count": 0,
+        "secrets": []
+    }
+
+    secrets = api.get_org_secrets("testOrg")
+
+    assert secrets == []
+
+
+@patch("gato.github.api.requests.get")
+def test_get_repo_org_secrets(mock_get):
+    """Tests getting org secrets accessible to a repo.
+    """
+    test_pat = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+    api = Api(test_pat, "2022-11-28")
+
+    mock_get.return_value.status_code = 200
+    mock_get.return_value.json.return_value = {
+        "total_count": 3,
+        "secrets": [
+            {},
+            {}
+        ]
+    }
+
+    secrets = api.get_repo_org_secrets("testOrg/testRepo")
+
+    assert len(secrets) == 2
+
+
+@patch("gato.github.api.time")
+def test_handle_ratelimit(mock_time):
+    """Test rate limit handling
+    """
+    test_pat = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+    api = Api(test_pat, "2022-11-28")
+
+    test_headers = {
+        'X-Ratelimit-Remaining': 100,
+        'Date': "Fri, 09 Jun 2023 22:12:41 GMT",
+        "X-Ratelimit-Reset": 1686351401,
+        "X-Ratelimit-Resource": "core",
+        "X-RateLimit-Limit": 5000
+    }
+
+    api._Api__check_rate_limit(test_headers)
+
+    mock_time.sleep.assert_called_once()

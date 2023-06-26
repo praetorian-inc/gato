@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "praetorian-gato"
-version = "1.0"
-description = "GitHub Self-Hosted Runner Enumeration and Attack Framework"
+version = "1.5"
+description = "GitHub Actions Enumeration and Attack Framework"
 readme = "readme.md"
 authors = [
     {name = "Adnan Khan", email = "adnan.khan@praetorian.com"},
@@ -24,7 +24,8 @@ dependencies = [
     "colorama",
     "requests",
     "pyyaml",
-    "packaging"
+    "packaging",
+    "cryptography"
 ]
 
 [project.optional-dependencies]

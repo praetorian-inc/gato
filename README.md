@@ -35,6 +35,7 @@ are thousands of organizations that utilize self-hosted runners.
 * GitHub Action Workflow Parsing
 * Automated Command Execution Fork PR Creation
 * Automated Command Execution Workflow Creation
+* Automated workflow secrets exfiltration
 * SOCKS5 Proxy Support
 * HTTPS Proxy Support
 
