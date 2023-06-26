@@ -2,8 +2,6 @@ import logging
 import subprocess
 import shutil
 
-from gato.models import Execution
-
 logger = logging.getLogger(__name__)
 
 
