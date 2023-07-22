@@ -2,6 +2,7 @@ import logging
 import yaml
 from pathlib import Path
 import os
+import re
 
 logger = logging.getLogger(__name__)
 
@@ -15,6 +16,27 @@ class WorkflowParser():
     This will allow for growing what kind of analytics this tool can perform
     as the project grows in capability.
     """
+
+    GITHUB_HOSTED_LABELS = [
+        'ubuntu-latest',
+        'macos-latest',
+        'macOS-latest',
+        'windows-latest',
+        'ubuntu-18.04', # deprecated, but we don't want false positives on older repos.
+        'ubuntu-20.04',
+        'ubuntu-22.04',
+        'windows-2022',
+        'windows-2019',
+        'windows-2016', # deprecated, but we don't want false positives on older repos.
+        'macos-11',
+        'macos-12',
+        'macos-13',
+        'macos-13-xl',
+        'macos-12',
+    ]
+
+    LARGER_RUNNER_REGEX_LIST = r'(windows|ubuntu)-(22.04|20.04|2019-2022)-(4|8|16|32|64)core-(16|32|64|128|256)gb'
+    MATRIX_KEY_EXTRACTION_REGEX = r'{{\s*matrix\.([\w-]+)\s*}}'
 
     def __init__(self, workflow_yml: str, repo_name: str, workflow_name: str):
         """Initialize class with workflow file.
@@ -59,8 +81,42 @@ class WorkflowParser():
         for jobname, job_details in self.parsed_yml['jobs'].items():
             if 'runs-on' in job_details:
                 runs_on = job_details['runs-on']
+                # Clear cut
                 if 'self-hosted' in runs_on:
                     sh_jobs.append((jobname, job_details))
+                elif 'matrix.' in runs_on:
+                    # We need to check each OS in the matrix strategy.
+                    # Extract the matrix key from the variable
+                    matrix_key = re.search(self.MATRIX_KEY_EXTRACTION_REGEX, runs_on).group(1)
+                    # Check if strategy exists in the yaml file
+                    if 'strategy' in job_details and 'matrix' in job_details['strategy']:
+                        matrix = job_details['strategy']['matrix']
+
+                        # Use previously acquired key to retrieve list of OSes
+                        os_list = matrix[matrix_key]
+
+                        # We only need ONE to be self hosted, others can be
+                        # GitHub hosted
+                        for key in os_list:
+                            if key not in self.GITHUB_HOSTED_LABELS and not re.match(self.LARGER_RUNNER_REGEX_LIST, key):
+                                sh_jobs.append((jobname, job_details))
+                                break
+                    pass
+                else:
+                    if type(runs_on) == list:
+                        for label in runs_on:
+                            if label in self.GITHUB_HOSTED_LABELS:
+                                break
+                            if re.match(self.LARGER_RUNNER_REGEX_LIST, label):
+                                break
+                        else:
+                            sh_jobs.append((jobname, job_details))
+                    elif type(runs_on) == str:
+                        if runs_on in self.GITHUB_HOSTED_LABELS:
+                            break
+                        if re.match(self.LARGER_RUNNER_REGEX_LIST, runs_on):
+                            break
+                        sh_jobs.append((jobname, job_details))
 
         return sh_jobs
 

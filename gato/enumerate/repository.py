@@ -36,15 +36,16 @@ class RepositoryEnum():
         """
         runner_detected = False
         wf_runs = self.api.retrieve_run_logs(
-            repository.name, short_circuit=True
+            repository.name, short_circuit=False
         )
 
         if wf_runs:
-            runner = Runner(
-                wf_runs[0]['runner_name'], wf_runs[0]['machine_name']
-            )
+            for wf_run in wf_runs:
+                runner = Runner(
+                    wf_run['runner_name'], wf_run['machine_name'], non_ephemeral=wf_run['non_ephemeral']
+                )
 
-            repository.add_accessible_runner(runner)
+                repository.add_accessible_runner(runner)
             runner_detected = True
 
         return runner_detected
@@ -79,7 +80,8 @@ class RepositoryEnum():
             # At this point we only know the extension, so handle and
             #  ignore malformed yml files.
             except Exception as parse_error:
-                print(parse_error)
+
+                print(f"{wf}: {str(parse_error)}")
                 logger.warning("Attmpted to parse invalid yaml!")
 
         return runner_wfs

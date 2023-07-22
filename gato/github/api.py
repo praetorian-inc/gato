@@ -19,8 +19,8 @@ class Api():
     rate limiting or network issues.
     """
 
-    RUNNER_RE = re.compile(r'Runner name: \'([\w+-]+)\'')
-    MACHINE_RE = re.compile(r'Machine name: \'([\w+-]+)\'')
+    RUNNER_RE = re.compile(r'Runner name: \'([\w+-.]+)\'')
+    MACHINE_RE = re.compile(r'Machine name: \'([\w+-.]+)\'')
 
     def __init__(self, pat: str, version: str = "2022-11-28",
                  http_proxy: str = None, socks_proxy: str = None,
@@ -127,12 +127,18 @@ class Api():
                             matches = Api.MACHINE_RE.search(content)
                             hostname = matches.group(1) if matches else None
 
+                            if "Cleaning the repository" in content:
+                                ephemeral = "Yes"
+                            else:
+                                ephemeral = "Unknown"
+
                             log_package = {
                                 "setup_log": content,
                                 "runner_name": runner_name,
                                 "machine_name": hostname,
                                 "run_id": run_info["id"],
-                                "run_attempt": run_info["run_attempt"]
+                                "run_attempt": run_info["run_attempt"],
+                                "non_ephemeral": ephemeral
                             }
                             return log_package
 
@@ -601,9 +607,11 @@ class Api():
         Returns:
             list: List of run logs for runs that ran on self-hosted runners.
         """
-        runs = self.call_get(f'/repos/{repo_name}/actions/runs')
+        runs = self.call_get(f'/repos/{repo_name}/actions/runs', params={"per_page": "100"})
 
-        run_logs = []
+        # This is a dictionary so we can de-duplicate runner IDs based on
+        # the machine_name:runner_name.
+        run_logs = {}
 
         if runs.status_code == 200:
             logger.debug(f'Enumerating runs within {repo_name}')
@@ -611,20 +619,24 @@ class Api():
                 run_log = self.call_get(
                     f'/repos/{repo_name}/actions/runs/{run["id"]}/'
                     f'attempts/{run["run_attempt"]}/logs')
-
                 if run_log.status_code == 200:
                     run_log = self.__process_run_log(run_log.content, run)
                     if run_log:
-                        run_logs.append(run_log)
+                        key = f"{run_log['machine_name']}:{run_log['runner_name']}"
+                        run_logs[key] = run_log
+
                         if short_circuit:
-                            return run_logs
+                            return run_logs.values()
+                elif run_log.status_code == 410:
+                    print("can't get")
+                    break
                 else:
                     logger.debug(
                         f"Call to retrieve run logs from {repo_name} run "
                         f"{run['id']} attempt {run['run_attempt']} returned "
                         f"{run_log.status_code}!")
 
-        return run_logs
+        return run_logs.values()
 
     def parse_workflow_runs(self, repo_name: str):
         """Returns the number of workflow runs associated with the repository.

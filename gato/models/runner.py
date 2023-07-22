@@ -11,7 +11,8 @@ class Runner:
             machine_name=None,
             os=None,
             status=None,
-            labels=[]):
+            labels=[],
+            non_ephemeral=False):
         """Constructor for runner wrapper object.
 
         Args:
@@ -27,6 +28,7 @@ class Runner:
         self.os = os
         self.status = status
         self.labels = labels
+        self.non_ephemeral = non_ephemeral
 
     def toJSON(self):
         """Converts the repository to a Gato JSON representation.
@@ -37,7 +39,8 @@ class Runner:
             else "Unknown",
             "os": self.os if self.os else "Unknown",
             "status": self.status if self.status else "Unknown",
-            "labels": [label for label in self.labels]
+            "labels": [label for label in self.labels],
+            "non_ephemeral": self.non_ephemeral
         }
 
         return representation

@@ -157,6 +157,11 @@ class Recommender:
                 f"{Output.bright(repository.accessible_runners[0].machine_name)}"
             )
 
+            for runner in repository.accessible_runners:
+                if runner.non_ephemeral:
+                    Output.owned("The repository contains a non-ephemeral self-hosted runner!")
+                    break
+
         if repository.runners:
             Output.result(
                 f"The repository has {len(repository.runners)} repo-level"
