@@ -110,9 +110,23 @@ class Api():
         Returns:
             dict: metadata about the run execution.
         """
-        with zipfile.ZipFile(io.BytesIO(log_content)) as runres:
+        log_package = None
+        non_ephemeral = False
 
+        with zipfile.ZipFile(io.BytesIO(log_content)) as runres:
             for zipinfo in runres.infolist():
+                # TODO use a lambda for this messy logic
+                if "Run actionscheckout" in zipinfo.filename:
+                    with runres.open(zipinfo) as run_setup:
+                        content = run_setup.read().decode()
+                        if "Cleaning the repository" in content:
+                            non_ephemeral = True
+                        else:
+                            non_ephemeral = False
+
+                        if log_package:
+                            log_package['non_ephemeral'] = non_ephemeral
+
                 if "Set up job" in zipinfo.filename:
                     with runres.open(zipinfo) as run_setup:
                         content = run_setup.read().decode()
@@ -127,20 +141,15 @@ class Api():
                             matches = Api.MACHINE_RE.search(content)
                             hostname = matches.group(1) if matches else None
 
-                            if "Cleaning the repository" in content:
-                                ephemeral = "Yes"
-                            else:
-                                ephemeral = "Unknown"
-
                             log_package = {
                                 "setup_log": content,
                                 "runner_name": runner_name,
                                 "machine_name": hostname,
                                 "run_id": run_info["id"],
                                 "run_attempt": run_info["run_attempt"],
-                                "non_ephemeral": ephemeral
+                                "non_ephemeral": non_ephemeral
                             }
-                            return log_package
+        return log_package
 
     def __get_full_runlog(self, log_content: bytes, run_name: str):
         """Gets the full text of the runlog from the zip file by matching the
