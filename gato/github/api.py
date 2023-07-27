@@ -637,7 +637,6 @@ class Api():
                         if short_circuit:
                             return run_logs.values()
                 elif run_log.status_code == 410:
-                    print("can't get")
                     break
                 else:
                     logger.debug(
