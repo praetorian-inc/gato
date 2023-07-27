@@ -109,9 +109,10 @@ class WorkflowParser():
                         # We only need ONE to be self hosted, others can be
                         # GitHub hosted
                         for key in os_list:
-                            if key not in self.GITHUB_HOSTED_LABELS and not re.match(self.LARGER_RUNNER_REGEX_LIST, key):
-                                sh_jobs.append((jobname, job_details))
-                                break
+                            if type(key) == str:
+                                if key not in self.GITHUB_HOSTED_LABELS and not re.match(self.LARGER_RUNNER_REGEX_LIST, key):
+                                    sh_jobs.append((jobname, job_details))
+                                    break
                     pass
                 else:
                     if type(runs_on) == list:
