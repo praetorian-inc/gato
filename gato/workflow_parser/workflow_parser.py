@@ -68,6 +68,10 @@ class WorkflowParser():
                 dirpath, f'{self.repo_name}/{self.wf_name}'), 'w') as wf_out:
             wf_out.write(self.raw_yaml)
             return True
+    
+    def get_secrets(self):
+        """_summary_
+        """
 
     def self_hosted(self):
         """Analyze if any jobs within the workflow utilize self-hosted runners.
@@ -76,8 +80,10 @@ class WorkflowParser():
            list: List of jobs within the workflow that utilize self-hosted
            runners.
         """
-
         sh_jobs = []
+        if 'jobs' not in self.parsed_yml:
+            return sh_jobs
+
         for jobname, job_details in self.parsed_yml['jobs'].items():
             if 'runs-on' in job_details:
                 runs_on = job_details['runs-on']
