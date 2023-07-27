@@ -93,7 +93,12 @@ class WorkflowParser():
                 elif 'matrix.' in runs_on:
                     # We need to check each OS in the matrix strategy.
                     # Extract the matrix key from the variable
-                    matrix_key = re.search(self.MATRIX_KEY_EXTRACTION_REGEX, runs_on).group(1)
+                    matrix_match = re.search(self.MATRIX_KEY_EXTRACTION_REGEX, runs_on)
+
+                    if matrix_match:
+                        matrix_key = matrix_match.group(1)
+                    else:
+                        continue
                     # Check if strategy exists in the yaml file
                     if 'strategy' in job_details and 'matrix' in job_details['strategy']:
                         matrix = job_details['strategy']['matrix']
