@@ -30,6 +30,7 @@ class Repository():
         self.sh_runner_access = False
         self.accessible_runners: List[Runner] = []
         self.runners: List[Runner] = []
+        self.checks = []
 
     def is_admin(self):
         return self.permission_data.get('admin', False)
@@ -83,6 +84,18 @@ class Repository():
         self.sh_runner_access = True
         self.runners = runners
 
+    def set_check(self, check: tuple):
+        """Set check information. 
+
+        Args:
+            checks (tuple): Tuple of three strings: URL, description, context
+        """
+        self.checks.append({
+            "URL": check[0],
+            "Description": check[1],
+            "Context": check[2]
+        })
+
     def add_self_hosted_workflows(self, workflows: list):
         """Add a list of workflow file names that run on self-hosted runners.
         """
@@ -112,6 +125,7 @@ class Repository():
             "repo_runners": [runner.toJSON() for runner in self.runners],
             "repo_secrets": [secret.toJSON() for secret in self.secrets],
             "org_secrets": [secret.toJSON() for secret in self.org_secrets],
+            "fork_pr_checks": self.checks,
         }
 
         return representation

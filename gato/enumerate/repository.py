@@ -102,6 +102,9 @@ class RepositoryEnum():
             Output.error("The user cannot push or pull, skipping.")
             return
 
+        if repository.is_public():
+            self.enumerate_forkpr_checks(repository)
+
         if repository.is_admin():
             runners = self.api.get_repo_runners(repository.name)
 
@@ -158,3 +161,12 @@ class RepositoryEnum():
 
             if org_secrets:
                 repository.set_accessible_org_secrets(org_secrets)
+
+    def enumerate_forkpr_checks(self, repository: Repository):
+        """Enumerates checks associated with fork pull requests.
+
+        Args:
+            repository (Repository): Repository wrapper object
+        """
+        for check in self.api.get_fork_checks(repository.name):
+            repository.set_check(check)
