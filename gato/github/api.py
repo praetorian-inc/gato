@@ -936,3 +936,42 @@ class Api():
                 secrets = secrets_response['secrets']
 
         return secrets
+
+    def get_fork_checks(self, repo_name: str):
+        """Retrieves checks associated with fork pull requests. This method
+        retrieves checks associated with 10 most recent fork pull requests.
+
+        Args:
+            repo_name (str): Repo name in owner/repo format.
+
+        Yields:
+            tuple: Target URL, description, and context.
+        """
+
+        params = {
+            "per_page": 100,
+            "state": "all"
+        }
+        resp = self.call_get(f'/repos/{repo_name}/pulls', params=params)
+
+        prs = resp.json()
+        res_count = 0
+        for pr in prs:
+            # We are only interested in fork PRs.
+            import json
+            if pr['head']['repo'] is None or pr['head']['repo']['fork']:
+
+                head_sha = pr['head']['sha']
+
+                resp = self.call_get(
+                    f'/repos/{repo_name}/commits/{head_sha}/statuses'
+                )
+
+                statuses = resp.json()
+
+                for status in statuses:
+                    if 'target_url' in status:
+                        res_count += 1
+                        if res_count > 10:
+                            break
+                        yield status['target_url'], status['description'], status['context']
