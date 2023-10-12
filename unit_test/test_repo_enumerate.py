@@ -45,7 +45,7 @@ def test_enumerate_repo():
     }
 
     mock_api.retrieve_run_logs.return_value = [
-        {"machine_name": "unittest1", "runner_name": "much_unit_such_test"}
+        {"machine_name": "unittest1", "runner_name": "much_unit_such_test", "non_ephemeral": False}
     ]
 
     repo_data = json.loads(json.dumps(TEST_REPO_DATA))
@@ -75,7 +75,7 @@ def test_enumerate_repo_admin():
     }
 
     mock_api.retrieve_run_logs.return_value = [
-        {"machine_name": "unittest1", "runner_name": "much_unit_such_test"}
+        {"machine_name": "unittest1", "runner_name": "much_unit_such_test", "non_ephemeral": False}
     ]
 
     repo_data = json.loads(json.dumps(TEST_REPO_DATA))
