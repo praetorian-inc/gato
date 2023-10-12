@@ -36,7 +36,7 @@ class RepositoryEnum():
         """
         runner_detected = False
         wf_runs = self.api.retrieve_run_logs(
-            repository.name, short_circuit=False
+            repository.name, short_circuit=True
         )
 
         if wf_runs:

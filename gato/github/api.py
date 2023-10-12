@@ -121,8 +121,6 @@ class Api():
                         content = run_setup.read().decode()
                         if "Cleaning the repository" in content:
                             non_ephemeral = True
-                        else:
-                            non_ephemeral = False
 
                         if log_package:
                             log_package['non_ephemeral'] = non_ephemeral
@@ -616,7 +614,7 @@ class Api():
         Returns:
             list: List of run logs for runs that ran on self-hosted runners.
         """
-        runs = self.call_get(f'/repos/{repo_name}/actions/runs', params={"per_page": "100"})
+        runs = self.call_get(f'/repos/{repo_name}/actions/runs', params={"per_page": "30"})
 
         # This is a dictionary so we can de-duplicate runner IDs based on
         # the machine_name:runner_name.
