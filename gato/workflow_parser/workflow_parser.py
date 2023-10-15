@@ -28,6 +28,9 @@ class WorkflowParser():
         'windows-2022',
         'windows-2019',
         'windows-2016', # deprecated, but we don't want false positives on older repos.
+        'macOS-13',
+        'macOS-12',
+        'macOS-11',
         'macos-11',
         'macos-12',
         'macos-13',
