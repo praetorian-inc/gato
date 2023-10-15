@@ -130,6 +130,11 @@ class Api():
                 if "Set up job" in zipinfo.filename:
                     with runres.open(zipinfo) as run_setup:
                         content = run_setup.read().decode()
+                        if "Image Release: https://github.com/actions/runner-images" in content:
+                            # Larger runners will appear to be self-hosted, but
+                            # they will have the image name. Skip if we see this.
+                            continue
+
                         if "Runner name" in content or \
                                 "Machine name" in content:
 
