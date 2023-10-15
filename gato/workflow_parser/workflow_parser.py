@@ -104,7 +104,16 @@ class WorkflowParser():
                         matrix = job_details['strategy']['matrix']
 
                         # Use previously acquired key to retrieve list of OSes
-                        os_list = matrix[matrix_key]
+                        if matrix_key in matrix:
+                            os_list = matrix[matrix_key]
+                        elif 'include' in matrix:
+                            inclusions = matrix['include']
+                            os_list = []
+                            for inclusion in inclusions:
+                                if matrix_key in inclusion:
+                                    os_list.append(inclusion[matrix_key])
+                        else:
+                            continue
 
                         # We only need ONE to be self hosted, others can be
                         # GitHub hosted

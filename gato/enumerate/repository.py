@@ -21,6 +21,7 @@ class RepositoryEnum():
             api (Api): GitHub API wraper object.
         """
         self.api = api
+        self.workflow_cache = {}
         self.skip_log = skip_log
         self.output_yaml = output_yaml
 
@@ -61,12 +62,15 @@ class RepositoryEnum():
             list: List of workflows that execute on sh runner, empty otherwise.
         """
         runner_wfs = []
-        ymls = self.api.retrieve_workflow_ymls(repository.name)
+
+        if repository.name in self.workflow_cache:
+            ymls = self.workflow_cache[repository.name]
+        else:
+            ymls = self.api.retrieve_workflow_ymls(repository.name)
 
         for (wf, yml) in ymls:
             try:
                 parsed_yml = WorkflowParser(yml, repository.name, wf)
-
                 self_hosted_jobs = parsed_yml.self_hosted()
 
                 if self_hosted_jobs:
@@ -86,7 +90,7 @@ class RepositoryEnum():
 
         return runner_wfs
 
-    def enumerate_repository(self, repository: Repository):
+    def enumerate_repository(self, repository: Repository, large_org_enum=False):
         """Enumerate a repository, and check everything relevant to
         self-hosted runner abuse that that the user has permissions to check.
 
@@ -121,14 +125,19 @@ class RepositoryEnum():
 
                 repository.set_runners(repo_runners)
 
-        if not self.skip_log and self.__perform_runlog_enumeration(repository):
-            runner_detected = True
-
         workflows = self.__perform_yml_enumeration(repository)
 
         if len(workflows) > 0:
             repository.add_self_hosted_workflows(workflows)
             runner_detected = True
+
+        if not self.skip_log:
+            # If we are enumerating an organization, only enumerate runlogs if
+            # the workflow suggests a sh_runner.
+            if large_org_enum and runner_detected:
+                self.__perform_runlog_enumeration(repository)
+            elif self.__perform_runlog_enumeration(repository):
+                runner_detected = True
 
         if runner_detected:
             # Only display permissions (beyond having none) if runner is
@@ -160,3 +169,28 @@ class RepositoryEnum():
 
             if org_secrets:
                 repository.set_accessible_org_secrets(org_secrets)
+
+    def construct_workflow_cache(self, yml_results):
+        """Creates a cache of workflow yml files retrieved from graphQL. Since
+        graphql and REST do not have parity, we still need to use rest for most
+        enumeration calls. This method saves off all yml files, so during org
+        level enumeration if we perform yml enumeration the cached file is used
+        instead of making github REST requests. 
+
+        Args:
+            yml_results (list): List of results from individual GraphQL queries
+            (100 nodes at atime).)
+        """
+        for result in yml_results:
+            owner = result['nameWithOwner']
+
+            self.workflow_cache[owner] = list()
+
+            if not result['object']:
+                continue
+
+            for yml_node in result['object']['entries']:
+                yml_name = yml_node['name']
+                if yml_name.lower().endswith('yml') or yml_name.lower().endswith('yaml'):
+                    contents = yml_node['object']['text']
+                    self.workflow_cache[owner].append((yml_name, contents))

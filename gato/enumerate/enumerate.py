@@ -1,6 +1,7 @@
 import logging
 
 from gato.github import Api
+from gato.github import GqlQueries
 from gato.models import Repository, Organization
 from gato.cli import Output
 from gato.enumerate.repository import RepositoryEnum
@@ -173,12 +174,22 @@ class Enumerator:
             f"the {organization.name} organization!"
         )
 
-        for repo in enum_list:
+        Output.info(f"Querying and caching workflow yml files!")
+        wf_queries = GqlQueries.get_workflow_ymls(enum_list)
+  
+        for wf_query in wf_queries:
+            result = self.org_e.api.call_post('/graphql', wf_query)
+            self.repo_e.construct_workflow_cache(result.json()['data']['nodes'])
 
+        if len(enum_list) > 100:
+            large_org_enum = True
+
+        for repo in enum_list:
             Output.tabbed(
                 f"Enumerating: {Output.bright(repo.name)}!"
             )
-            self.repo_e.enumerate_repository(repo)
+
+            self.repo_e.enumerate_repository(repo, large_org_enum)
             self.repo_e.enumerate_repository_secrets(repo)
 
             Recommender.print_repo_secrets(
