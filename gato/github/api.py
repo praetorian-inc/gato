@@ -6,9 +6,10 @@ import logging
 import zipfile
 import re
 import io
+import json
 
 from gato.cli import Output
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 logger = logging.getLogger(__name__)
 
@@ -21,6 +22,7 @@ class Api():
 
     RUNNER_RE = re.compile(r'Runner name: \'([\w+-.]+)\'')
     MACHINE_RE = re.compile(r'Machine name: \'([\w+-.]+)\'')
+    RUN_THRESHOLD = 90
 
     def __init__(self, pat: str, version: str = "2022-11-28",
                  http_proxy: str = None, socks_proxy: str = None,
@@ -614,15 +616,39 @@ class Api():
         Returns:
             list: List of run logs for runs that ran on self-hosted runners.
         """
-        runs = self.call_get(f'/repos/{repo_name}/actions/runs', params={"per_page": "30"})
+        start_date = datetime.now() - timedelta(days = 60)
+        runs = self.call_get(
+            f'/repos/{repo_name}/actions/runs', params={
+                "per_page": "30",
+                "status":"completed",
+                "exclude_pull_requests": "true",
+                "created":f">{start_date.isoformat()}"
+            }
+        )
 
         # This is a dictionary so we can de-duplicate runner IDs based on
         # the machine_name:runner_name.
         run_logs = {}
+        names = set()
 
         if runs.status_code == 200:
             logger.debug(f'Enumerating runs within {repo_name}')
             for run in runs.json()['workflow_runs']:
+
+                # We are only interested in runs that actually executed.
+                if run['conclusion'] != 'success' and \
+                    run['conclusion'] != 'failure':
+                    continue
+
+                if short_circuit:                
+                    # If we are only looking for the presence of SH runners and
+                    # not trying to determine ephmeral vs not from repeats, then
+                    # we just need to look at each branch + wf combination once.
+                    workflow_key = f"{run['head_branch']}:{run['path']}"
+                    if workflow_key in names:
+                        continue                
+                    names.add(workflow_key)
+
                 run_log = self.call_get(
                     f'/repos/{repo_name}/actions/runs/{run["id"]}/'
                     f'attempts/{run["run_attempt"]}/logs')
