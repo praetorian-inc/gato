@@ -136,7 +136,10 @@ class RepositoryEnum():
             # the workflow suggests a sh_runner.
             if large_org_enum and runner_detected:
                 self.__perform_runlog_enumeration(repository)
-            elif self.__perform_runlog_enumeration(repository):
+
+            # If we are doing internal enum, get the logs, because coverage is
+            # more important here and it's ok if it takes time.
+            elif not repository.is_public() and self.__perform_runlog_enumeration(repository):
                 runner_detected = True
 
         if runner_detected:

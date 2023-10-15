@@ -180,15 +180,12 @@ class Enumerator:
         for wf_query in wf_queries:
             result = self.org_e.api.call_post('/graphql', wf_query)
             self.repo_e.construct_workflow_cache(result.json()['data']['nodes'])
-
-        large_org_enum = len(enum_list) > 100
- 
         for repo in enum_list:
             Output.tabbed(
                 f"Enumerating: {Output.bright(repo.name)}!"
             )
 
-            self.repo_e.enumerate_repository(repo, large_org_enum)
+            self.repo_e.enumerate_repository(repo, large_org_enum=len(enum_list) > 100)
             self.repo_e.enumerate_repository_secrets(repo)
 
             Recommender.print_repo_secrets(
