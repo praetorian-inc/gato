@@ -181,9 +181,8 @@ class Enumerator:
             result = self.org_e.api.call_post('/graphql', wf_query)
             self.repo_e.construct_workflow_cache(result.json()['data']['nodes'])
 
-        if len(enum_list) > 100:
-            large_org_enum = True
-
+        large_org_enum = len(enum_list) > 100
+ 
         for repo in enum_list:
             Output.tabbed(
                 f"Enumerating: {Output.bright(repo.name)}!"
