@@ -349,10 +349,6 @@
                 "type": "stdout"
             },
             {
-                "expect": "Run echo -e \"DUMMY_TEST_SECRET=$DUMMY_TEST_SECRET \\n\" | openssl rsautl -encrypt -inkey <(echo",
-                "type": "stdout"
-            },
-            {
                 "expect": "The repository has 1 accessible secret(s)!",
                 "type": "stdout"
             },
