@@ -579,7 +579,7 @@ class Attacker:
                     cleartext = decryptor.update(ciphertext) + decryptor.finalize()
                     cleartext = cleartext[:-cleartext[-1]]
 
-                    print(cleartext.decode('ascii').strip())
+                    print(cleartext.decode('utf-8').strip())
 
                 else:
                     Output.error(
