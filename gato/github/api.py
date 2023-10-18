@@ -674,7 +674,7 @@ class Api():
         
         # find the id of our malicious workflow
         for workflow in data['workflow_runs']:
-            if workflow['path'] == f'.github/workflows/{file_name}.yml':
+            if f'.github/workflows/{file_name}.yml'in workflow['path']:
                 return workflow['id']
             
         return 0
