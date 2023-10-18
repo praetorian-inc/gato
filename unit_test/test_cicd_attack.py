@@ -43,4 +43,4 @@ def test_create_secret_exil_yaml():
 
     assert "SECRET_ONE: ${{ secrets.SECRET_ONE }}" in yaml
     assert "SECRET_TWO: ${{ secrets.SECRET_TWO }}" in yaml
-    assert "echo -e \"SECRET_ONE=$SECRET_ONE \\n" in yaml
+    assert "echo -e \"SECRET_ONE=$SECRET_ONE\n" in yaml

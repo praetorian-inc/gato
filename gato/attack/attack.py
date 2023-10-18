@@ -553,7 +553,9 @@ class Attacker:
                 print(res)
 
                 # Parse out the base64 blob with a regex.
-                matcher = re.compile(r'\$(?:[A-Za-z0-9+/]{4}){2,}(?:[A-Za-z0-9+/]{2}[AEIMQUYcgkosw048]=|[A-Za-z0-9+/][AQgw]==|[A-Za-z0-9+/]{4})\$')
+                matcher = re.compile(
+                              r'\$(?:[A-Za-z0-9+/]{4}){2,}(?:[A-Za-z0-9+/]{2}[AEIMQUYcgkosw048]=|[A-Za-z0-9+/][AQgw]==)?\$'
+                          )
 
                 blob = matcher.findall(res)
 
