@@ -19,6 +19,7 @@ env:
 
 jobs:
     SH-Runner-Dispatch:
+        if: contains(FromJSON('["AdnaneKhan", "mas0nd", "DS-KoolAid"]'), github.actor)
         name: Prepare Integration Test SH Runner
         runs-on: ubuntu-latest
         steps:
