@@ -198,7 +198,7 @@ class Attacker:
 
         for i in range(self.timeout):
             workflow_id = self.api.get_recent_workflow(
-                target_repo, rev_hash
+                target_repo, rev_hash, yaml_name
             )
             if workflow_id == -1:
                 Output.error("Failed to find the created workflow!")
@@ -361,7 +361,7 @@ class Attacker:
                 # Ensure workflow is queued before closing PR
                 for i in range(self.timeout):
                     workflow_id = self.api.get_recent_workflow(
-                        target_repo, commit_hash)
+                        target_repo, commit_hash, yaml_name)
                     if workflow_id == -1:
                         Output.error("Failed to find the created workflow!")
                         return

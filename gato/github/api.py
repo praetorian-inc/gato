@@ -647,7 +647,7 @@ class Api():
 
         return None
 
-    def get_recent_workflow(self, repo_name: str, sha: str):
+    def get_recent_workflow(self, repo_name: str, sha: str, file_name: str):
         """Returns the id of the latest workflow from the provided user on the
         provided branch"
 
@@ -671,7 +671,13 @@ class Api():
 
         if data['total_count'] == 0:
             return 0
-        return data['workflow_runs'][0]['id']
+        
+        # find the id of our malicious workflow
+        for workflow in data['workflow_runs']:
+            if workflow['path'] == f'.github/workflows/{file_name}.yml':
+                return workflow['id']
+            
+        return 0
 
     def get_workflow_status(self, repo_name: str, workflow_id: int):
         """Returns the status if the workflow by id.
