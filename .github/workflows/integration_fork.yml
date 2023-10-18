@@ -43,6 +43,7 @@ jobs:
         runs-on: ${{ matrix.os }}
         env:
           PR_NUMBER: ${{ inputs.pr_number }}
+          GH_TOKEN: ${{ github.token }}
         timeout-minutes: 10
 
         steps:
