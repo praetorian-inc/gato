@@ -141,6 +141,8 @@ class RepositoryEnum():
             # more important here and it's ok if it takes time.
             elif not repository.is_public() and self.__perform_runlog_enumeration(repository):
                 runner_detected = True
+            else:
+                runner_detected = self.__perform_runlog_enumeration(repository)
 
         if runner_detected:
             # Only display permissions (beyond having none) if runner is
