@@ -519,12 +519,13 @@ def test_get_recent_workflow(mock_get):
     mock_get.return_value.json.return_value = {
         "total_count": 1,
         "workflow_runs": [{
-            "id": 15
-        }]
+            "id": 15,
+            "path": ".github/workflows/testwf.yml@main"
+        }],
     }
 
     api = Api( test_pat, "2022-11-28")
-    workflow_id = api.get_recent_workflow('repo', 'sha')
+    workflow_id = api.get_recent_workflow('repo', 'sha', 'testwf')
 
     assert workflow_id == 15
 
@@ -538,11 +539,12 @@ def test_get_recent_workflow_missing(mock_get):
     mock_get.return_value.status_code = 200
     mock_get.return_value.json.return_value = {
         "total_count": 0,
-        "workflow_runs": []
+        "workflow_runs": [],
+        "path": ".github/workflows/testwf.yml@main"
     }
 
     api = Api( test_pat, "2022-11-28")
-    workflow_id = api.get_recent_workflow('repo', 'sha')
+    workflow_id = api.get_recent_workflow('repo', 'sha','testwf')
 
     assert workflow_id == 0
 
@@ -556,7 +558,7 @@ def test_get_recent_workflow_fail(mock_get):
     mock_get.return_value.status_code = 401
 
     api = Api( test_pat, "2022-11-28")
-    workflow_id = api.get_recent_workflow('repo', 'sha')
+    workflow_id = api.get_recent_workflow('repo', 'sha','testwf')
 
     assert workflow_id == -1
 
