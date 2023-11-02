@@ -94,7 +94,8 @@ class CICDAttack():
 
         echo_cmd += '"'
 
-        pkey_varname = f'{branch_name}_KEY'
+        # variables don't support hyphens, so replace them with underscores.
+        pkey_varname = f'{branch_name.replace("-", "_")}_KEY'
         secret_envmap[pkey_varname] = pubkey
 
         yaml_file['name'] = branch_name
