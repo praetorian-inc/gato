@@ -411,3 +411,118 @@ def test_shell_workflow_attack_fail_branch2(mock_api, mock_time, capsys):
 
     assert "Remote branch, " in escape_ansi(print_output)
     assert ", already exists!" in escape_ansi(print_output)
+
+@patch("gato.attack.attack.Api")
+def test_secrets_dump_baduser(mock_api, capsys):
+    """Test secrets dump functionality.
+    """
+    mock_api.return_value.check_user.return_value = {
+        "user": 'testUser',
+        "name": 'test user',
+        "scopes": ['repo']
+    }
+
+    gh_attacker = Attacker(
+        "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+        socks_proxy=None,
+        http_proxy="localhost:8080"
+    )
+
+    gh_attacker.secrets_dump('targetRepo', None, None, True, "exfil")
+
+    captured = capsys.readouterr()
+
+    print_output = captured.out
+
+    assert "The user does not have the necessary scopes to conduct this" in \
+        escape_ansi(print_output)
+
+@patch("gato.attack.attack.Api")
+def test_secrets_dump_nosecret(mock_api, capsys):
+    """Test secrets dump where repo has no secrets.
+    """
+
+    mock_api.return_value.check_user.return_value = {
+        "user": 'testUser',
+        "name": 'test user',
+        "scopes": ['repo', 'workflow']
+    }
+
+    mock_api.return_value.get_secrets.return_value = []
+    mock_api.return_value.get_repo_org_secrets.return_value = []
+
+    gh_attacker = Attacker(
+        "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+        socks_proxy=None,   
+        http_proxy="localhost:8080"
+    )
+
+    gh_attacker.secrets_dump('targetRepo', None, None, True, "exfil")
+
+    captured = capsys.readouterr()
+    print_output = captured.out
+
+    assert "The repository does not have any accessible secrets" in \
+        escape_ansi(print_output)
+
+@patch("gato.attack.attack.Api")
+def test_secrets_dump_branchexist(mock_api, capsys):
+    """Test secrets dump where exfil branch already exists.
+    """
+
+    mock_api.return_value.check_user.return_value = {
+        "user": 'testUser',
+        "name": 'test user',
+        "scopes": ['repo', 'workflow']
+    }
+
+    mock_api.return_value.get_secrets.return_value = [{
+        "name": "TEST_SECRET"
+    }]
+    mock_api.return_value.get_repo_org_secrets.return_value = []
+    mock_api.return_value.get_repo_branch.return_value = 1
+
+    gh_attacker = Attacker(
+        "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+        socks_proxy=None,   
+        http_proxy="localhost:8080"
+    )
+
+    gh_attacker.secrets_dump('targetRepo', "exfilbranch", None, True, "exfil")
+
+    captured = capsys.readouterr()
+    print_output = captured.out
+
+    assert "Remote branch, exfilbranch, already exists!" in \
+        escape_ansi(print_output)
+
+@patch("gato.attack.attack.Api")
+def test_secrets_dump_branchfail(mock_api, capsys):
+    """Test secrets dump where branch check fails.
+    """
+
+    mock_api.return_value.check_user.return_value = {
+        "user": 'testUser',
+        "name": 'test user',
+        "scopes": ['repo', 'workflow']
+    }
+
+    mock_api.return_value.get_secrets.return_value = [{
+        "name": "TEST_SECRET"
+    }]
+    mock_api.return_value.get_repo_org_secrets.return_value = []
+    mock_api.return_value.get_repo_branch.return_value = -1
+
+    gh_attacker = Attacker(
+        "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+        socks_proxy=None,   
+        http_proxy="localhost:8080"
+    )
+
+    gh_attacker.secrets_dump('targetRepo', "exfilbranch", None, True, "exfil")
+
+    captured = capsys.readouterr()
+    print_output = captured.out
+
+    assert "Failed to check for remote branch!" in \
+        escape_ansi(print_output)
