@@ -456,7 +456,7 @@ def test_retrieve_run_logs(mock_get):
 
     mock_get.return_value.json.return_value = {
         "workflow_runs": [
-            {"id": 123, "run_attempt": 1}
+            {"id": 123, "run_attempt": 1, "conclusion": "success", "head_branch": "dev", "path": ".github/workflows/build.yml@dev"}
         ]
     }
 
