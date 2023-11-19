@@ -16,6 +16,20 @@ repositories that utilize self-hosted runners. GitHub recommends that
 self-hosted runners only be utilized for private repositories, however, there
 are thousands of organizations that utilize self-hosted runners.
 
+## Version 1.5 Released
+
+Gato version 1.5 was released on June 27th, 2023!
+
+#### New Features
+
+* Secrets Enumeration
+* Secrets Exfiltration
+* API-only Enumeration
+* JSON Output
+* Improved Code Search
+* GitHub Enterprise Server Support
+* PAT Validation Only Mode
+* Quality of life and UX improvements
 
 ## Who is it for?
 
