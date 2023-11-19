@@ -174,12 +174,16 @@ class Enumerator:
             f"the {organization.name} organization!"
         )
 
-        Output.info(f"Querying and caching workflow yml files!")
+        Output.info(f"Querying and caching workflow YAML files!")
         wf_queries = GqlQueries.get_workflow_ymls(enum_list)
   
         for wf_query in wf_queries:
             result = self.org_e.api.call_post('/graphql', wf_query)
-            self.repo_e.construct_workflow_cache(result.json()['data']['nodes'])
+            # Sometimes we don't get a 200, fall back in this case.
+            if result.status_code == 200:
+                self.repo_e.construct_workflow_cache(result.json()['data']['nodes'])
+            else:
+                Output.warn("GraphQL query failed, will revert to REST workflow query for impacted repositories!")
         for repo in enum_list:
             Output.tabbed(
                 f"Enumerating: {Output.bright(repo.name)}!"
