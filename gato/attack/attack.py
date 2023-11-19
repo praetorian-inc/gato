@@ -585,7 +585,7 @@ class Attacker:
                 blob = matcher.findall(res)
 
                 if len(blob) == 2:
-                    cleartext = self.__decrypt_secrets(priv_key, blob)
+                    cleartext = Attacker.__decrypt_secrets(priv_key, blob)
                     Output.owned("Decrypted and Decoded Secrets:")
                     print(cleartext.decode('utf-8').strip())
 
