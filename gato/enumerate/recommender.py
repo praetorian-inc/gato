@@ -140,7 +140,7 @@ class Recommender:
             Output.result(
                 f"The repository contains a workflow: "
                 f"{Output.bright(repository.sh_workflow_names[0])} that "
-                "executes on self-hosted runners!"
+                "might execute on self-hosted runners!"
             )
 
         if repository.accessible_runners:
