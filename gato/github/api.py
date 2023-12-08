@@ -6,9 +6,10 @@ import logging
 import zipfile
 import re
 import io
+import json
 
 from gato.cli import Output
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 logger = logging.getLogger(__name__)
 
@@ -19,8 +20,9 @@ class Api():
     rate limiting or network issues.
     """
 
-    RUNNER_RE = re.compile(r'Runner name: \'([\w+-]+)\'')
-    MACHINE_RE = re.compile(r'Machine name: \'([\w+-]+)\'')
+    RUNNER_RE = re.compile(r'Runner name: \'([\w+-.]+)\'')
+    MACHINE_RE = re.compile(r'Machine name: \'([\w+-.]+)\'')
+    RUN_THRESHOLD = 90
 
     def __init__(self, pat: str, version: str = "2022-11-28",
                  http_proxy: str = None, socks_proxy: str = None,
@@ -110,12 +112,29 @@ class Api():
         Returns:
             dict: metadata about the run execution.
         """
-        with zipfile.ZipFile(io.BytesIO(log_content)) as runres:
+        log_package = None
+        non_ephemeral = False
 
+        with zipfile.ZipFile(io.BytesIO(log_content)) as runres:
             for zipinfo in runres.infolist():
+                # TODO use a lambda for this messy logic
+                if "Run actionscheckout" in zipinfo.filename:
+                    with runres.open(zipinfo) as run_setup:
+                        content = run_setup.read().decode()
+                        if "Cleaning the repository" in content:
+                            non_ephemeral = True
+
+                        if log_package:
+                            log_package['non_ephemeral'] = non_ephemeral
+
                 if "Set up job" in zipinfo.filename:
                     with runres.open(zipinfo) as run_setup:
                         content = run_setup.read().decode()
+                        if "Image Release: https://github.com/actions/runner-images" in content:
+                            # Larger runners will appear to be self-hosted, but
+                            # they will have the image name. Skip if we see this.
+                            continue
+
                         if "Runner name" in content or \
                                 "Machine name" in content:
 
@@ -132,9 +151,10 @@ class Api():
                                 "runner_name": runner_name,
                                 "machine_name": hostname,
                                 "run_id": run_info["id"],
-                                "run_attempt": run_info["run_attempt"]
+                                "run_attempt": run_info["run_attempt"],
+                                "non_ephemeral": non_ephemeral
                             }
-                            return log_package
+        return log_package
 
     def __get_full_runlog(self, log_content: bytes, run_name: str):
         """Gets the full text of the runlog from the zip file by matching the
@@ -601,30 +621,59 @@ class Api():
         Returns:
             list: List of run logs for runs that ran on self-hosted runners.
         """
-        runs = self.call_get(f'/repos/{repo_name}/actions/runs')
+        start_date = datetime.now() - timedelta(days = 60)
+        runs = self.call_get(
+            f'/repos/{repo_name}/actions/runs', params={
+                "per_page": "30",
+                "status":"completed",
+                "exclude_pull_requests": "true",
+                "created":f">{start_date.isoformat()}"
+            }
+        )
 
-        run_logs = []
+        # This is a dictionary so we can de-duplicate runner IDs based on
+        # the machine_name:runner_name.
+        run_logs = {}
+        names = set()
 
         if runs.status_code == 200:
             logger.debug(f'Enumerating runs within {repo_name}')
             for run in runs.json()['workflow_runs']:
+
+                # We are only interested in runs that actually executed.
+                if run['conclusion'] != 'success' and \
+                    run['conclusion'] != 'failure':
+                    continue
+
+                if short_circuit:                
+                    # If we are only looking for the presence of SH runners and
+                    # not trying to determine ephmeral vs not from repeats, then
+                    # we just need to look at each branch + wf combination once.
+                    workflow_key = f"{run['head_branch']}:{run['path']}"
+                    if workflow_key in names:
+                        continue                
+                    names.add(workflow_key)
+
                 run_log = self.call_get(
                     f'/repos/{repo_name}/actions/runs/{run["id"]}/'
                     f'attempts/{run["run_attempt"]}/logs')
-
                 if run_log.status_code == 200:
                     run_log = self.__process_run_log(run_log.content, run)
                     if run_log:
-                        run_logs.append(run_log)
+                        key = f"{run_log['machine_name']}:{run_log['runner_name']}"
+                        run_logs[key] = run_log
+
                         if short_circuit:
-                            return run_logs
+                            return run_logs.values()
+                elif run_log.status_code == 410:
+                    break
                 else:
                     logger.debug(
                         f"Call to retrieve run logs from {repo_name} run "
                         f"{run['id']} attempt {run['run_attempt']} returned "
                         f"{run_log.status_code}!")
 
-        return run_logs
+        return run_logs.values()
 
     def parse_workflow_runs(self, repo_name: str):
         """Returns the number of workflow runs associated with the repository.

@@ -119,7 +119,7 @@
                 "type": "stdout"
             },
             {
-                "expect": "[+] The repository contains a workflow: main.yml that executes on self-hosted runners!",
+                "expect": "[+] The repository contains a workflow: main.yml that might execute on self-hosted runners!",
                 "type": "stdout"
             }
         ],
