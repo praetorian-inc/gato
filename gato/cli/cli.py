@@ -293,13 +293,18 @@ def search(args, parser):
             parser.error(
                 f"{Fore.RED}[-]{Style.RESET_ALL} You must select an organization "
                 "or pass a custom query!."
-        )
+            )
         if args.query:
             gh_search_runner.use_search_api(
-                organization=args.target, query=args.query
+                organization=args.target,
+                query=args.query,
+                output_text=args.output_text
             )
         else:
-            gh_search_runner.use_search_api(organization=args.target)
+            gh_search_runner.use_search_api(
+                organization=args.target,
+                output_text=args.output_text
+            )
 
 
 def configure_parser_general(parser):
