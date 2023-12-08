@@ -46,7 +46,7 @@ class Search():
         if custom_query:
             query['q'] = custom_query
         else:
-            query['q'] = f'self-hosted org:{organization} language:yaml path:.github/workflows',
+            query['q'] = f'self-hosted org:{organization} language:yaml path:.github/workflows'
 
         next_page = f"/search/code?q={query['q']}&sort={query['sort']}" \
                     f"&per_page={query['per_page']}&page={query['page']}"
