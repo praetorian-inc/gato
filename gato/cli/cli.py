@@ -276,19 +276,30 @@ def search(args, parser):
         http_proxy=args.http_proxy,
         github_url=args.api_url
     )
+    if args.sourcegraph:
+        if args.query and args.target:
+            parser.error(
+                f"{Fore.RED}[-]{Style.RESET_ALL} You cannot select an organization "
+                "with a custom query!"
+            )
 
-    if not (args.query or args.target):
-        parser.error(
-            f"{Fore.RED}[-]{Style.RESET_ALL} You must select an organization "
-            "or pass a custom query!."
-        )
-
-    if args.query:
-        gh_search_runner.use_search_api(
-            organization=args.target, query=args.query
+        gh_search_runner.use_sourcegraph_api(
+            organization=args.target,
+            query=args.query,
+            output_text=args.output_text
         )
     else:
-        gh_search_runner.use_search_api(organization=args.target)
+        if not (args.query or args.target):
+            parser.error(
+                f"{Fore.RED}[-]{Style.RESET_ALL} You must select an organization "
+                "or pass a custom query!."
+        )
+        if args.query:
+            gh_search_runner.use_search_api(
+                organization=args.target, query=args.query
+            )
+        else:
+            gh_search_runner.use_search_api(organization=args.target)
 
 
 def configure_parser_general(parser):
@@ -562,4 +573,20 @@ def configure_parser_search(parser):
         help="Pass a custom query to GitHub code search",
         metavar="QUERY",
         required=False
+    )
+
+    parser.add_argument(
+        "--sourcegraph", "-sg",
+        help="Use Sourcegraph API to search for self-hosted runners.",
+        required=False,
+        action="store_true"
+    )
+
+    parser.add_argument(
+        "--output-text", "-oT",
+        help=(
+            "Save enumeration output to text file."
+        ),
+        metavar="TEXT_FILE",
+        type=StringType(256)
     )

@@ -1,4 +1,6 @@
 import logging
+import requests
+import json
 
 from gato.github import Search
 from gato.github import Api
@@ -56,6 +58,51 @@ class Searcher:
                 Output.warn("The token has no scopes!")
 
         return True
+
+    def use_sourcegraph_api(self, organization: str, query=None, output_text=None):
+        """Use Sourcegraph API to identify repositories that might use 
+        self hosted runners at GitHub scale.
+
+        Args:
+            organization (str, optional): Organization to filter on.
+        """
+        repo_filter = f"repo:{organization}/ " if organization else ""
+        url = "https://sourcegraph.com/.api/search/stream"
+        headers = {"Content-Type": "application/json"}
+        params = {
+            "q": (
+                "('self-hosted' OR "
+                "(/runs-on/ AND NOT "
+                "/(ubuntu-16.04|ubuntu-18.04|ubuntu-20.04|ubuntu-22.04|ubuntu-latest|"
+                "windows-2019|windows-2022|windows-latest|macos-11|macos-12|macos-13|"
+                "macos-12-xl|macos-13-xl|macos-latest|matrix.[a-zA-Z]\s)/)) "
+                f"{repo_filter}"
+                "lang:YAML file:.github/workflows/ count:30000"
+            )
+        }
+        if query:
+            params["q"] = query
+        response = requests.get(url, headers=headers, params=params, stream=True)
+        results = set()
+
+        if response.status_code == 200:
+            for line in response.iter_lines():
+                if line and line.decode().startswith("data:"):
+                    json_line = line.decode().replace("data:", "").strip()
+                    event = json.loads(json_line)
+                    for element in event:
+                        if "repository" in element:
+                            results.add(
+                                element["repository"].replace("github.com/", "")
+                            )
+
+        if output_text:
+            with open(output_text, "w") as file_output:
+                for candidate in results:
+                    file_output.write(f"{candidate}\n")
+
+        for candidate in results:
+            Output.tabbed(candidate)
 
     def use_search_api(self, organization: str, query=None):
         """Utilize GitHub Code Search API to try and identify repositories
