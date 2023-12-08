@@ -283,10 +283,9 @@ def search(args, parser):
                 "with a custom query!"
             )
 
-        gh_search_runner.use_sourcegraph_api(
+        results = gh_search_runner.use_sourcegraph_api(
             organization=args.target,
-            query=args.query,
-            output_text=args.output_text
+            query=args.query
         )
     else:
         if not (args.query or args.target):
@@ -295,16 +294,17 @@ def search(args, parser):
                 "or pass a custom query!."
             )
         if args.query:
-            gh_search_runner.use_search_api(
+            results = gh_search_runner.use_search_api(
                 organization=args.target,
-                query=args.query,
-                output_text=args.output_text
+                query=args.query
             )
         else:
-            gh_search_runner.use_search_api(
-                organization=args.target,
-                output_text=args.output_text
+            results = gh_search_runner.use_search_api(
+                organization=args.target
             )
+
+    if results:
+        gh_search_runner.present_results(results, args.output_text)
 
 
 def configure_parser_general(parser):

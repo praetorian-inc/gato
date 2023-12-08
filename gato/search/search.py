@@ -72,7 +72,6 @@ class Searcher:
         Args:
             organization (str): The name of the organization to search in.
             query (str, optional): A custom search query. If not provided, a default query is used.
-            output_text (str, optional): The file path where the results should be written. Defaults to None.
 
         Returns:
             set: A set of search results.
@@ -114,19 +113,9 @@ class Searcher:
                                 element["repository"].replace("github.com/", "")
                             )
 
-        Output.result(
-            f"Identified {len(results)} non-fork repositories that matched "
-            "the criteria!"
-        )
-        if output_text:
-            with open(output_text, "w") as file_output:
-                for candidate in results:
-                    file_output.write(f"{candidate}\n")
+        return results
 
-        for candidate in results:
-            Output.tabbed(candidate)
-
-    def use_search_api(self, organization: str, query=None, output_text=None):
+    def use_search_api(self, organization: str, query=None):
         """Utilize GitHub Code Search API to try and identify repositories
         using self-hosted runners. This is subject to a high false-positive
         rate because any occurance of 'self-hosted' within a YAML file will
@@ -138,7 +127,6 @@ class Searcher:
             organization (str): Organization to enumerate using
             the GitHub code search API.
             query (str, optional): Custom code-search query.
-            output_text(str, optional): Path to output text file.
 
         Returns:
             list: List of repositories suspected of using self-hosted runners
@@ -165,18 +153,7 @@ class Searcher:
             organization, custom_query=query
         )
 
-        Output.result(
-            f"Identified {len(candidates)} non-fork repositories that matched "
-            "the criteria!"
-        )
-
-        if output_text:
-            with open(output_text, "w") as file_output:
-                for candidate in candidates:
-                    file_output.write(f"{candidate}\n")
-
-        for candidate in candidates:
-            Output.tabbed(candidate)
+        return candidates
 
     def present_results(self, results, output_text=None):
         """
