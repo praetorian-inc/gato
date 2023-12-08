@@ -64,13 +64,18 @@ class Searcher:
             organization: str,
             query=None,
             output_text=None):
-        """Use Sourcegraph API to identify repositories that might use 
-        self hosted runners at GitHub scale.
+        """
+        This method is used to search for repositories in an organization using the Sourcegraph API.
+        It constructs a search query and sends a GET request to the Sourcegraph search API.
+        The results are streamed and added to a set.
 
         Args:
-            organization (str, optional): Organization to filter on.
-            query (str, optional): Custom query to use.
-            output_text(str, optional): Path to output text file.
+            organization (str): The name of the organization to search in.
+            query (str, optional): A custom search query. If not provided, a default query is used.
+            output_text (str, optional): The file path where the results should be written. Defaults to None.
+
+        Returns:
+            set: A set of search results.
         """
         repo_filter = f"repo:{organization}/ " if organization else ""
         url = "https://sourcegraph.com/.api/search/stream"
