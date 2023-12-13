@@ -118,7 +118,7 @@ class Api():
         with zipfile.ZipFile(io.BytesIO(log_content)) as runres:
             for zipinfo in runres.infolist():
                 # TODO use a lambda for this messy logic
-                if "Run actionscheckout" in zipinfo.filename:
+                if "checkout" in zipinfo.filename or "Checkout" in zipinfo.filename:
                     with runres.open(zipinfo) as run_setup:
                         content = run_setup.read().decode()
                         if "Cleaning the repository" in content:
