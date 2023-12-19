@@ -6,7 +6,6 @@ import logging
 import zipfile
 import re
 import io
-import json
 
 from gato.cli import Output
 from datetime import datetime, timezone, timedelta
@@ -175,6 +174,24 @@ class Api():
 
                         return content
 
+    @staticmethod
+    def __verify_result(response: requests.Response, expected_code: int):
+        """Verifies that the response matches the expected code. If it does not
+        match, then the response is logged and the program exits.
+
+        Args:
+            response (requests.Response): Response object from a request.
+            expected_code (int): Expected status code from the request.
+        """
+        if response.status_code != expected_code:
+            logger.warn(
+                f"Expected status code {expected_code}, but got "
+                f"{response.status_code}!"
+            )
+            logger.debug(response.text)
+            return False
+        return True
+
     def call_get(self, url: str, params: dict = None, strip_auth=False):
         """Internal method to wrap a GET request so that proxies and headers
         do not need to be repeated.
@@ -232,8 +249,34 @@ class Api():
 
         return api_response
 
+    def call_patch(self, url: str, params: dict = None):
+        """Internal method to wrap a PATCH request so that proxies and headers
+        do not need to be updated in each method.
+
+        Args:
+            url (str): URL path to make PATCH request to.
+            params (dict, optional): Parameters to send as part of the request.
+            Defaults to None.
+        Returns:
+            Response: Returns the requests response object.
+        """
+        request_url = self.github_url + url
+        logger.debug(f'Making PATCH API request to {request_url}!')
+
+        api_response = requests.patch(request_url, headers=self.headers,
+                                      proxies=self.proxies, json=params,
+                                      verify=self.verify_ssl)
+        logger.debug(
+            f'The PATCH request to {request_url} returned a '
+            f'{api_response.status_code}!')
+
+        self.__check_rate_limit(api_response.headers)
+
+        return api_response
+
     def call_put(self, url: str, params: dict = None):
-        """_summary_
+        """Internal method to wrap a PUT request so that proxies and headers
+        do not need to be updated in each method.
 
         Args:
             url (stre): _description_
@@ -720,12 +763,12 @@ class Api():
 
         if data['total_count'] == 0:
             return 0
-        
+
         # find the id of our malicious workflow
         for workflow in data['workflow_runs']:
             if f'.github/workflows/{file_name}.yml' in workflow['path']:
                 return workflow['id']
-            
+
         return 0
 
     def get_workflow_status(self, repo_name: str, workflow_id: int):
@@ -812,12 +855,14 @@ class Api():
             repo_name (str): Name of repository in Org/Repo format.
             branch_name (str): Name of branch to create.
         """
-
-        resp = self.call_get(f'/repos/{repo_name}/git/refs/heads')
+        resp = self.call_get(f'/repos/{repo_name}')
+        default_branch = resp.json()['default_branch']
+        resp = self.call_get(
+            f'/repos/{repo_name}/git/ref/heads/{default_branch}'
+        )
 
         json_resp = resp.json()
-
-        sha = json_resp[0]['object']['sha']
+        sha = json_resp['object']['sha']
 
         branch_data = {
             "ref": f"refs/heads/{branch_name}",
@@ -991,3 +1036,143 @@ class Api():
                 secrets = secrets_response['secrets']
 
         return secrets
+
+    def commit_workflow(self, repo_name: str,
+                        target_branch: str,
+                        workflow_contents: bytes, file_name: str,
+                        commit_author: str = "Gato",
+                        commit_email: str = "gato@gato.infosec",
+                        message="Testing"):
+        """
+        Commits a new workflow file to a specified repository.
+
+        This function performs the following steps:
+        1. Gets the latest commit SHA of the target branch.
+        2. Gets the tree SHA of the latest commit of the new branch.
+        3. Gets the tree of the .github/workflows directory.
+        4. If the workflows tree exists, it gets the SHA of the workflows tree.
+        5. Creates a new tree where all blobs in the .github/workflows tree are removed.
+        6. Creates a new commit on the new branch with the new tree.
+        7. Updates the new branch to point to the new commit.
+
+        Args:
+            repo_name (str): The name of the repository.
+            target_branch (str): The name of the target branch.
+            workflow_contents (bytes): The content of the new workflow file.
+            file_name (str): The name of the new workflow file.
+            commit_author (str, optional): The author of the commit. Defaults to "Gato".
+            commit_email (str, optional): The email of the commit author. Defaults to "gato@gato.infosec".
+            message (str, optional): The commit message. Defaults to "Testing".
+
+        Returns:
+            str: The SHA of the new commit if the commit was successful, None otherwise.
+        """
+        # Step 1: Get latest commit SHA of target branch
+        r = self.call_get(
+            f'/repos/{repo_name}'
+        )
+        if self.__verify_result(r, 200) is False:
+            return None
+        default_branch = r.json()['default_branch']
+
+        r = self.call_get(
+            f'/repos/{repo_name}/commits/{default_branch}'
+        )
+        if self.__verify_result(r, 200) is False:
+            return None
+        latest_commit_sha = r.json()['sha']
+
+        # Step 2: Get tree SHA of latest commit of default
+        r = self.call_get(
+            f'/repos/{repo_name}/git/commits/{latest_commit_sha}'
+        )
+        if self.__verify_result(r, 200) is False:
+            return None
+        tree_sha = r.json()['tree']['sha']
+
+        # Step 3: Get the tree of the .github/workflows directory
+        r = self.call_get(
+            f'/repos/{repo_name}/git/trees/{tree_sha}',
+            params={"recursive": "1"}
+        )
+        if self.__verify_result(r, 200) is False:
+            return None
+
+        base_sha = r.json()['sha']
+        tree = r.json()['tree']
+
+        existing_files = (item for item in tree if '.github/workflows' in
+                          item['path'] and item['type'] == 'blob')
+
+        # Step 4: Create a new tree where all blobs in the .github/workflows
+        # tree are removed
+        new_workflow_file_content = base64.b64encode(
+                workflow_contents
+        ).decode()
+
+        r = self.call_post(f'/repos/{repo_name}/git/blobs', params={
+            "content": new_workflow_file_content,
+            "encoding": "base64"
+        })
+        if self.__verify_result(r, 201) is False:
+            return None
+
+        new_tree = [
+            {
+                'path': f'.github/workflows/{file_name}',
+                'mode': '100644',
+                'type': 'blob',
+                'sha': r.json()['sha']
+            }
+        ]
+
+        # Delete everything else
+        for existing in existing_files:
+            # Don't delete the same file - this will happen if the workflow
+            # already exists (such as a test.yml file)
+            if existing['path'] == f'.github/workflows/{file_name}':
+                continue
+
+            new_tree.append({
+                'path': existing['path'],
+                'mode': existing['mode'],
+                'type': existing['type'],
+                'sha': None,
+            })
+
+        r = self.call_post(
+            f'/repos/{repo_name}/git/trees', params={
+                'base_tree': base_sha,
+                'tree': new_tree
+            }
+        )
+        if self.__verify_result(r, 201) is False:
+            return None
+        new_tree_sha = r.json()['sha']
+
+        # Step 5: Create new commit on new branch
+        r = self.call_post(
+            f'/repos/{repo_name}/git/commits', params={
+                'message': message,
+                'tree': new_tree_sha,
+                'parents': [latest_commit_sha],
+                'author': {
+                    'name': commit_author,
+                    'email': commit_email
+                }
+            }
+        )
+        new_commit_sha = r.json()['sha']
+
+        # Step 6: Update the new branch to point to the new commit
+        r = self.call_post(
+            f'/repos/{repo_name}/git/refs',
+            params={
+                'sha': new_commit_sha,
+                'ref': f'refs/heads/{target_branch}'
+            }
+        )
+        if self.__verify_result(r, 201) is False:
+            return None
+
+        return new_commit_sha

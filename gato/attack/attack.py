@@ -181,28 +181,23 @@ class Attacker:
         """
 
         workflow_id = None
-        branch_created = self.api.create_branch(target_repo, branch)
-
-        if not branch_created:
-            Output.error("Failed to create branch!")
-            return False
 
         if self.author_email and self.author_name:
-            rev_hash = self.api.commit_file(
+            rev_hash = self.api.commit_workflow(
                 target_repo,
                 branch,
-                f".github/workflows/{yaml_name}.yml",
                 yaml_contents.encode(),
+                f"{yaml_name}.yml",
                 commit_author=self.author_name,
                 commit_email=self.author_email,
                 message=commit_message
             )
         else:
-            rev_hash = self.api.commit_file(
+            rev_hash = self.api.commit_workflow(
                 target_repo,
                 branch,
-                f".github/workflows/{yaml_name}.yml",
                 yaml_contents.encode(),
+                f"{yaml_name}.yml",
                 message=commit_message
             )
 
