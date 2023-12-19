@@ -6,7 +6,6 @@ import logging
 import zipfile
 import re
 import io
-import json
 
 from gato.cli import Output
 from datetime import datetime, timezone, timedelta
@@ -258,7 +257,8 @@ class Api():
         return api_response
 
     def call_put(self, url: str, params: dict = None):
-        """_summary_
+        """Internal method to wrap a PUT request so that proxies and headers
+        do not need to be updated in each method.
 
         Args:
             url (stre): _description_
@@ -745,12 +745,12 @@ class Api():
 
         if data['total_count'] == 0:
             return 0
-        
+
         # find the id of our malicious workflow
         for workflow in data['workflow_runs']:
             if f'.github/workflows/{file_name}.yml' in workflow['path']:
                 return workflow['id']
-            
+
         return 0
 
     def get_workflow_status(self, repo_name: str, workflow_id: int):
@@ -1075,7 +1075,8 @@ class Api():
         base_sha = r.json()['sha']
         tree = r.json()['tree']
 
-        existing_files = (item for item in tree if '.github/workflows' in item['path'] and item['type'] == 'blob')
+        existing_files = (item for item in tree if '.github/workflows' in
+                          item['path'] and item['type'] == 'blob')
 
         # Step 4: Create a new tree where all blobs in the .github/workflows
         # tree are removed
@@ -1099,6 +1100,11 @@ class Api():
 
         # Delete everything else
         for existing in existing_files:
+            # Don't delete the same file - this will happen if the workflow
+            # already exists (such as a test.yml file)
+            if existing['path'] == f'.github/workflows/{file_name}':
+                continue
+
             new_tree.append({
                 'path': existing['path'],
                 'mode': existing['mode'],
