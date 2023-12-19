@@ -670,7 +670,10 @@ def test_create_branch(mock_get, mock_post):
     test_pat = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
     mock_get.return_value.status_code = 200
 
-    mock_get.return_value.json.return_value = [
+    mock_get.return_value.json.side_effect = [
+        {
+            "default_branch": "dev"
+        },
         {
             "ref": "refs/heads/dev",
             "node_id": "REF_AAAAAAAAAAAAAAAAAAAAAAAAAAA",
@@ -698,7 +701,10 @@ def test_create_branch_fail(mock_get, mock_post):
     test_pat = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
     mock_get.return_value.status_code = 200
 
-    mock_get.return_value.json.return_value = [
+    mock_get.return_value.json.side_effect = [
+        {
+            "default_branch": "dev"
+        },
         {
             "ref": "refs/heads/dev",
             "node_id": "REF_AAAAAAAAAAAAAAAAAAAAAAAAAAA",
