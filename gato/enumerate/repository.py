@@ -184,7 +184,7 @@ class RepositoryEnum():
 
         Args:
             yml_results (list): List of results from individual GraphQL queries
-            (100 nodes at atime).)
+            (100 nodes at a time).
         """
         for result in yml_results:
             owner = result['nameWithOwner']
