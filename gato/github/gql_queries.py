@@ -31,7 +31,7 @@ class GqlQueries():
 
     @staticmethod
     def get_workflow_ymls(repos: list):
-        """Retrieve workflow yml files for ea
+        """Retrieve workflow yml files for each repository.
 
         Args:
             repos (List[Repository]): List of repository objects
