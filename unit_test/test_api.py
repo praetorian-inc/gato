@@ -670,7 +670,10 @@ def test_create_branch(mock_get, mock_post):
     test_pat = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
     mock_get.return_value.status_code = 200
 
-    mock_get.return_value.json.return_value = [
+    mock_get.return_value.json.side_effect = [
+        {
+            "default_branch": "dev"
+        },
         {
             "ref": "refs/heads/dev",
             "node_id": "REF_AAAAAAAAAAAAAAAAAAAAAAAAAAA",
@@ -698,7 +701,10 @@ def test_create_branch_fail(mock_get, mock_post):
     test_pat = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
     mock_get.return_value.status_code = 200
 
-    mock_get.return_value.json.return_value = [
+    mock_get.return_value.json.side_effect = [
+        {
+            "default_branch": "dev"
+        },
         {
             "ref": "refs/heads/dev",
             "node_id": "REF_AAAAAAAAAAAAAAAAAAAAAAAAAAA",
@@ -920,3 +926,85 @@ def test_handle_ratelimit(mock_time):
     api._Api__check_rate_limit(test_headers)
 
     mock_time.sleep.assert_called_once()
+
+
+@patch('gato.github.api.requests.get')
+@patch('gato.github.api.requests.post')
+def test_commit_workflow(mock_call_post, mock_call_get):
+    # Arrange
+    test_pat = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+    api = Api(test_pat, "2022-11-28")
+    mock_call_get.side_effect = [
+        MagicMock(status_code=200, json=MagicMock(return_value={'default_branch': 'main'})),
+        MagicMock(status_code=200, json=MagicMock(return_value={'sha': '123'})),
+        MagicMock(status_code=200, json=MagicMock(return_value={'tree': {'sha': '456'}})),
+        MagicMock(status_code=200, json=MagicMock(return_value={'sha': '789', 'tree': []}))
+    ]
+    mock_call_post.side_effect = [
+        MagicMock(status_code=201, json=MagicMock(return_value={'sha': 'abc'})),
+        MagicMock(status_code=201, json=MagicMock(return_value={'sha': 'def'})),
+        MagicMock(status_code=201, json=MagicMock(return_value={'sha': 'ghi'})),
+        MagicMock(status_code=201, json=MagicMock(return_value={'sha': 'jkl'}))
+    ]
+
+    # Act
+    result = api.commit_workflow('test_repo', 'test_branch', b'test_content', 'test_file')
+
+    # Assert
+    assert result == 'ghi'
+    assert mock_call_get.call_count == 4
+    assert mock_call_post.call_count == 4
+
+
+@patch('gato.github.api.requests.get')
+@patch('gato.github.api.requests.post')
+def test_commit_workflow_failure(mock_call_post, mock_call_get):
+    # Arrange
+    test_pat = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+    api = Api(test_pat, "2022-11-28")
+    mock_call_get.side_effect = [
+        MagicMock(status_code=200, json=MagicMock(return_value={'default_branch': 'main'})),
+        MagicMock(status_code=200, json=MagicMock(return_value={'sha': '123'})),
+        MagicMock(status_code=200, json=MagicMock(return_value={'tree': {'sha': '456'}})),
+        MagicMock(status_code=200, json=MagicMock(return_value={'sha': '789', 'tree': []}))
+    ]
+    mock_call_post.side_effect = [
+        MagicMock(status_code=201, json=MagicMock(return_value={'sha': 'abc'})),
+        MagicMock(status_code=201, json=MagicMock(return_value={'sha': 'def'})),
+        MagicMock(status_code=201, json=MagicMock(return_value={'sha': 'ghi'})),
+        MagicMock(status_code=400, json=MagicMock(return_value={'sha': 'jkl'}))
+    ]
+
+    # Act
+    result = api.commit_workflow('test_repo', 'test_branch', b'test_content', 'test_file')
+
+    # Assert
+    assert result is None
+    assert mock_call_get.call_count == 4
+    assert mock_call_post.call_count == 4
+
+
+@patch('gato.github.api.requests.get')
+@patch('gato.github.api.requests.post')
+def test_commit_workflow_failure2(mock_call_post, mock_call_get):
+    # Arrange
+    test_pat = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+    api = Api(test_pat, "2022-11-28")
+    mock_call_get.side_effect = [
+        MagicMock(status_code=200, json=MagicMock(return_value={'default_branch': 'main'})),
+        MagicMock(status_code=200, json=MagicMock(return_value={'sha': '123'})),
+        MagicMock(status_code=200, json=MagicMock(return_value={'tree': {'sha': '456'}})),
+        MagicMock(status_code=200, json=MagicMock(return_value={'sha': '789', 'tree': []}))
+    ]
+    mock_call_post.side_effect = [
+        MagicMock(status_code=201, json=MagicMock(return_value={'sha': 'abc'})),
+        MagicMock(status_code=404, json=MagicMock(return_value=None)),
+    ]
+
+    # Act
+    result = api.commit_workflow('test_repo', 'test_branch', b'test_content', 'test_file')
+
+    # Assert
+    assert result is None
+    assert mock_call_get.call_count == 4
+    assert mock_call_post.call_count == 2
