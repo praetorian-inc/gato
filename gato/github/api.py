@@ -174,6 +174,24 @@ class Api():
 
                         return content
 
+    @staticmethod
+    def __verify_result(response: requests.Response, expected_code: int):
+        """Verifies that the response matches the expected code. If it does not
+        match, then the response is logged and the program exits.
+
+        Args:
+            response (requests.Response): Response object from a request.
+            expected_code (int): Expected status code from the request.
+        """
+        if response.status_code != expected_code:
+            logger.warn(
+                f"Expected status code {expected_code}, but got "
+                f"{response.status_code}!"
+            )
+            logger.debug(response.text)
+            return False
+        return True
+
     def call_get(self, url: str, params: dict = None, strip_auth=False):
         """Internal method to wrap a GET request so that proxies and headers
         do not need to be repeated.
@@ -1053,17 +1071,23 @@ class Api():
         r = self.call_get(
             f'/repos/{repo_name}'
         )
+        if self.__verify_result(r, 200) is False:
+            return None
         default_branch = r.json()['default_branch']
 
         r = self.call_get(
             f'/repos/{repo_name}/commits/{default_branch}'
         )
+        if self.__verify_result(r, 200) is False:
+            return None
         latest_commit_sha = r.json()['sha']
 
         # Step 2: Get tree SHA of latest commit of default
         r = self.call_get(
             f'/repos/{repo_name}/git/commits/{latest_commit_sha}'
         )
+        if self.__verify_result(r, 200) is False:
+            return None
         tree_sha = r.json()['tree']['sha']
 
         # Step 3: Get the tree of the .github/workflows directory
@@ -1071,6 +1095,8 @@ class Api():
             f'/repos/{repo_name}/git/trees/{tree_sha}',
             params={"recursive": "1"}
         )
+        if self.__verify_result(r, 200) is False:
+            return None
 
         base_sha = r.json()['sha']
         tree = r.json()['tree']
@@ -1088,6 +1114,8 @@ class Api():
             "content": new_workflow_file_content,
             "encoding": "base64"
         })
+        if self.__verify_result(r, 201) is False:
+            return None
 
         new_tree = [
             {
@@ -1118,6 +1146,8 @@ class Api():
                 'tree': new_tree
             }
         )
+        if self.__verify_result(r, 201) is False:
+            return None
         new_tree_sha = r.json()['sha']
 
         # Step 5: Create new commit on new branch
@@ -1142,6 +1172,7 @@ class Api():
                 'ref': f'refs/heads/{target_branch}'
             }
         )
+        if self.__verify_result(r, 201) is False:
+            return None
 
-        if r.status_code == 201:
-            return new_commit_sha
+        return new_commit_sha
