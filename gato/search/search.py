@@ -1,4 +1,6 @@
 import logging
+import requests
+import json
 
 from gato.github import Search
 from gato.github import Api
@@ -57,6 +59,62 @@ class Searcher:
 
         return True
 
+    def use_sourcegraph_api(
+            self,
+            organization: str,
+            query=None,
+            output_text=None):
+        """
+        This method is used to search for repositories in an organization using the Sourcegraph API.
+        It constructs a search query and sends a GET request to the Sourcegraph search API.
+        The results are streamed and added to a set.
+
+        Args:
+            organization (str): The name of the organization to search in.
+            query (str, optional): A custom search query. If not provided, a default query is used.
+
+        Returns:
+            set: A set of search results.
+        """
+        repo_filter = f"repo:{organization}/ " if organization else ""
+        url = "https://sourcegraph.com/.api/search/stream"
+        headers = {"Content-Type": "application/json"}
+        params = {
+            "q": (
+                "('self-hosted' OR "
+                "(/runs-on/ AND NOT "
+                "/(ubuntu-16.04|ubuntu-18.04|ubuntu-20.04|ubuntu-22.04|ubuntu-latest|"
+                "windows-2019|windows-2022|windows-latest|macos-11|macos-12|macos-13|"
+                "macos-12-xl|macos-13-xl|macos-latest|matrix.[a-zA-Z]\\s)/)) "
+                f"{repo_filter}"
+                "lang:YAML file:.github/workflows/ count:30000"
+            )
+        }
+        if query:
+            Output.info(
+                f"Searching SourceGraph with the following query: {Output.bright(query)}"
+            )
+            params["q"] = query
+        else:
+            Output.info(
+                f"Searching SourceGraph with the default Gato query: {Output.bright(params['q'])}"
+            )
+        response = requests.get(url, headers=headers, params=params, stream=True)
+        results = set()
+
+        if response.status_code == 200:
+            for line in response.iter_lines():
+                if line and line.decode().startswith("data:"):
+                    json_line = line.decode().replace("data:", "").strip()
+                    event = json.loads(json_line)
+                    for element in event:
+                        if "repository" in element:
+                            results.add(
+                                element["repository"].replace("github.com/", "")
+                            )
+
+        return results
+
     def use_search_api(self, organization: str, query=None):
         """Utilize GitHub Code Search API to try and identify repositories
         using self-hosted runners. This is subject to a high false-positive
@@ -95,10 +153,30 @@ class Searcher:
             organization, custom_query=query
         )
 
+        return candidates
+
+    def present_results(self, results, output_text=None):
+        """
+        This method is used to present the results of the search. It first
+        prints the number of non-fork repositories that matched the criteria.
+        If an output_text file path is provided, it writes the results into
+        that file. Finally, it prints each result in a tabbed format.
+
+        Args:
+            results (list): A list of non-fork repositories that matched the
+            criteria.
+            output_text (str, optional): The file path where the results
+            should be written. Defaults to None.
+        """
         Output.result(
-            f"Identified {len(candidates)} non-fork repositories that matched "
+            f"Identified {len(results)} non-fork repositories that matched "
             "the criteria!"
         )
 
-        for candidate in candidates:
+        if output_text:
+            with open(output_text, "w") as file_output:
+                for candidate in results:
+                    file_output.write(f"{candidate}\n")
+
+        for candidate in results:
             Output.tabbed(candidate)

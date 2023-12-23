@@ -103,7 +103,7 @@ def test_enumerate_repo_admin(mock_api, capsys):
     }
 
     mock_api.return_value.retrieve_run_logs.return_value = [
-        {"machine_name": "unittest1", "runner_name": "much_unit_such_test"}
+        {"machine_name": "unittest1", "runner_name": "much_unit_such_test", "non_ephemeral": False}
     ]
 
     repo_data = json.loads(json.dumps(TEST_REPO_DATA))
@@ -143,7 +143,7 @@ def test_enumerate_repo_admin_no_wf(mock_api, capsys):
     }
 
     mock_api.return_value.retrieve_run_logs.return_value = [
-        {"machine_name": "unittest1", "runner_name": "much_unit_such_test"}
+        {"machine_name": "unittest1", "runner_name": "much_unit_such_test", "non_ephemeral": False}
     ]
 
     repo_data = json.loads(json.dumps(TEST_REPO_DATA))
@@ -183,7 +183,7 @@ def test_enumerate_repo_no_wf_no_admin(mock_api, capsys):
     }
 
     mock_api.return_value.retrieve_run_logs.return_value = [
-        {"machine_name": "unittest1", "runner_name": "much_unit_such_test"}
+        {"machine_name": "unittest1", "runner_name": "much_unit_such_test", "non_ephemeral": False}
     ]
 
     repo_data = json.loads(json.dumps(TEST_REPO_DATA))
@@ -222,7 +222,7 @@ def test_enumerate_repo_no_wf_maintain(mock_api, capsys):
     }
 
     mock_api.return_value.retrieve_run_logs.return_value = [
-        {"machine_name": "unittest1", "runner_name": "much_unit_such_test"}
+        {"machine_name": "unittest1", "runner_name": "much_unit_such_test", "non_ephemeral": False}
     ]
 
     repo_data = json.loads(json.dumps(TEST_REPO_DATA))
@@ -262,7 +262,7 @@ def test_enumerate_repo_only(mock_api, capsys):
     }
 
     mock_api.return_value.retrieve_run_logs.return_value = [
-        {"machine_name": "unittest1", "runner_name": "much_unit_such_test"}
+        {"machine_name": "unittest1", "runner_name": "much_unit_such_test", "non_ephemeral": False}
     ]
 
     repo_data = json.loads(json.dumps(TEST_REPO_DATA))

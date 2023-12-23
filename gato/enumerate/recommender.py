@@ -140,7 +140,7 @@ class Recommender:
             Output.result(
                 f"The repository contains a workflow: "
                 f"{Output.bright(repository.sh_workflow_names[0])} that "
-                "executes on self-hosted runners!"
+                "might execute on self-hosted runners!"
             )
 
         if repository.accessible_runners:
@@ -156,6 +156,11 @@ class Recommender:
                 f" and the machine name was "
                 f"{Output.bright(repository.accessible_runners[0].machine_name)}"
             )
+
+            for runner in repository.accessible_runners:
+                if runner.non_ephemeral:
+                    Output.owned("The repository contains a non-ephemeral self-hosted runner!")
+                    break
 
         if repository.runners:
             Output.result(
