@@ -1,4 +1,5 @@
 import logging
+import json
 
 from gato.cli import Output
 from gato.models import Repository, Secret, Runner
@@ -72,6 +73,34 @@ class RepositoryEnum():
             try:
                 parsed_yml = WorkflowParser(yml, repository.name, wf)
                 self_hosted_jobs = parsed_yml.self_hosted()
+
+                wf_injection = parsed_yml.check_injection()
+                if wf_injection:
+                    Output.result(
+                        f"The workflow {Output.bright(parsed_yml.wf_name)} runs on a risky trigger "
+                        f"and uses values by context within run/script steps!"
+                    )
+
+                    Output.tabbed(f"Examine the variables and gating: " + json.dumps(wf_injection, indent=4))
+                    Output.info(f"You can access the workflow at: "
+                        f"{repository.repo_data['html_url']}/blob/"
+                        f"{repository.repo_data['default_branch']}/"
+                        f".github/workflows/{parsed_yml.wf_name}"
+                    )
+
+                pwn_reqs = parsed_yml.check_pwn_request()
+                if pwn_reqs:
+                    Output.result(
+                        f"The workflow {Output.bright(parsed_yml.wf_name)} runs on a risky trigger "
+                        f"and might check out the PR code, see if it runs it!"
+                    )
+                    print(pwn_reqs)
+
+                    Output.info(f"You can access the workflow at: "
+                        f"{repository.repo_data['html_url']}/blob/"
+                        f"{repository.repo_data['default_branch']}/"
+                        f".github/workflows/{parsed_yml.wf_name}"
+                    )
 
                 if self_hosted_jobs:
                     runner_wfs.append(wf)
