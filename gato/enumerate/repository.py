@@ -114,10 +114,12 @@ class RepositoryEnum():
             # At this point we only know the extension, so handle and
             #  ignore malformed yml files.
             except yaml.parser.ParserError as parse_error:
-                #import traceback
-                #traceback.print_exc()
-                #print(f"{wf}: {str(parse_error)}")
                 logger.warning("Attmpted to parse invalid yaml!")
+            except Exception as general_error:
+                Output.error("Encountered a Gato error (likely a bug) while parsing a workflow:")
+                import traceback
+                traceback.print_exc()
+                print(f"{wf}: {str(general_error)}")
 
         return runner_wfs
 
