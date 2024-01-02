@@ -259,7 +259,7 @@ class Enumerator:
             Output.error("The list of repositories was empty!")
             return
 
-        Output.info(f"Querying and caching workflow YAML files!")
+        Output.info(f"Querying and caching workflow YAML files from {len(repo_names)} repositories!")
         queries = GqlQueries.get_workflow_ymls_from_list(repo_names)
 
         for i, wf_query in enumerate(queries):
