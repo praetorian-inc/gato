@@ -47,3 +47,38 @@ def test_workflow_write():
         mock_file().write.assert_called_once_with(
             parser.raw_yaml
         )
+
+def test_check_injection_no_vulnerable_triggers():
+    parser = WorkflowParser(TEST_WF, 'unit_test', 'main.yml')
+    with patch.object(parser, 'get_vulnerable_triggers', return_value=[]):
+        result = parser.check_injection()
+        assert result == {}
+
+def test_check_injection_no_job_contents():
+    parser = WorkflowParser(TEST_WF, 'unit_test', 'main.yml')
+    with patch.object(parser, 'get_vulnerable_triggers', return_value=['pull_request']):
+        with patch.object(parser, 'extract_step_contents', return_value={}):
+            result = parser.check_injection()
+            assert result == {}
+
+def test_check_injection_no_step_contents():
+    parser = WorkflowParser(TEST_WF, 'unit_test', 'main.yml')
+    with patch.object(parser, 'get_vulnerable_triggers', return_value=['pull_request']):
+        with patch.object(parser, 'extract_step_contents', return_value={'job1': {'check_steps': [{'step1': {'contents': None}}]}}):
+            result = parser.check_injection()
+            assert result == {}
+
+def test_check_injection_no_tokens():
+    parser = WorkflowParser(TEST_WF, 'unit_test', 'main.yml')
+    with patch.object(parser, 'get_vulnerable_triggers', return_value=['pull_request']):
+        with patch.object(parser, 'extract_step_contents', return_value={'job1': {'check_steps': [{'step1': {'contents': 'no tokens here'}}]}}):
+            result = parser.check_injection()
+            assert result == {}
+
+def test_check_injection_with_tokens():
+    parser = WorkflowParser(TEST_WF, 'unit_test', 'main.yml')
+    with patch.object(parser, 'get_vulnerable_triggers', return_value=['pull_request']):
+        with patch.object(parser, 'extract_step_contents', return_value={'job1': {'check_steps': [{'step1': {'contents': '${{ github.event.pull_request.head.ref }}'}}]}}):
+            with patch.object(parser, 'check_sus', return_value=True):
+                result = parser.check_injection()
+                assert result == {'triggers': ['pull_request'], 'job1': {'step1': {'variables': ['github.event.pull_request.head.ref']}}}
