@@ -171,7 +171,8 @@ class WorkflowParser():
 
         for job_name, job_details in self.parsed_yml['jobs'].items():
             for step in job_details.get('steps', []):
-                if 'actions/checkout' in step.get('uses', '') and 'with' in step and 'ref' in step['with']:
+                if 'uses' in step and step['uses'] and 'actions/checkout' in step['uses'] \
+                    and 'with' in step and 'ref' in step['with']:
                     ref_values.append(step['with']['ref'])
 
         return ref_values

@@ -208,14 +208,14 @@ class Enumerator:
 
         return organization
 
-    def enumerate_repo_only(self, repo_name: str):
+    def enumerate_repo_only(self, repo_name: str, large_enum=False):
         """Enumerate only a single repository. No checks for org-level
         self-hosted runners will be performed in this case.
 
         Args:
             repo_name (str): Repository name in {Org/Owner}/Repo format.
-            clone (bool, optional): Whether to clone the repo
-            in order to analayze the yaml files. Defaults to True.
+            large_enum (bool, optional): Whether to only download
+            run logs when workflow analysis detects runners. Defaults to False.
         """
         if not self.__setup_user_info():
             return False
@@ -227,7 +227,7 @@ class Enumerator:
             Output.tabbed(
                 f"Enumerating: {Output.bright(repo.name)}!"
             )
-            self.repo_e.enumerate_repository(repo)
+            self.repo_e.enumerate_repository(repo, large_org_enum=large_enum)
             self.repo_e.enumerate_repository_secrets(repo)
             Recommender.print_repo_secrets(
                 self.user_perms['scopes'],
@@ -272,7 +272,7 @@ class Enumerator:
 
         repo_wrappers = []
         for repo in repo_names:
-            repo_obj = self.enumerate_repo_only(repo)
+            repo_obj = self.enumerate_repo_only(repo, len(repo_names) > 100)
             if repo_obj:
                 repo_wrappers.append(repo_obj)
 

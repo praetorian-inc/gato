@@ -221,12 +221,12 @@ class RepositoryEnum():
         for result in yml_results:
             # If we get any malformed/missing data just skip it and 
             # Gato will fall back to the contents API for these few cases.
-            if 'nameWithOwner' not in result:
-                continue
-            
             if not result:
                 continue
                 
+            if 'nameWithOwner' not in result:
+                continue
+
             owner = result['nameWithOwner']
             # Empty means no yamls, so just skip.
             if not result['object']:
