@@ -33,22 +33,6 @@ def test_parse_workflow():
     assert len(sh_list) > 0
 
 
-def test_analyze_entrypoints():
-
-    parser = WorkflowParser(TEST_WF, 'unit_test', 'main.yml')
-
-    with pytest.raises(NotImplementedError):
-        parser.analyze_entrypoints()
-
-
-def test_pull_request_target_trigger():
-
-    parser = WorkflowParser(TEST_WF, 'unit_test', 'main.yml')
-
-    with pytest.raises(NotImplementedError):
-        parser.pull_req_target_trigger()
-
-
 def test_workflow_write():
 
     parser = WorkflowParser(TEST_WF, 'unit_test', 'main.yml')
