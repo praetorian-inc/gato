@@ -1,5 +1,6 @@
 import logging
 import json
+import yaml
 
 from gato.cli import Output
 from gato.models import Repository, Secret, Runner
@@ -112,9 +113,10 @@ class RepositoryEnum():
 
             # At this point we only know the extension, so handle and
             #  ignore malformed yml files.
-            except Exception as parse_error:
-
-                print(f"{wf}: {str(parse_error)}")
+            except yaml.parser.ParserError as parse_error:
+                #import traceback
+                #traceback.print_exc()
+                #print(f"{wf}: {str(parse_error)}")
                 logger.warning("Attmpted to parse invalid yaml!")
 
         return runner_wfs
@@ -126,8 +128,9 @@ class RepositoryEnum():
         Args:
             repository (Repository): Wrapper object created from calling the
             API and retrieving a repository.
-            clone (bool, optional):  Whether to use repo contents API
-            in order to analayze the yaml files. Defaults to True.
+            large_org_enum (bool, optional): Whether to only 
+            perform run log enumeration if workflow analysis indicates likely
+            use of a self-hosted runner. Defaults to False.
         """
         runner_detected = False
 
@@ -216,13 +219,21 @@ class RepositoryEnum():
             (100 nodes at a time).
         """
         for result in yml_results:
+            # If we get any malformed/missing data just skip it and 
+            # Gato will fall back to the contents API for these few cases.
+            if 'nameWithOwner' not in result:
+                continue
+            
+            if not result:
+                continue
+                
             owner = result['nameWithOwner']
-
-            self.workflow_cache[owner] = list()
-
+            # Empty means no yamls, so just skip.
             if not result['object']:
+                self.workflow_cache[owner] = list()
                 continue
 
+            self.workflow_cache[owner] = list()
             for yml_node in result['object']['entries']:
                 yml_name = yml_node['name']
                 if yml_name.lower().endswith('yml') or yml_name.lower().endswith('yaml'):

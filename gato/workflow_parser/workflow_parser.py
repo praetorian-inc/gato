@@ -9,7 +9,7 @@ from yaml.resolver import Resolver
 logger = logging.getLogger(__name__)
 
 # remove resolver entries for On/Off/Yes/No
-for ch in "Oo":
+for ch in "OoTtFf":
     if len(Resolver.yaml_implicit_resolvers[ch]) == 1:
         del Resolver.yaml_implicit_resolvers[ch]
     else:
@@ -132,7 +132,6 @@ class WorkflowParser():
                     job_content["check_steps"].append({step_name: {"contents": step['with']['script'], "if_check": step_if_check}})
 
             jobs_contents[job_name] = job_content
-
         return jobs_contents
 
 
@@ -145,7 +144,7 @@ class WorkflowParser():
         """
         vulnerable_triggers = []
         risky_triggers = ['pull_request_target', 'workflow_run', 'issue_comment', 'pull_request_review', 'pull_request_review_comment', 'issues']
-        if 'on' not in self.parsed_yml:
+        if not self.parsed_yml or 'on' not in self.parsed_yml:
             return vulnerable_triggers
 
         triggers = self.parsed_yml['on']
@@ -190,7 +189,32 @@ class WorkflowParser():
         checkout_refs = self.analyze_checkouts()
 
         if checkout_refs:
-            return 'Refs: ' + ' '.join(checkout_refs)
+            return 'Refs: ' + ' '.join(list(set([ref for ref in checkout_refs if self.check_pr_ref(ref)])))
+
+    @classmethod
+    def check_pr_ref(cls, item):
+        """
+        Checks if the given item contains any of the predefined pull request related values.
+
+        This method is used to identify if a given item (typically a string) contains any of the values defined in 
+        PR_ISH_VALUES. These values are typically used to reference pull request related data in a GitHub Actions workflow.
+
+        Args:
+            item (str): The item to check.
+
+        Returns:
+            bool: True if the item contains any of the pull request related values, False otherwise.
+        """
+        PR_ISH_VALUES = [
+            "head",
+            "pr",
+            "pull"
+        ]
+
+        for prefix in PR_ISH_VALUES:
+            if prefix in item.lower():
+                return True
+        return False
 
     @classmethod
     def check_sus(cls, item):
@@ -240,7 +264,10 @@ class WorkflowParser():
             steps_risk = {}
             for step in job_content['check_steps']:
                 for step_name, step_details in step.items():
-                    tokens = re.findall(context_expression_regex, step_details['contents'])
+                    if step_details['contents']:
+                        tokens = re.findall(context_expression_regex, step_details['contents'])
+                    else:
+                        continue
                     # First we get known unsafe
                     tokens_knownbad = [item for item in tokens if item.lower() in self.UNSAFE_CONTEXTS]
                     # And then we add anything referenced 
@@ -254,8 +281,10 @@ class WorkflowParser():
                             steps_risk[step_name]['if_checks'] = step_details['if_check']
                         
             if steps_risk:
-                injection_risk["triggers"] = vulnerable_triggers 
+                injection_risk['triggers'] = vulnerable_triggers 
                 injection_risk[job_name] = steps_risk
+                if job_content['if_check']:
+                    injection_risk[job_name]['if_check'] = job_content['if_check']
 
         return injection_risk
 
@@ -267,7 +296,7 @@ class WorkflowParser():
            runners.
         """
         sh_jobs = []
-        if 'jobs' not in self.parsed_yml:
+        if not self.parsed_yml or 'jobs' not in self.parsed_yml:
             return sh_jobs
 
         for jobname, job_details in self.parsed_yml['jobs'].items():
@@ -326,21 +355,3 @@ class WorkflowParser():
                         sh_jobs.append((jobname, job_details))
 
         return sh_jobs
-
-    def analyze_entrypoints(self):
-        """Returns a list of tasks within the self hosted workflow include the
-        `run` step.
-        """
-
-        sh_jobs = self.self_hosted()
-
-        if sh_jobs:
-            steps = sh_jobs[0][1]['steps']
-
-            for step in steps:
-                if 'run' in step:
-                    step_name = step['name']
-                    logging.debug(f"Analyzing job step: {step_name}")
-                    logging.debug(f"Step content: {step['run']}")
-
-        raise NotImplementedError()

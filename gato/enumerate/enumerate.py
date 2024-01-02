@@ -176,8 +176,9 @@ class Enumerator:
 
         Output.info(f"Querying and caching workflow YAML files!")
         wf_queries = GqlQueries.get_workflow_ymls(enum_list)
-  
-        for wf_query in wf_queries:
+
+        for i, wf_query in enumerate(wf_queries):
+            Output.info(f"Querying {i} out of {len(wf_queries)} batches!")
             result = self.org_e.api.call_post('/graphql', wf_query)
             # Sometimes we don't get a 200, fall back in this case.
             if result.status_code == 200:
@@ -241,7 +242,7 @@ class Enumerator:
         else:
             Output.warn(
                 f"Unable to enumerate {Output.bright(repo_name)}! It may not "
-                " exist or the user does not have access."
+                "exist or the user does not have access."
             )
 
     def enumerate_repos(self, repo_names: list):
@@ -257,6 +258,17 @@ class Enumerator:
         if len(repo_names) == 0:
             Output.error("The list of repositories was empty!")
             return
+
+        Output.info(f"Querying and caching workflow YAML files!")
+        queries = GqlQueries.get_workflow_ymls_from_list(repo_names)
+
+        for i, wf_query in enumerate(queries):
+            Output.info(f"Querying {i} out of {len(queries)} batches!")
+            result = self.repo_e.api.call_post('/graphql', wf_query)
+            if result.status_code == 200:
+                self.repo_e.construct_workflow_cache(result.json()['data'].values())
+            else:
+                Output.warn("GraphQL query failed, will revert to REST workflow query for impacted repositories!")
 
         repo_wrappers = []
         for repo in repo_names:
