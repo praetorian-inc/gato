@@ -283,7 +283,7 @@ class WorkflowParser():
             if steps_risk:
                 injection_risk['triggers'] = vulnerable_triggers 
                 injection_risk[job_name] = steps_risk
-                if job_content['if_check']:
+                if 'if_check' in job_content and job_content['if_check']:
                     injection_risk[job_name]['if_check'] = job_content['if_check']
 
         return injection_risk
