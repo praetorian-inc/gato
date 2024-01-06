@@ -212,10 +212,17 @@ class Api():
         if strip_auth:
             del get_header['Authorization']
 
-        logger.debug(f'Making GET API request to {request_url}!')
-        api_response = requests.get(request_url, headers=get_header,
-                                    proxies=self.proxies, params=params,
-                                    verify=self.verify_ssl)
+        for i in range(0, 5):
+            try:
+                logger.debug(f'Making GET API request to {request_url}!')
+                api_response = requests.get(request_url, headers=get_header,
+                                            proxies=self.proxies, params=params,
+                                            verify=self.verify_ssl)
+                break
+            except Exception:
+                logger.warning("GET request failed due to transport error re-trying!")
+                continue
+
         logger.debug(
             f'The GET request to {request_url} returned a'
             f' {api_response.status_code}!')
