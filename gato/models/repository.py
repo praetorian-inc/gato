@@ -30,6 +30,8 @@ class Repository():
         self.sh_runner_access = False
         self.accessible_runners: List[Runner] = []
         self.runners: List[Runner] = []
+        self.pwn_req_risk = None
+        self.injection_risk = None
 
     def is_admin(self):
         return self.permission_data.get('admin', False)
@@ -68,6 +70,12 @@ class Repository():
             secrets (List[Secret]): List of Secret wrapper objects.
         """
         self.org_secrets = secrets
+
+    def set_pwn_request(self, pwn_request_package: dict):
+        self.pwn_req_risk = pwn_request_package
+
+    def set_injection(self, injection_package: dict):
+        self.injection_risk = injection_package
 
     def set_secrets(self, secrets: List[Secret]):
         """Sets secrets that are attached to this repository.
@@ -112,6 +120,8 @@ class Repository():
             "repo_runners": [runner.toJSON() for runner in self.runners],
             "repo_secrets": [secret.toJSON() for secret in self.secrets],
             "org_secrets": [secret.toJSON() for secret in self.org_secrets],
+            "pwn_request_risk": self.pwn_req_risk,
+            "injection_risk": self.injection_risk
         }
 
         return representation

@@ -264,10 +264,13 @@ class Enumerator:
 
         for i, wf_query in enumerate(queries):
             Output.info(f"Querying {i} out of {len(queries)} batches!")
-            result = self.repo_e.api.call_post('/graphql', wf_query)
-            if result.status_code == 200:
-                self.repo_e.construct_workflow_cache(result.json()['data'].values())
-            else:
+            try:
+                result = self.repo_e.api.call_post('/graphql', wf_query)
+                if result.status_code == 200:
+                    self.repo_e.construct_workflow_cache(result.json()['data'].values())
+                else:
+                    Output.warn("GraphQL query failed, will revert to REST workflow query for impacted repositories!")
+            except Exception:
                 Output.warn("GraphQL query failed, will revert to REST workflow query for impacted repositories!")
 
         repo_wrappers = []

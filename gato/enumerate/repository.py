@@ -76,11 +76,22 @@ class RepositoryEnum():
                 self_hosted_jobs = parsed_yml.self_hosted()
 
                 wf_injection = parsed_yml.check_injection()
+
+                workflow_url = f"{repository.repo_data['html_url']}/blob/{repository.repo_data['default_branch']}/.github/workflows/{parsed_yml.wf_name}"
+                
                 if wf_injection:
                     Output.result(
                         f"The workflow {Output.bright(parsed_yml.wf_name)} runs on a risky trigger "
                         f"and uses values by context within run/script steps!"
                     )
+
+                    injection_package = {
+                        "workflow_name": parsed_yml.wf_name,
+                        "workflow_url": workflow_url,
+                        "details": wf_injection
+                    }
+
+                    repository.set_injection(injection_package)
 
                     Output.tabbed(f"Examine the variables and gating: " + json.dumps(wf_injection, indent=4))
                     Output.info(f"You can access the workflow at: "
@@ -96,6 +107,14 @@ class RepositoryEnum():
                         f"and might check out the PR code, see if it runs it!"
                     )
                     print(pwn_reqs)
+
+                    pwn_request_package = {
+                        "workflow_name": parsed_yml.wf_name,
+                        "workflow_url": workflow_url,
+                        "details": pwn_reqs
+                    }
+
+                    repository.set_pwn_request(pwn_request_package)
 
                     Output.info(f"You can access the workflow at: "
                         f"{repository.repo_data['html_url']}/blob/"

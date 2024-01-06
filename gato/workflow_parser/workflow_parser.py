@@ -190,8 +190,11 @@ class WorkflowParser():
         checkout_refs = self.analyze_checkouts()
 
         if checkout_refs:
-            return 'Refs: ' + ' '.join(list(set([ref for ref in checkout_refs if self.check_pr_ref(ref)])))
-
+            cleaned_refs = list(set([ref for ref in checkout_refs if self.check_pr_ref(ref)]))
+            if cleaned_refs:
+                return 'Refs: ' + ' '.join(cleaned_refs)
+            else:
+                return {}
     @classmethod
     def check_pr_ref(cls, item):
         """
