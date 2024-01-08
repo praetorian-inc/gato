@@ -102,7 +102,7 @@ class WorkflowParser():
                 dirpath, f'{self.repo_name}/{self.wf_name}'), 'w') as wf_out:
             wf_out.write(self.raw_yaml)
             return True
-    
+
     def extract_step_contents(self):
         """Extract the contents of 'run' steps and steps that use actions/github-script.
 
@@ -134,7 +134,6 @@ class WorkflowParser():
             jobs_contents[job_name] = job_content
         return jobs_contents
 
-
     def get_vulnerable_triggers(self):
         """Analyze if the workflow is set to execute on potentially risky triggers.
 
@@ -158,7 +157,7 @@ class WorkflowParser():
                     vulnerable_triggers.append(trigger)
 
         return vulnerable_triggers
-    
+
     def analyze_checkouts(self):
         """Analyze if any steps within the workflow utilize the 'actions/checkout' action with a 'ref' parameter.
 
@@ -172,11 +171,11 @@ class WorkflowParser():
         for job_name, job_details in self.parsed_yml['jobs'].items():
             for step in job_details.get('steps', []):
                 if 'uses' in step and step['uses'] and 'actions/checkout' in step['uses'] \
-                    and 'with' in step and 'ref' in step['with']:
+                        and 'with' in step and 'ref' in step['with']:
                     ref_values.append(step['with']['ref'])
 
         return ref_values
-    
+
     def check_pwn_request(self):
         """Check for potential script injection vulnerabilities.
 
@@ -195,6 +194,7 @@ class WorkflowParser():
                 return 'Refs: ' + ' '.join(cleaned_refs)
             else:
                 return {}
+
     @classmethod
     def check_pr_ref(cls, item):
         """
@@ -283,7 +283,7 @@ class WorkflowParser():
                         }
                         if step_details.get('if_check', []):
                             steps_risk[step_name]['if_checks'] = step_details['if_check']
-                        
+
             if steps_risk:
                 injection_risk['triggers'] = vulnerable_triggers 
                 injection_risk[job_name] = steps_risk
