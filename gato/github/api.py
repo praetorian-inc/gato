@@ -184,7 +184,7 @@ class Api():
             expected_code (int): Expected status code from the request.
         """
         if response.status_code != expected_code:
-            logger.warn(
+            logger.warning(
                 f"Expected status code {expected_code}, but got "
                 f"{response.status_code}!"
             )

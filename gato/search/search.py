@@ -102,7 +102,6 @@ class Searcher:
             )
         response = requests.get(url, headers=headers, params=params, stream=True)
         results = set()
-        print(response.text)
         if response.status_code == 200:
             for line in response.iter_lines():
                 if line and line.decode().startswith("data:"):
