@@ -8,8 +8,8 @@ class Runner:
     def __init__(
             self,
             runner_name,
-            runner_type,
-            token_permissions,
+            runner_type=None,
+            token_permissions=None,
             runner_group=None,
             machine_name=None,
             os=None,
