@@ -150,7 +150,7 @@ class Api():
                                 machine_name = line.split("Machine name: ")[1].replace("'", "")
 
                             if "Runner group name:" in line: 
-                                runner_group = line.split("Runner group name: ")[1]
+                                runner_group = line.split("Runner group name: ")[1].replace("'", "")
 
                             if "Job is about to start running on" in line:
                                 runner_type = line.split()[-1]
@@ -182,7 +182,6 @@ class Api():
                             "non_ephemeral": non_ephemeral,
                             "token_permissions": token_permissions
                         }
-                        print(log_package)
 
                     return log_package
 
