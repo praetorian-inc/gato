@@ -469,14 +469,14 @@ def test_retrieve_run_logs(mock_get):
     logs = abstraction_layer.retrieve_run_logs("testOrg/testRepo")
 
     assert len(logs) == 1
-    assert list(logs)[0]['runner_name'] == 'ghrunner-test'
+    assert list(logs)[0]['runner_name'] == 'runner-30'
 
     logs = abstraction_layer.retrieve_run_logs(
         "testOrg/testRepo", short_circuit=False
     )
 
     assert len(logs) == 1
-    assert list(logs)[0]['runner_name'] == 'ghrunner-test'
+    assert list(logs)[0]['runner_name'] == 'runner-30'
 
 
 @patch("gato.github.api.requests.get")

@@ -122,13 +122,12 @@ class Api():
         machine_name = None
         runner_group = None
 
-
         with zipfile.ZipFile(io.BytesIO(log_content)) as runres:
             for zipinfo in runres.infolist():
-                if zipinfo.filename.startswith('0_'): 
+                if zipinfo.filename.startswith('0_'):
                     with runres.open(zipinfo) as run_setup:
                         content = run_setup.read().decode()
-                        content_lines = content.split('\n')                        
+                        content_lines = content.split('\n')
 
                         if "Image Release: https://github.com/actions/runner-images" in content or \
                             "Job is about to start running on the hosted runner: GitHub Actions" in content:
@@ -137,7 +136,6 @@ class Api():
                             # If the log contains "job is about to start running on hosted runner", 
                             # the runner is a Github hosted runner so we can skip it. 
                             continue
-                        
                         index = 0
                         while index < len(content_lines) and content_lines[index]: 
                             line = content_lines[index]
@@ -145,24 +143,24 @@ class Api():
                             if "Requested labels: " in line: 
                                 labels = line.split("Requested labels: ")[1].split(', ')
 
-                            if "Runner name: " in line: 
-                                runner_name = line.split("Runner name: ")[1]
+                            if "Runner name: " in line:
+                                runner_name = line.split("Runner name: ")[1].replace("'", "")
 
-                            if "Machine name: " in line: 
-                                machine_name = line.split("Machine name: ")[1]
+                            if "Machine name: " in line:
+                                machine_name = line.split("Machine name: ")[1].replace("'", "")
 
                             if "Runner group name:" in line: 
                                 runner_group = line.split("Runner group name: ")[1]
 
-                            if "Job is about to start running on" in line: 
+                            if "Job is about to start running on" in line:
                                 runner_type = line.split()[-1]
                                 matches = Api.RUNNERTYPE_RE.search(runner_type)
                                 runner_type = matches.group(1)
 
-                            if "GITHUB_TOKEN Permission" in line: 
-                                while "##[endgroup]" not in content_lines[index+1]: 
+                            if "GITHUB_TOKEN Permission" in line:
+                                while "##[endgroup]" not in content_lines[index+1]:
                                     index += 1
-                                    scope = content_lines[index].split()[1]
+                                    scope = content_lines[index].split()[1].replace(':', '')
                                     permission = content_lines[index].split()[2]
                                     token_permissions[scope] = permission
                                 log_package["token_permissions"] = token_permissions
@@ -170,7 +168,7 @@ class Api():
                             if "Cleaning the repository" in line:
                                 non_ephemeral = True
                             log_package["non_ephemeral"] = non_ephemeral
-                            
+
                             index += 1
 
                         log_package = {
@@ -184,7 +182,8 @@ class Api():
                             "non_ephemeral": non_ephemeral,
                             "token_permissions": token_permissions
                         }
-                        
+                        print(log_package)
+
                     return log_package
 
     def __get_full_runlog(self, log_content: bytes, run_name: str):
@@ -719,7 +718,7 @@ class Api():
                     run['conclusion'] != 'failure':
                     continue
 
-                if short_circuit:                
+                if short_circuit:
                     # If we are only looking for the presence of SH runners and
                     # not trying to determine ephmeral vs not from repeats, then
                     # we just need to look at each branch + wf combination once.
@@ -731,7 +730,7 @@ class Api():
                 run_log = self.call_get(
                     f'/repos/{repo_name}/actions/runs/{run["id"]}/'
                     f'attempts/{run["run_attempt"]}/logs')
-                    
+
                 if run_log.status_code == 200:
                     run_log = self.__process_run_log(run_log.content, run)
                     if run_log:
