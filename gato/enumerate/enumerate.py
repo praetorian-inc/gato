@@ -174,6 +174,7 @@ class Enumerator:
             f"the {organization.name} organization!"
         )
 
+
         Output.info(f"Querying and caching workflow YAML files!")
         wf_queries = GqlQueries.get_workflow_ymls(enum_list)
   
@@ -191,11 +192,13 @@ class Enumerator:
 
             self.repo_e.enumerate_repository(repo, large_org_enum=len(enum_list) > 100)
             self.repo_e.enumerate_repository_secrets(repo)
+            self.repo_e.enumerate_repository_variables(repo)
 
             Recommender.print_repo_secrets(
                 self.user_perms['scopes'],
                 repo.secrets
             )
+            Recommender.print_repo_variables(self.user_perms['scopes'],repo.variables)
             Recommender.print_repo_runner_info(repo)
 
             # Only print info about individual repos if user is admin OR

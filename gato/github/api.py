@@ -1006,7 +1006,7 @@ class Api():
         """
         secrets = []
 
-        resp = self.call_get(f'/repos/{repo_name}/actions/secrets')
+        resp = self.call_get(f'/repos/{repo_name}/actions/organization-secrets')
         if resp.status_code == 200:
             secrets_response = resp.json()
 
@@ -1066,6 +1066,31 @@ class Api():
                 secrets = secrets_response['secrets']
 
         return secrets
+    
+    def get_repo_org_variables(self, repo_name: str):
+        """Issues an API call to the GitHub API to list org variables for a
+        repository. This will succeed as long as the token has the repo scope
+        and the user has write access to the repository.
+
+        Args:
+            repo_name (str): Name of repository to list variable for.
+
+        Returns:
+            (list): List of org variable that can be read via a workflow in this
+            repository.
+        """
+        resp = self.call_get(
+            f'/repos/{repo_name}/actions/organization-variables'
+        )
+        variables_list = []
+        totalVars = ""
+        if resp.status_code == 200:
+            variables = resp.json()
+            if variables['total_count'] > 0:
+                totalVars = variables['total_count']
+                variables_list = variables['variables']
+
+        return totalVars, variables_list
 
     def commit_workflow(self, repo_name: str,
                         target_branch: str,

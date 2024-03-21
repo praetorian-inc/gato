@@ -1,7 +1,7 @@
 import logging
 
 from gato.cli import Output
-from gato.models import Repository, Secret, Runner
+from gato.models import Repository, Secret, Runner, Variable
 from gato.github import Api
 from gato.workflow_parser import WorkflowParser
 
@@ -163,7 +163,6 @@ class RepositoryEnum():
         """
         if repository.can_push():
             secrets = self.api.get_secrets(repository.name)
-
             repo_secrets = [
                 Secret(secret, repository.name) for secret in secrets
             ]
@@ -178,6 +177,24 @@ class RepositoryEnum():
 
             if org_secrets:
                 repository.set_accessible_org_secrets(org_secrets)
+
+    def enumerate_repository_variables(
+            self, repository: Repository):
+        """Enumerate variables accessible to a repository.
+
+        Args:
+            repository (Repository): Wrapper object created from calling the
+            API and retrieving a repository.
+        """
+        if repository.is_maintainer():
+            _, variables = self.api.get_repo_org_variables(repository.name)
+
+            repo_vars = [
+                Variable(variable, repository.name) for variable in variables
+            ]
+
+            repository.set_variables(repo_vars)
+
 
     def construct_workflow_cache(self, yml_results):
         """Creates a cache of workflow yml files retrieved from graphQL. Since

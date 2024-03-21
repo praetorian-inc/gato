@@ -3,7 +3,8 @@ import datetime
 from typing import List
 
 from gato.models.runner import Runner
-from gato.models.secret import Secret
+from gato.models.secret import Secret 
+from gato.models.variable import Variable
 
 
 class Repository():
@@ -23,6 +24,7 @@ class Repository():
         self.org_name = self.name.split('/')[0]
         self.secrets: List[Secret] = []
         self.org_secrets: List[Secret] = []
+        self.variables: List[Variable] = []
         self.sh_workflow_names = []
         self.enum_time = datetime.datetime.now()
 
@@ -76,6 +78,14 @@ class Repository():
             secrets (List[Secret]): List of repo level secret wrapper objects.
         """
         self.secrets = secrets
+
+    def set_variables(self, variables: List[Secret]):
+        """Sets secrets that are attached to this repository.
+
+        Args:
+            secrets (List[Secret]): List of repo level secret wrapper objects.
+        """
+        self.variables = variables
 
     def set_runners(self, runners: List[Runner]):
         """Sets list of self-hosted runners attached at the repository level.

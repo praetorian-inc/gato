@@ -5,6 +5,7 @@ from gato.models import Repository
 from gato.models import Organization
 from gato.models import Runner
 from gato.models import Secret
+from gato.models import Variable
 
 
 class Recommender:
@@ -107,7 +108,6 @@ class Recommender:
             scopes (list): List of OAuth scopes.
             secrets (list[Secret]): List of secret wrapper objects.
         """
-
         if not secrets:
             return
 
@@ -127,7 +127,29 @@ class Recommender:
                 f"\t{Output.bright(secret.name)},"
                 f" last updated {secret.secret_data['updated_at']}"
             )
+    @staticmethod
+    def print_repo_variables(scopes, variables: List[Variable]):
+        """Prints list of repository level variables.
 
+        Args:
+            scopes (list): List of OAuth scopes.
+            secrets (list[Secret]): List of variables wrapper objects.
+        """
+        if not variables:
+            return
+
+        Output.info(f"The repository can access "
+            f"{Output.bright(len(variables))} environment variables:"
+        )
+        
+        max_width = max(len("{}={}".format(variable.name, variable.value)) for variable in variables) + 4
+        for variable in variables:
+            combined_variable = "{}={}".format(variable.name, variable.value)       
+            last_updated = "last updated {}".format(variable.variable_data['updated_at'])
+            formatted_text = f"{combined_variable:<{max_width}}{last_updated}"
+            Output.tabbed(
+                f"\t{Output.bright(formatted_text)},"
+                )
     @staticmethod
     def print_repo_runner_info(repository: Repository):
         """Prints information about repository level self-hosted runners.
