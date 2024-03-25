@@ -168,13 +168,13 @@ class RepositoryEnum():
             ]
 
             repository.set_secrets(repo_secrets)
-
+            print("checked all secrets")
             org_secrets = self.api.get_repo_org_secrets(repository.name)
             org_secrets = [
                 Secret(secret, repository.org_name)
                 for secret in org_secrets
             ]
-
+            print("checked org secrets")
             if org_secrets:
                 repository.set_accessible_org_secrets(org_secrets)
 
