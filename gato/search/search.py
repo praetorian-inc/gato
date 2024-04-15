@@ -107,13 +107,24 @@ class Searcher:
                 if line and line.decode().startswith("data:"):
                     json_line = line.decode().replace("data:", "").strip()
                     event = json.loads(json_line)
+
+                    if "title" in event and event["title"] == "Unable To Process Query":
+                        Output.error("SourceGraph was unable to process the query!")
+                        Output.error(f"Error: {Output.bright(event['description'])}")
+                        return False
+
                     for element in event:
                         if "repository" in element:
                             results.add(
                                 element["repository"].replace("github.com/", "")
                             )
+        else:
+            Output.error(
+                f"SourceGraph returned an error: {Output.bright(response.status_code)}"
+            )
+            return False
 
-        return results
+        return sorted(results)
 
     def use_search_api(self, organization: str, query=None):
         """Utilize GitHub Code Search API to try and identify repositories
@@ -153,7 +164,7 @@ class Searcher:
             organization, custom_query=query
         )
 
-        return candidates
+        return sorted(candidates)
 
     def present_results(self, results, output_text=None):
         """

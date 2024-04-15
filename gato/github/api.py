@@ -729,7 +729,6 @@ class Api():
                 run_log = self.call_get(
                     f'/repos/{repo_name}/actions/runs/{run["id"]}/'
                     f'attempts/{run["run_attempt"]}/logs')
-
                 if run_log.status_code == 200:
                     run_log = self.__process_run_log(run_log.content, run)
                     if run_log:
