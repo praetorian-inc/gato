@@ -2,7 +2,7 @@ import pytest
 import os
 import pathlib
 
-from unittest.mock import patch, ANY, mock_open
+from unittest.mock import patch, mock_open
 
 from gato.workflow_parser import WorkflowParser
 
@@ -21,6 +21,77 @@ jobs:
     - name: Execution
       run: |
           echo "Hello World and bad stuff!"
+"""
+TEST_MATRIX = """
+name: 'Test WF'
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  invalid:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Execution
+      run : |
+           echo "Hello World!"
+  invalid2:
+    runs-on: [ubuntu-latest, windows-latest]
+    steps:
+    - name: Execution
+      run : |
+           echo "Hello World!"
+  test:
+    strategy:
+      matrix:
+        version: [1, 2, 3]
+        system: [self-hosted, ubuntu-latest]
+    runs-on: ${{matrix.system}}
+    steps:
+
+    - name: Execution
+      run: |
+          echo "Hello World and version ${{matrix.version}}"
+  test2:
+    strategy:
+      matrix:
+        version: [1, 2, 3]
+        include:
+          - device: windows-latest
+          - device: self-hosted
+    runs-on: ${{matrix.device}}
+    steps:
+    - name: Execution
+      run: |
+          echo "Hello World and version ${{matrix.version}}"
+  broken:
+    runs-on: ${{matrix.}}
+    steps:
+    - name: Execution
+      run: |
+          echo "Hello World and version ${{matrix.version}}"
+  broken2:
+    strategy:
+      matrix:
+        incorrect: self-hosted
+    runs-on: ${{matrix.test}}
+    steps:
+    - name: Execution
+      run: |
+          echo "Hello World and version ${{matrix.version}}"
+  test3:
+    runs-on: [test123, windows-latest]
+    steps:
+    - name: Execution
+      run: |
+          echo "Hello World and version ${{matrix.version}}"
+  test4:
+    runs-on: test123
+    steps:
+    - name: Execution
+      run: |
+          echo "Hello World and version ${{matrix.version}}"
 """
 
 
@@ -63,3 +134,22 @@ def test_workflow_write():
         mock_file().write.assert_called_once_with(
             parser.raw_yaml
         )
+
+
+def test_no_jobs():
+    WF = '\n'.join(TEST_WF.split('\n')[:5])
+
+    parser = WorkflowParser(WF, 'unit_test', 'main.yml')
+
+    sh_list = parser.self_hosted()
+
+    assert len(sh_list) == 0
+
+
+def test_matrix():
+
+    parser = WorkflowParser(TEST_MATRIX, 'unit_test', 'main.yml')
+
+    sh_list = parser.self_hosted()
+
+    assert len(sh_list) == 4

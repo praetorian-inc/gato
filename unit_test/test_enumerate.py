@@ -2,11 +2,9 @@ import os
 import pathlib
 import pytest
 import json
-import re
 
 from unittest.mock import patch
 
-from gato.models.repository import Repository
 from gato.enumerate import Enumerator
 from gato.cli import Output
 
@@ -34,6 +32,7 @@ BASE_MOCK_RUNNER = [{
         ]
 }]
 
+
 @pytest.fixture(scope="session", autouse=True)
 def load_test_files(request):
     global TEST_REPO_DATA
@@ -48,7 +47,7 @@ def load_test_files(request):
         TEST_REPO_DATA = json.load(repo_data)
 
     with open(test_org_path, 'r') as repo_data:
-        TEST_ORG_DATA = json.load(repo_data)     
+        TEST_ORG_DATA = json.load(repo_data)
 
     with open(test_wf_path, 'r') as wf_data:
         TEST_WORKFLOW_YML = wf_data.read()
@@ -421,12 +420,14 @@ def test_enum_org(mock_api, capfd):
         skip_log=True,
     )
 
-    gh_enumeration_runner.enumerate_organization('github')
+    org = gh_enumeration_runner.enumerate_organization('github')
 
     out, err = capfd.readouterr()
-    print(out)
-
     escaped_output = escape_ansi(out)
+
+    data = org.toJSON()
+
+    assert 'org_secrets' in data and len(data['org_secrets']) == 2
     assert "The repository can access 1 secrets and the token can use a workflow to read them!" in escaped_output
     assert "TEST_SECRET" in escaped_output
     assert "ghrunner-test" in escaped_output
@@ -585,3 +586,68 @@ def test_unscoped_token(mock_api, capfd):
     out, _ = capfd.readouterr()
     assert "Self-enumeration requires the repo scope!" in escape_ansi(out)
     assert status is False
+
+
+@patch("gato.enumerate.enumerate.Api")
+def test_enum_cache(mock_api, capfd):
+
+    mock_api.return_value.check_user.return_value = {
+        "user": 'testUser',
+        "scopes": ['repo', 'workflow', 'admin:org']
+    }
+
+    mock_api.return_value.get_repository.return_value = TEST_REPO_DATA
+    mock_api.return_value.get_organization_details.return_value = TEST_ORG_DATA
+
+    mock_api.return_value.get_org_secrets.return_value = []
+
+    mock_api.return_value.check_org_runners.return_value = {
+        "total_count": 0,
+        "runners": []
+    }
+
+    mock_api.return_value.check_org_repos.side_effect = [
+        [TEST_REPO_DATA],
+        [],
+        [],
+        [TEST_REPO_DATA],
+        [],
+        []
+    ]
+
+    mock_api.return_value.call_post.return_value.status_code = 200
+    mock_api.return_value.call_post.return_value.json.return_value = {
+        'data': {
+            'nodes': [
+                {
+                    'nameWithOwner': 'octocat/Hello-World',
+                    'object': {
+                        'entries': [
+                            {
+                                'name': 'main.yml',
+                                'object': {
+                                    'text':  'test'
+                                }
+                            }
+                        ]
+                    }
+                }
+            ]
+        }
+    }
+
+    gh_enumeration_runner = Enumerator(
+        "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+        socks_proxy=None,
+        http_proxy=None,
+        output_yaml=False,
+        skip_log=True,
+    )
+
+    gh_enumeration_runner.enumerate_organization('github')
+    gh_enumeration_runner.enumerate_organization('github')
+
+    out, err = capfd.readouterr()
+
+    assert not mock_api.return_value.retrieve_workflow_ymls.called
+    assert out.count('custom YAML') == 2

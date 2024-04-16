@@ -107,7 +107,7 @@ class Attacker:
 
         encrypted_key = base64.b64decode(blob[1][1:-1])
         sym_key_b64 = priv_key.decrypt(encrypted_key,
-                                        padding.PKCS1v15()).decode()
+                                       padding.PKCS1v15()).decode()
         sym_key = base64.b64decode(sym_key_b64)
 
         derived_key = hashlib.pbkdf2_hmac('sha256', sym_key, salt, 10000, 48)

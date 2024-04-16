@@ -1,4 +1,3 @@
-import argparse
 import pytest
 import os
 import pathlib
@@ -198,6 +197,7 @@ def test_invalid_dir(capfd):
             )
         )
 
+
 @mock.patch("gato.attack.Attacker.fork_pr_attack")
 def test_attack_pr(mock_attack):
     """Test attack command using the pr method.
@@ -310,6 +310,7 @@ def test_git_version_old(git_version, capfd):
 
     assert " This tool requires a 'git' version of at least 2.27" in err
 
+
 @mock.patch("gato.git.path_check")
 @mock.patch("gato.git.version_check")
 def test_invalid_timeout(git_version, git_bin, capfd):
@@ -329,6 +330,7 @@ def test_invalid_timeout(git_version, git_bin, capfd):
     out, err = capfd.readouterr()
 
     assert "invalid int value: 'foobar'" in err
+
 
 def test_long_repo_name(capfd):
     """Test enum command using name that is too long.
@@ -373,6 +375,7 @@ def test_unreadable_file(mock_access, capfd):
 
     assert " is not readable" in err
 
+
 @mock.patch("gato.util.arg_utils.os.access")
 def test_unwritable_dir(mock_access, capfd):
     """Test enum command unwriable dir.
@@ -390,6 +393,7 @@ def test_unwritable_dir(mock_access, capfd):
     out, err = capfd.readouterr()
 
     assert " is not writeable" in err
+
 
 @mock.patch("gato.git.utils.shutil.which")
 @mock.patch("gato.git.utils.subprocess.run")

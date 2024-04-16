@@ -184,7 +184,7 @@ class RepositoryEnum():
         graphql and REST do not have parity, we still need to use rest for most
         enumeration calls. This method saves off all yml files, so during org
         level enumeration if we perform yml enumeration the cached file is used
-        instead of making github REST requests. 
+        instead of making github REST requests.
 
         Args:
             yml_results (list): List of results from individual GraphQL queries

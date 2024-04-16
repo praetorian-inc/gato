@@ -216,7 +216,7 @@ def test_perform_commit(mock_subprocess):
     test_repo_path = os.path.join(curr_path, "files/")
 
     call_1 = "git add test.txt".split(' ')
-    call_2 = f"git commit -m".split(' ')
+    call_2 = "git commit -m".split(' ')
     call_2.append(message)
     call_3 = "git rev-parse HEAD".split(' ')
 
@@ -244,7 +244,7 @@ def test_perform_commit(mock_subprocess):
         )
     assert mock_pipe.wait.call_count == 3
     # TODO: Mock return value of rev-parse
-    #assert ret is True
+    # assert ret is True
 
 
 @patch("gato.git.git.subprocess.Popen")

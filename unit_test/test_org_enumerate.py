@@ -26,7 +26,7 @@ def load_test_files(request):
         TEST_REPO_DATA = json.load(repo_data)
 
     with open(test_org_path, 'r') as repo_data:
-        TEST_ORG_DATA = json.load(repo_data)        
+        TEST_ORG_DATA = json.load(repo_data)
 
     with open(test_wf_path, 'r') as wf_data:
         TEST_WORKFLOW_YML = wf_data.read()

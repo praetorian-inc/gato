@@ -12,6 +12,7 @@ from datetime import datetime, timezone, timedelta
 
 logger = logging.getLogger(__name__)
 
+
 class Api():
     """Class to serve as an abstraction layer to interact with the GitHub API.
     It handles utilizing proxies, along with passing the PAT and handling any
@@ -129,18 +130,18 @@ class Api():
                         content = run_setup.read().decode()
                         content_lines = content.split('\n')
 
-                        if "Image Release: https://github.com/actions/runner-images" in content or \
-                            "Job is about to start running on the hosted runner: GitHub Actions" in content:
+                        if "Image Release: https://github.com/actions/runner-images" in content \
+                                or "Job is about to start running on the hosted runner: GitHub Actions" in content:
                             # Larger runners will appear to be self-hosted, but
                             # they will have the image name. Skip if we see this.
-                            # If the log contains "job is about to start running on hosted runner", 
-                            # the runner is a Github hosted runner so we can skip it. 
+                            # If the log contains "job is about to start running on hosted runner",
+                            # the runner is a Github hosted runner so we can skip it.
                             continue
                         index = 0
-                        while index < len(content_lines) and content_lines[index]: 
+                        while index < len(content_lines) and content_lines[index]:
                             line = content_lines[index]
 
-                            if "Requested labels: " in line: 
+                            if "Requested labels: " in line:
                                 labels = line.split("Requested labels: ")[1].split(', ')
 
                             if "Runner name: " in line:
@@ -149,7 +150,7 @@ class Api():
                             if "Machine name: " in line:
                                 machine_name = line.split("Machine name: ")[1].replace("'", "")
 
-                            if "Runner group name:" in line: 
+                            if "Runner group name:" in line:
                                 runner_group = line.split("Runner group name: ")[1].replace("'", "")
 
                             if "Job is about to start running on" in line:
@@ -694,13 +695,13 @@ class Api():
         Returns:
             list: List of run logs for runs that ran on self-hosted runners.
         """
-        start_date = datetime.now() - timedelta(days = 60)
+        start_date = datetime.now() - timedelta(days=60)
         runs = self.call_get(
             f'/repos/{repo_name}/actions/runs', params={
                 "per_page": "30",
-                "status":"completed",
+                "status": "completed",
                 "exclude_pull_requests": "true",
-                "created":f">{start_date.isoformat()}"
+                "created": f">{start_date.isoformat()}"
             }
         )
 
@@ -714,7 +715,7 @@ class Api():
             for run in runs.json()['workflow_runs']:
                 # We are only interested in runs that actually executed.
                 if run['conclusion'] != 'success' and \
-                    run['conclusion'] != 'failure':
+                        run['conclusion'] != 'failure':
                     continue
 
                 if short_circuit:
@@ -723,7 +724,7 @@ class Api():
                     # we just need to look at each branch + wf combination once.
                     workflow_key = f"{run['head_branch']}:{run['path']}"
                     if workflow_key in names:
-                        continue                
+                        continue
                     names.add(workflow_key)
 
                 run_log = self.call_get(
