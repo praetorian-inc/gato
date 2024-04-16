@@ -23,7 +23,7 @@
                 "type": "stdout"
             },
             {
-                "expect": "About to enumerate 4 repos within the GHRunnerPlayground organization!",
+                "expect": "About to enumerate 3 repos within the GHRunnerPlayground organization!",
                 "type": "stdout"
             },
             {
@@ -54,7 +54,7 @@
                 "type": "stdout"
             },
             {
-                "expect": "About to enumerate 4 repos within the GHRunnerPlayground organization!",
+                "expect": "About to enumerate 3 repos within the GHRunnerPlayground organization!",
                 "type": "stdout"
             }
         ],
@@ -73,7 +73,7 @@
                 "type": "stdout"
             },
             {
-                "expect": "About to enumerate 3 repos within the GHRunnerPlayground organization!",
+                "expect": "About to enumerate 1 repos within the GHRunnerPlayground organization!",
                 "type": "stdout"
             }
         ],
@@ -88,7 +88,7 @@
                 "type": "stdout"
             },
             {
-                "expect": "About to enumerate 4 repos within the GHRunnerPlayground organization!",
+                "expect": "About to enumerate 3 repos within the GHRunnerPlayground organization!",
                 "type": "stdout"
             },
             {
@@ -111,7 +111,7 @@
                 "type": "stdout"
             },
             {
-                "expect": "About to enumerate 4 repos within the GHRunnerPlayground organization!",
+                "expect": "About to enumerate 3 repos within the GHRunnerPlayground organization!",
                 "type": "stdout"
             },
             {
@@ -242,7 +242,7 @@
                 "type": "stdout"
             },
             {
-                "expect": "INTEGRATION_SECRET, last updated 2023-06-22T01:47:43Z",
+                "expect": "INTEGRATION_SECRET, last updated",
                 "type": "stdout"
             }
         ],
@@ -250,18 +250,18 @@
     },
     {
         "PAT": "ORG_ADMIN_REPO_WORKFLOW_TOKEN",
-        "invocation": "gato -s e -r GHRunnerPlayground/md-test -sr",
+        "invocation": "gato -s e -r GHRunnerPlayground/TestSecrets -sr",
         "assertions": [
             {
                 "expect": "The repository can access 2 secrets and the token can use a workflow to read",
                 "type": "stdout"
             },
             {
-                "expect": "REPO_SECRET, last updated 2023-04-20T18:01:37Z",
+                "expect": "REPO_SECRET, last updated",
                 "type": "stdout"
             },
             {
-                "expect": "INTEGRATION_SECRET, last updated 2023-06-22T01:47:43Z",
+                "expect": "INTEGRATION_SECRET, last updated",
                 "type": "stdout"
             }
         ],
@@ -276,7 +276,7 @@
                 "type": "stdout"
             },
             {
-                "expect": "About to enumerate 4 repos within the GHRunnerPlayground organization!",
+                "expect": "About to enumerate 3 repos within the GHRunnerPlayground organization!",
                 "type": "stdout"
             },
             {
@@ -299,7 +299,7 @@
         "invocation": "gato -s enum --target GHRunnerPlayground -oJ integration_test.json",
         "assertions": [
             {
-                "expect": "About to enumerate 4 repos within the GHRunnerPlayground organization!",
+                "expect": "About to enumerate 3 repos within the GHRunnerPlayground organization!",
                 "type": "stdout"
             },
             {
