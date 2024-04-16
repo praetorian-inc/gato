@@ -487,9 +487,10 @@ class Api():
 
         if result.status_code == 200:
             org_info = result.json()
-
             return org_info
-
+        elif result.status_code == 403:
+            error = result.json()["message"]
+            Output.warn(f'Failed to enumerate {org}. Reason: {error}')
         elif result.status_code == 404:
             logger.info(f'The organization {org} was not found or there'
                         ' is a permission issue!')
