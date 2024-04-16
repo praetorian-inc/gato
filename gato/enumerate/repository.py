@@ -191,12 +191,18 @@ class RepositoryEnum():
             (100 nodes at a time).
         """
         for result in yml_results:
+            # If we get any malformed/missing data just skip it and
+            # Gato will fall back to the contents API for these few cases.
+            if not result or \
+                    'nameWithOwner' not in result or \
+                    'object' not in result or \
+                    not result['object']:
+                continue
+
             owner = result['nameWithOwner']
 
-            self.workflow_cache[owner] = list()
-
-            if not result['object']:
-                continue
+            if owner not in self.workflow_cache:
+                self.workflow_cache[owner] = list()
 
             for yml_node in result['object']['entries']:
                 yml_name = yml_node['name']
