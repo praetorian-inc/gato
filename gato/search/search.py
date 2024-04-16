@@ -188,6 +188,7 @@ class Searcher:
             with open(output_text, "w") as file_output:
                 for candidate in results:
                     file_output.write(f"{candidate}\n")
-
-        for candidate in results:
-            Output.tabbed(candidate)
+                Output.result(f"Results saved to {output_text}.")
+        else:
+            for candidate in results:
+                Output.tabbed(candidate)
