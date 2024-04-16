@@ -180,7 +180,7 @@ class RepositoryEnum():
         graphql and REST do not have parity, we still need to use rest for most
         enumeration calls. This method saves off all yml files, so during org
         level enumeration if we perform yml enumeration the cached file is used
-        instead of making github REST requests. 
+        instead of making github REST requests.
 
         Args:
             yml_results (list): List of results from individual GraphQL queries
@@ -189,17 +189,16 @@ class RepositoryEnum():
         for result in yml_results:
             # If we get any malformed/missing data just skip it and
             # Gato will fall back to the contents API for these few cases.
-            if not result:
-                continue
-
-            if 'nameWithOwner' not in result:
+            if not result or \
+                    'nameWithOwner' not in result or \
+                    'object' not in result or \
+                    not result['object']:
                 continue
 
             owner = result['nameWithOwner']
-            # Empty means no yamls, so just skip.
-            if not result['object']:
+
+            if owner not in self.workflow_cache:
                 self.workflow_cache[owner] = list()
-                continue
 
             for yml_node in result['object']['entries']:
                 yml_name = yml_node['name']
