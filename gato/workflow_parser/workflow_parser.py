@@ -81,7 +81,7 @@ class WorkflowParser():
            runners.
         """
         sh_jobs = []
-        if 'jobs' not in self.parsed_yml:
+        if not self.parsed_yml or 'jobs' not in self.parsed_yml:
             return sh_jobs
 
         for jobname, job_details in self.parsed_yml['jobs'].items():
