@@ -71,6 +71,7 @@ def test_search_api_cap(mock_api, mock_time, capfd):
     out, err = capfd.readouterr()
     assert "[-] Search failed with response code 422" in out
 
+
 @patch("gato.github.search.time.sleep")
 @patch("gato.github.search.Api")
 def test_search_api_ratelimit(mock_api, mock_time, capfd):
@@ -192,6 +193,9 @@ def test_search(mock_api, mock_search):
     mock_search.return_value = ['candidate1', 'candidate2']
     gh_search_runner = Searcher('ghp_AAAA')
 
+    mock_api.return_value.check_user.return_value = {'user': 'user', 'scopes': [
+                                                     'workflow', 'repo']}
+
     res = gh_search_runner.use_search_api('targetOrg')
     mock_search.assert_called_once()
     assert res is not False
@@ -203,7 +207,7 @@ def test_search_query(mock_api, mock_search, capfd):
     mock_search.return_value = ['candidate1', 'candidate2']
     gh_search_runner = Searcher('ghp_AAAA')
 
-    res = gh_search_runner.use_search_api(None, query="pull_request_target self-hosted")
+    gh_search_runner.use_search_api(None, query="pull_request_target self-hosted")
     mock_search.assert_called_once()
     out, err = capfd.readouterr()
     assert "GitHub with the following query: pull_request_target self-hosted" in out
@@ -216,3 +220,53 @@ def test_search_bad_token(mock_api):
 
     res = gh_search_runner.use_search_api('targetOrg')
     assert res is False
+
+
+@patch('gato.search.search.requests.get')
+def test_search_sourcegraph_default(mock_get):
+    mock_get.return_value.status_code = 200
+    mock_get.return_value.iter_lines.return_value = [b'data: [{"repository":"test/test"}]']
+    gh_search_runner = Searcher('ghp_AAAA')
+
+    res = gh_search_runner.use_sourcegraph_api(None)
+
+    assert 'test/test' in res
+
+
+@patch('gato.search.search.requests.get')
+def test_search_sourcegraph_custom(mock_get, capfd):
+    mock_get.return_value.status_code = 200
+    mock_get.return_value.iter_lines.return_value = [b'data: [{"repository":"test/test"}]']
+    gh_search_runner = Searcher('ghp_AAAA')
+
+    res = gh_search_runner.use_sourcegraph_api(None, 'customQuery')
+
+    out, err = capfd.readouterr()
+
+    assert 'customQuery' in out
+    assert 'test/test' in res
+
+
+@patch('gato.search.search.requests.get')
+def test_search_sourcegraph_fail(mock_get, capfd):
+    mock_get.return_value.status_code = 200
+    mock_get.return_value.iter_lines.return_value = [b'data: {"title":"Unable To Process Query", "description":"Error"}']
+    gh_search_runner = Searcher('ghp_AAAA')
+
+    res = gh_search_runner.use_sourcegraph_api(None, ')badquery')
+    out, err = capfd.readouterr()
+
+    assert "unable to process" in out
+    assert not res
+
+
+@patch('gato.search.search.requests.get')
+def test_search_sourcegraph_fail2(mock_get, capfd):
+    mock_get.return_value.status_code = 404
+    gh_search_runner = Searcher('ghp_AAAA')
+
+    res = gh_search_runner.use_sourcegraph_api(None)
+    out, err = capfd.readouterr()
+
+    assert "returned an error" in out
+    assert not res

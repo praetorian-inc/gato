@@ -81,12 +81,11 @@ class Searcher:
         headers = {"Content-Type": "application/json"}
         params = {
             "q": (
-                "context:global "
-                "self-hosted OR "
-                "(runs-on AND NOT "
+                "('self-hosted' OR "
+                "(/runs-on/ AND NOT "
                 "/(ubuntu-16.04|ubuntu-18.04|ubuntu-20.04|ubuntu-22.04|ubuntu-latest|"
                 "windows-2019|windows-2022|windows-latest|macos-11|macos-12|macos-13|"
-                "macos-12-xl|macos-13-xl|macos-latest)/) "
+                "macos-12-xl|macos-13-xl|macos-latest|matrix.[a-zA-Z]\\s)/)) "
                 f"{repo_filter}"
                 "lang:YAML file:.github/workflows/ count:30000"
             )
@@ -189,6 +188,7 @@ class Searcher:
             with open(output_text, "w") as file_output:
                 for candidate in results:
                     file_output.write(f"{candidate}\n")
-
-        for candidate in results:
-            Output.tabbed(candidate)
+                Output.result(f"Results saved to {output_text}.")
+        else:
+            for candidate in results:
+                Output.tabbed(candidate)

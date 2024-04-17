@@ -20,7 +20,7 @@ def test_init():
     """
 
     gh_attacker = Attacker(
-        
+
         "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
         socks_proxy=None,
         http_proxy="localhost:8080"
@@ -39,7 +39,7 @@ def test_fork_pr(mock_git, mock_api, mock_time, capsys):
     mock_api.return_value.check_user.return_value = {
         "user": 'testUser',
         "name": 'test user',
-        "scopes": ['repo','workflow']
+        "scopes": ['repo', 'workflow']
     }
 
     mock_api.return_value.get_recent_workflow.return_value = \
@@ -55,7 +55,7 @@ def test_fork_pr(mock_git, mock_api, mock_time, capsys):
     }
 
     gh_attacker = Attacker(
-        
+
         "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
         socks_proxy=None,
         http_proxy="localhost:8080"
@@ -75,6 +75,7 @@ def test_fork_pr(mock_git, mock_api, mock_time, capsys):
     assert " viewed at: https://github.com/testOrg/targetRepo/pulls/12" in \
         escape_ansi(print_output)
 
+
 @patch("gato.attack.attack.time.sleep")
 @patch("gato.attack.attack.Api")
 @patch("gato.attack.attack.Git")
@@ -85,7 +86,7 @@ def test_fork_pr_timeout(mock_git, mock_api, mock_time, capsys):
     mock_api.return_value.check_user.return_value = {
         "user": 'testUser',
         "name": 'test user',
-        "scopes": ['repo','workflow']
+        "scopes": ['repo', 'workflow']
     }
 
     mock_api.return_value.fork_repository.return_value = \
@@ -99,7 +100,6 @@ def test_fork_pr_timeout(mock_git, mock_api, mock_time, capsys):
     }
 
     gh_attacker = Attacker(
-        
         "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
         socks_proxy=None,
         http_proxy="localhost:8080"
@@ -119,6 +119,7 @@ def test_fork_pr_timeout(mock_git, mock_api, mock_time, capsys):
         print_output
     )
 
+
 @patch("gato.attack.attack.Api")
 @patch("gato.attack.attack.Git")
 def test_fork_pr_perm(mock_git, mock_api, capsys):
@@ -136,7 +137,6 @@ def test_fork_pr_perm(mock_git, mock_api, capsys):
     }
 
     gh_attacker = Attacker(
-        
         "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
         socks_proxy=None,
         http_proxy="localhost:8080"
@@ -177,7 +177,6 @@ def test_shell_workflow_attack(mock_api, mock_time, capsys):
     mock_api.return_value.delete_branch.return_value = True
 
     gh_attacker = Attacker(
-        
         "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
         socks_proxy=None,
         http_proxy="localhost:8080"
@@ -211,7 +210,6 @@ def test_shell_workflow_attack_perm(mock_api, capsys):
     }
 
     gh_attacker = Attacker(
-        
         "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
         socks_proxy=None,
         http_proxy="localhost:8080"
@@ -413,6 +411,7 @@ def test_shell_workflow_attack_fail_branch2(mock_api, mock_time, capsys):
     assert "Remote branch, " in escape_ansi(print_output)
     assert ", already exists!" in escape_ansi(print_output)
 
+
 @patch("gato.attack.attack.Attacker._Attacker__decrypt_secrets")
 @patch("gato.attack.attack.Attacker._Attacker__create_private_key")
 @patch("gato.attack.attack.Api")
@@ -429,22 +428,6 @@ def test_secrets_dump(mock_api, mock_privkey, mock_dec, capsys):
     }]
     mock_api.return_value.get_repo_org_secrets.return_value = []
     mock_api.return_value.get_repo_branch.return_value = 0
-    pub_mock = """
------BEGIN PUBLIC KEY-----
-MIICIjANBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEAuA+sy+VjSRn+2irScEhy
-UmS2fwJvBszSTjmS1RS1pDguC2gL0DxasqPdw3vHAzeIArvxg1+IJTthvJX3Ji+7
-8YoI2gd7J7eKCD2NbdONrBNKqvj8CJUA4nY4BEbpP3zkThRb0fWyVJktCy+bgmS5
-Lo7M/sS7urnh55onw9RwL9ETdWj7W2LdgfgF85DVervaJxrSTMdXVJWAzUiIwWTK
-fNBiJ0n3Be1NTc6Q4U8ElI2yKp/Dgl7RfLp/FVAgPh6ARzelaCMqJRLW7Wojh5ik
-1pKoJiWqLKUwjLX1IU5Xtnf5PDMSMXv0ytFAop0KCV3sJDZeo40bMmO3tijp0+2x
-W0vTeApmhYliYKpeqDWi3tm6Je/aYmZQwVlLHmv/U0UyXk7MYI2g5K8MhlGZcIed
-spS/Bmt9h87EyaA+dGbqUssk3PAPhDcT9qJ9bOtuCl/MwEF3G4rE0lvJdk82MP17
-SymVapDpPHqlCOXpRJlZ3izm1eT4VzS9IAje/1qZdbGS0XsRbYswAhyaV6uyj3rk
-9mDboT7sVz+qzpmeNzD8BoQw3N1fUEwnagag4Z5DCrHwvPK9qr+1kNzYbMf5np88
-eLxB/rMtfZCjliw1O0DzkkAvH+HnCgufX594EJsr0LLYF6JasVtWM79EGqJaI5mF
-w1M8xrm+PUM5qaWCANScuX8CAwEAAQ==
------END PUBLIC KEY-----
-    """
 
     mock_api.return_value.retrieve_workflow_log.return_value = """
 2023-11-19T17:50:28.8652359Z ##[group]Run openssl rand -out sym.key 32; echo -n '$';echo -e "DUMMY_TEST_SECRET=$DUMMY_TEST_SECRET \n" | openssl enc -aes-256-cbc -kfile sym.key -pbkdf2 | base64 -w 0 | tr -d '\n';echo '$'; echo -n '$'; cat sym.key | base64 | openssl rsautl -encrypt -inkey <(echo "$exfil_branch_KEY") -pubin -pkcs | base64 -w 0 | tr -d '\n'; echo '$'
@@ -478,7 +461,6 @@ w1M8xrm+PUM5qaWCANScuX8CAwEAAQ==
     mock_priv.decrypt.return_value = "TestSymKey"
     mock_privkey.return_value = (mock_priv, "pub_mock")
     mock_dec.return_value = b"DUMMY_TEST_SECRET=TEST_SECRET_VALUE"
-
 
     gh_attacker = Attacker(
         "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
@@ -521,6 +503,7 @@ def test_secrets_dump_baduser(mock_api, capsys):
     assert "The user does not have the necessary scopes to conduct this" in \
         escape_ansi(print_output)
 
+
 @patch("gato.attack.attack.Api")
 def test_secrets_dump_nosecret(mock_api, capsys):
     """Test secrets dump where repo has no secrets.
@@ -537,7 +520,7 @@ def test_secrets_dump_nosecret(mock_api, capsys):
 
     gh_attacker = Attacker(
         "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
-        socks_proxy=None,   
+        socks_proxy=None,
         http_proxy="localhost:8080"
     )
 
@@ -548,6 +531,7 @@ def test_secrets_dump_nosecret(mock_api, capsys):
 
     assert "The repository does not have any accessible secrets" in \
         escape_ansi(print_output)
+
 
 @patch("gato.attack.attack.Api")
 def test_secrets_dump_branchexist(mock_api, capsys):
@@ -568,7 +552,7 @@ def test_secrets_dump_branchexist(mock_api, capsys):
 
     gh_attacker = Attacker(
         "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
-        socks_proxy=None,   
+        socks_proxy=None,
         http_proxy="localhost:8080"
     )
 
@@ -579,6 +563,7 @@ def test_secrets_dump_branchexist(mock_api, capsys):
 
     assert "Remote branch, exfilbranch, already exists!" in \
         escape_ansi(print_output)
+
 
 @patch("gato.attack.attack.Api")
 def test_secrets_dump_branchfail(mock_api, capsys):
@@ -599,7 +584,7 @@ def test_secrets_dump_branchfail(mock_api, capsys):
 
     gh_attacker = Attacker(
         "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
-        socks_proxy=None,   
+        socks_proxy=None,
         http_proxy="localhost:8080"
     )
 

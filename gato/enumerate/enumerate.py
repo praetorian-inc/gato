@@ -174,9 +174,9 @@ class Enumerator:
             f"the {organization.name} organization!"
         )
 
-        Output.info(f"Querying and caching workflow YAML files!")
+        Output.info("Querying and caching workflow YAML files!")
         wf_queries = GqlQueries.get_workflow_ymls(enum_list)
-  
+
         for wf_query in wf_queries:
             result = self.org_e.api.call_post('/graphql', wf_query)
             # Sometimes we don't get a 200, fall back in this case.

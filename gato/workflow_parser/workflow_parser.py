@@ -22,12 +22,12 @@ class WorkflowParser():
         'macos-latest',
         'macOS-latest',
         'windows-latest',
-        'ubuntu-18.04', # deprecated, but we don't want false positives on older repos.
+        'ubuntu-18.04',  # deprecated, but we don't want false positives on older repos.
         'ubuntu-20.04',
         'ubuntu-22.04',
         'windows-2022',
         'windows-2019',
-        'windows-2016', # deprecated, but we don't want false positives on older repos.
+        'windows-2016',  # deprecated, but we don't want false positives on older repos.
         'macOS-13',
         'macOS-12',
         'macOS-11',
@@ -125,19 +125,15 @@ class WorkflowParser():
                 else:
                     if type(runs_on) == list:
                         for label in runs_on:
-                            if label in self.GITHUB_HOSTED_LABELS:
+                            if label not in self.GITHUB_HOSTED_LABELS and \
+                                    not re.match(self.LARGER_RUNNER_REGEX_LIST, label):
+                                sh_jobs.append((jobname, job_details))
                                 break
-                            if re.match(self.LARGER_RUNNER_REGEX_LIST, label):
-                                break
-                        else:
-                            sh_jobs.append((jobname, job_details))
                     elif type(runs_on) == str:
-                        if runs_on in self.GITHUB_HOSTED_LABELS:
-                            break
-                        if re.match(self.LARGER_RUNNER_REGEX_LIST, runs_on):
-                            break
+                        if runs_on in self.GITHUB_HOSTED_LABELS or \
+                                re.match(self.LARGER_RUNNER_REGEX_LIST, runs_on):
+                            continue
                         sh_jobs.append((jobname, job_details))
-
         return sh_jobs
 
     def analyze_entrypoints(self):

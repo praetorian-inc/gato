@@ -1,5 +1,3 @@
-from gato.models import Repository
-
 class GqlQueries():
     """Constructs graphql queries for use with the GitHub GraphQL api.
     """
