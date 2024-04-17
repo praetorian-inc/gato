@@ -131,7 +131,8 @@ class Api():
                         content_lines = content.split('\n')
 
                         if "Image Release: https://github.com/actions/runner-images" in content \
-                                or "Job is about to start running on the hosted runner: GitHub Actions" in content:
+                                or "Job is about to start running on the hosted runner: GitHub Actions" in content \
+                                or "Job is cancelled before starting" in content:
                             # Larger runners will appear to be self-hosted, but
                             # they will have the image name. Skip if we see this.
                             # If the log contains "job is about to start running on hosted runner",
@@ -684,7 +685,7 @@ class Api():
 
         return None
 
-    def retrieve_run_logs(self, repo_name: str, short_circuit: str = True):
+    def retrieve_run_logs(self, repo_name: str, short_circuit: bool = True):
         """Retrieve the most recent run log associated with a repository.
 
         Args:

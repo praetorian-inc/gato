@@ -28,6 +28,7 @@ class WorkflowParser():
         'windows-2022',
         'windows-2019',
         'windows-2016',  # deprecated, but we don't want false positives on older repos.
+        'macOS-14',
         'macOS-13',
         'macOS-12',
         'macOS-11',
@@ -35,7 +36,7 @@ class WorkflowParser():
         'macos-12',
         'macos-13',
         'macos-13-xl',
-        'macos-12',
+        'macos-14',
     ]
 
     LARGER_RUNNER_REGEX_LIST = r'(windows|ubuntu)-(22.04|20.04|2019-2022)-(4|8|16|32|64)core-(16|32|64|128|256)gb'
