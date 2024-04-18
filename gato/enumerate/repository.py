@@ -77,6 +77,8 @@ class RepositoryEnum():
         for (wf, yml) in ymls:
             try:
                 parsed_yml = WorkflowParser(yml, repository.name, wf)
+                if not parsed_yml:
+                    continue
                 self_hosted_jobs = parsed_yml.self_hosted()
 
                 if self_hosted_jobs:
