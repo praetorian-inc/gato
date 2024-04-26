@@ -132,12 +132,14 @@ class Api():
 
                         if "Image Release: https://github.com/actions/runner-images" in content \
                                 or "Job is about to start running on the hosted runner: GitHub Actions" in content \
-                                or "Job is cancelled before starting" in content:
+                                or "Job is cancelled before starting" in content \
+                                or "Job is about to start" in content_lines[-2]:
                             # Larger runners will appear to be self-hosted, but
                             # they will have the image name. Skip if we see this.
                             # If the log contains "job is about to start running on hosted runner",
                             # the runner is a Github hosted runner so we can skip it.
                             continue
+
                         index = 0
                         while index < len(content_lines) and content_lines[index]:
                             line = content_lines[index]
