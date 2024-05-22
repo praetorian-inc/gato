@@ -103,6 +103,7 @@ class Repository():
         """
         representation = {
             "name": self.name,
+            "private": self.is_private(),
             "enum_time": self.enum_time.ctime(),
             "permissions": self.permission_data,
             "can_fork": self.can_fork(),
