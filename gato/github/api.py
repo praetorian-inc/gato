@@ -28,7 +28,7 @@ class Api():
 
     def __init__(self, pat: str, version: str = "2022-11-28",
                  http_proxy: str = None, socks_proxy: str = None,
-                 github_url: str = "https://api.github.com"):
+                 github_url: str = "https://api.github.com", no_sleep: bool = False):
         """Initialize the API abstraction layer to interact with the GitHub
         REST API.
 
@@ -50,6 +50,8 @@ class Api():
             'Authorization': f'Bearer {pat}',
             'X-GitHub-Api-Version': version
         }
+        self.no_sleep = no_sleep
+
         if not github_url:
             self.github_url = "https://api.github.com"
         else:
@@ -102,6 +104,10 @@ class Api():
             Output.warn(
                 f"Sleeping for {Output.bright( sleep_time_mins + ' minutes')} "
                 "to prevent rate limit exhaustion!")
+
+            if self.no_sleep:
+                Output.warn("Skipping sleep due to no_sleep being set to True (exiting instead)")
+                sys.exit(-1)
 
             time.sleep(sleep_time + 1)
 

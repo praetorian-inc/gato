@@ -49,6 +49,12 @@ def cli(args):
         required=False,
     )
 
+    parser.add_argument(
+        "--no-sleep",
+        help="Disable sleeping when api rate limit is hit and exit instead",
+        action="store_true"
+    )
+
     attack_parser = subparsers.add_parser(
         "attack", help="CI/CD Attack Capabilities", aliases=["a"],
         formatter_class=argparse.RawTextHelpFormatter
