@@ -6,6 +6,7 @@ import logging
 import zipfile
 import re
 import io
+import sys
 
 from gato.cli import Output
 from datetime import datetime, timezone, timedelta
@@ -28,7 +29,8 @@ class Api():
 
     def __init__(self, pat: str, version: str = "2022-11-28",
                  http_proxy: str = None, socks_proxy: str = None,
-                 github_url: str = "https://api.github.com", no_sleep: bool = False):
+                 github_url: str = "https://api.github.com",
+                 no_sleep: bool = False):
         """Initialize the API abstraction layer to interact with the GitHub
         REST API.
 
@@ -101,13 +103,13 @@ class Api():
             # all calling code. We inform the here user that we are sleeping.
             # very large orgs will take several hours to enumerate, especially
             # if runlog enumeration is enabled.
+            if self.no_sleep:
+                Output.warn("Exiting early for rate limit!")
+                sys.exit(-1)
+
             Output.warn(
                 f"Sleeping for {Output.bright( sleep_time_mins + ' minutes')} "
                 "to prevent rate limit exhaustion!")
-
-            if self.no_sleep:
-                Output.warn("Skipping sleep due to no_sleep being set to True (exiting instead)")
-                sys.exit(-1)
 
             time.sleep(sleep_time + 1)
 

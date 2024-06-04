@@ -25,7 +25,7 @@ class Enumerator:
         skip_log: bool = False,
         github_url: str = None,
         output_json: str = None,
-	no_sleep: bool = False
+        no_sleep: bool = False
     ):
         """Initialize enumeration class with arguments sent by user.
 
@@ -47,7 +47,7 @@ class Enumerator:
             socks_proxy=socks_proxy,
             http_proxy=http_proxy,
             github_url=github_url,
-	    no_sleep=no_sleep,
+            no_sleep=no_sleep,
         )
 
         self.socks_proxy = socks_proxy

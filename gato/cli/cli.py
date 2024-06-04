@@ -49,12 +49,6 @@ def cli(args):
         required=False,
     )
 
-    parser.add_argument(
-        "--no-sleep",
-        help="Disable sleeping when api rate limit is hit and exit instead",
-        action="store_true"
-    )
-
     attack_parser = subparsers.add_parser(
         "attack", help="CI/CD Attack Capabilities", aliases=["a"],
         formatter_class=argparse.RawTextHelpFormatter
@@ -170,7 +164,8 @@ def attack(args, parser):
         socks_proxy=args.socks_proxy,
         http_proxy=args.http_proxy,
         timeout=timeout,
-        github_url=args.api_url
+        github_url=args.api_url,
+        no_sleep=args.no_sleep
     )
 
     if args.pull_request:
@@ -233,7 +228,8 @@ def enumerate(args, parser):
             http_proxy=args.http_proxy,
             output_yaml=args.output_yaml,
             skip_log=args.skip_runlog,
-            github_url=args.api_url
+            github_url=args.api_url,
+            no_sleep=args.no_sleep
         )
 
     exec_wrapper = Execution()
@@ -348,6 +344,12 @@ def configure_parser_general(parser):
     parser.add_argument(
         "--no-color", "-nc",
         help="Removes all color from output.",
+        action="store_true"
+    )
+
+    parser.add_argument(
+        "--no-sleep",
+        help="Exit immediately upon the API Rate Limit being hit.",
         action="store_true"
     )
 
