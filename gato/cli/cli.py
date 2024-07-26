@@ -456,7 +456,7 @@ def configure_parser_attack(parser):
     parser.add_argument(
         "--file-name", "-fn",
         default="test",
-        help=f"Name of yaml file {Output.bright('without extension')} that will be\n"
+        help=f"Name of yaml file {Output.text_color('without extension', 'red')} that will be\n"
              "written as part of either attack type. Defaults to 'test'",
         type=StringType(64)
     )
