@@ -75,7 +75,7 @@ class Enumerator:
             if len(self.user_perms["scopes"]):
                 Output.info(
                     "The GitHub Classic PAT has the following scopes: "
-                    f'{Output.text_color(", ".join(self.user_perms["scopes"]), 'yellow')}'
+                    f'{Output.text_color(", ".join(self.user_perms["scopes"]), "yellow")}'
                 )
             else:
                 Output.warn("The token has no scopes!")

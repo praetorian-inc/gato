@@ -77,7 +77,7 @@ class Attacker:
             )
             Output.info(
                 "The GitHub Classic PAT has the following scopes: "
-                f'{Output.text_color(", ".join(self.user_perms["scopes"]), 'yellow')}'
+                f'{Output.text_color(", ".join(self.user_perms["scopes"]), "yellow")}'
             )
 
         return True
