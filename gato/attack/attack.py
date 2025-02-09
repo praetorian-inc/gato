@@ -21,7 +21,7 @@ from gato.attack import CICDAttack
 from gato.cli import Output
 
 logger = logging.getLogger(__name__)
-logging.root.setLevel(logging.DEBUG)
+logging.root.setLevel(logging.INFO)
 
 
 class Attacker:

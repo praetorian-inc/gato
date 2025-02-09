@@ -24,7 +24,11 @@ class Enumerator:
         output_yaml: str = None,
         skip_log: bool = False,
         github_url: str = None,
-        output_json: str = None
+        output_json: str = None,
+        wf_artifacts_enum: str = False,
+        skip_sh_runner_enum: str = False,
+        include_all_artifact_secrets: bool = False,
+
     ):
         """Initialize enumeration class with arguments sent by user.
 
@@ -55,8 +59,10 @@ class Enumerator:
         self.user_perms = None
         self.github_url = github_url
         self.output_json = output_json
-
-        self.repo_e = RepositoryEnum(self.api, skip_log, output_yaml)
+        self.wf_artifacts_enum = wf_artifacts_enum
+        self.skip_sh_runner_enum = skip_sh_runner_enum
+        self.include_all_artifact_secrets = include_all_artifact_secrets
+        self.repo_e = RepositoryEnum(self.api, skip_log, output_yaml, skip_sh_runner_enum, wf_artifacts_enum, include_all_artifact_secrets)
         self.org_e = OrganizationEnum(self.api)
 
     def __setup_user_info(self):
@@ -174,16 +180,18 @@ class Enumerator:
             f"the {organization.name} organization!"
         )
 
-        Output.info("Querying and caching workflow YAML files!")
-        wf_queries = GqlQueries.get_workflow_ymls(enum_list)
+        if not self.skip_sh_runner_enum:
+            Output.info("Querying and caching workflow YAML files!")
+            wf_queries = GqlQueries.get_workflow_ymls(enum_list)
+            for wf_query in wf_queries:
+                result = self.org_e.api.call_post('/graphql', wf_query)
+                # Sometimes we don't get a 200, fall back in this case.
+                if result.status_code == 200:
+                    self.repo_e.construct_workflow_cache(result.json()['data']['nodes'])
+                else:
+                    Output.warn("GraphQL query failed, will revert to REST workflow query for impacted repositories!")
+    
 
-        for wf_query in wf_queries:
-            result = self.org_e.api.call_post('/graphql', wf_query)
-            # Sometimes we don't get a 200, fall back in this case.
-            if result.status_code == 200:
-                self.repo_e.construct_workflow_cache(result.json()['data']['nodes'])
-            else:
-                Output.warn("GraphQL query failed, will revert to REST workflow query for impacted repositories!")
         for repo in enum_list:
             Output.tabbed(
                 f"Enumerating: {Output.bright(repo.name)}!"

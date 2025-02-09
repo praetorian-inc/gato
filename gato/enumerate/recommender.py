@@ -150,6 +150,12 @@ class Recommender:
                 "previous workflow run that executed on a self-hosted runner!"
             )
 
+            if not type(repository.accessible_runners[0].labels) is list:
+                if repository.accessible_runners[0].labels:
+                    repository.accessible_runners[0].labels = [repository.accessible_runners[0].labels]
+                else:
+                    repository.accessible_runners[0].labels = ["Unkown"]
+
             Output.tabbed(
                 "The runner name was: "
                 f"{Output.bright(repository.accessible_runners[0].runner_name)}"

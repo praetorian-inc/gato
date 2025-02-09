@@ -25,7 +25,10 @@ dependencies = [
     "requests",
     "pyyaml",
     "packaging",
-    "cryptography"
+    "cryptography",
+    "py7zr",
+    "rarfile",
+    "tqdm"
 ]
 
 [project.optional-dependencies]

@@ -6,6 +6,8 @@ from packaging import version
 
 from colorama import Fore, Style
 from gato.cli import RED_DASH
+import shutil
+
 
 from gato.enumerate import Enumerator
 from gato.attack import Attacker
@@ -77,10 +79,22 @@ def cli(args):
 
     validate_arguments(arguments, parser)
     validate_git_config(parser)
+    validate_noseyparker(arguments, parser)
 
     Output.splash()
 
     arguments.func(arguments, subparsers)
+
+def validate_noseyparker(arguments, parser):
+    if arguments.enum_wf_artifacts:
+        retv = shutil.which('noseyparker')
+
+        if not retv:
+            parser.error(
+                f"{Fore.RED} [-] The 'noseyparker' application is either not installed, "
+                "or not present on the path! To install, download a release from https://github.com/praetorian-inc/noseyparker/releases and place it in your $PATH."
+            )
+
 
 
 def validate_arguments(args, parser):
@@ -207,7 +221,7 @@ def enumerate(args, parser):
     parser = parser.choices["enumerate"]
 
     if not (args.target or args.self_enumeration or
-            args.repository or args.repositories or args.validate):
+            args.repository or args.repositories or args.validate or args.organizations):
         parser.error(
             f"{Fore.RED}[-]{Style.RESET_ALL} No enumeration type was"
             " specified!"
@@ -215,7 +229,7 @@ def enumerate(args, parser):
 
     if sum(bool(x) for x in [args.target, args.self_enumeration,
                              args.repository, args.repositories,
-                             args.validate]) != 1:
+                             args.validate, args.organizations]) != 1:
         parser.error(
             f"{Fore.RED}[-]{Style.RESET_ALL} You must only select one "
             "enumeration type."
@@ -227,7 +241,11 @@ def enumerate(args, parser):
             http_proxy=args.http_proxy,
             output_yaml=args.output_yaml,
             skip_log=args.skip_runlog,
-            github_url=args.api_url
+            github_url=args.api_url,
+            wf_artifacts_enum = args.enum_wf_artifacts,
+            skip_sh_runner_enum=args.skip_sh_runner_enum,
+            include_all_artifact_secrets=args.include_all_artifact_secrets,
+
         )
 
     exec_wrapper = Execution()
@@ -242,6 +260,19 @@ def enumerate(args, parser):
         orgs = [gh_enumeration_runner.enumerate_organization(
             args.target
         )]
+    elif args.organizations:
+        try:
+            org_list = util.read_file_and_validate_lines(
+                args.organizations, r"[A-Za-z0-9-_.]+"
+            )
+            orgs = []
+            for org in org_list:
+                orgs.append(gh_enumeration_runner.enumerate_organization(org))
+        except argparse.ArgumentError as e:
+            parser.error(
+                f"{RED_DASH} The file contained an invalid organzation name!"
+                f"{Output.bright(e)}"
+            )
     elif args.repositories:
         try:
             repo_list = util.read_file_and_validate_lines(
@@ -504,6 +535,15 @@ def configure_parser_enumerate(parser):
     )
 
     parser.add_argument(
+        "--organizations",
+        "-O",
+        help="A text file containing organizations to\n"
+        "enumerate.",
+        metavar=f"{Fore.RED}PATH/TO/FILE.txt{Style.RESET_ALL}",
+        type=ReadableFile(),
+    )
+
+    parser.add_argument(
         "--repositories", "-R",
         help="A text file containing repositories in org/repo format to\n"
         "enumerate for self-hosted runners.",
@@ -526,6 +566,27 @@ def configure_parser_enumerate(parser):
         help=(
             "Validate if the token is valid and print organization memberships."
         ),
+        action="store_true",
+    )
+
+    parser.add_argument(
+        "--enum_wf_artifacts",
+        "-ewfa",
+        help=("Retrieve workflow artifacts and scan for secrets."),
+        action="store_true",
+    )
+
+    parser.add_argument(
+        "--skip_sh_runner_enum",
+        "-nosh",
+        help=("Do not attempt to identify self-hosted runners."),
+        action="store_true",
+    )
+
+    parser.add_argument(
+        "--include_all_artifact_secrets",
+        "-allas",
+        help=("Artifact secrets scanning (--enum_wf_artifacts) filters out common false positives by default. Use this flag along with --enum_wf_artifacts to include all NoseyParker secrets results in artifacts."),
         action="store_true",
     )
 
