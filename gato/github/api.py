@@ -6,6 +6,7 @@ import logging
 import zipfile
 import re
 import io
+import sys
 
 from gato.cli import Output
 from datetime import datetime, timezone, timedelta
@@ -28,7 +29,8 @@ class Api():
 
     def __init__(self, pat: str, version: str = "2022-11-28",
                  http_proxy: str = None, socks_proxy: str = None,
-                 github_url: str = "https://api.github.com"):
+                 github_url: str = "https://api.github.com",
+                 no_sleep: bool = False):
         """Initialize the API abstraction layer to interact with the GitHub
         REST API.
 
@@ -50,6 +52,8 @@ class Api():
             'Authorization': f'Bearer {pat}',
             'X-GitHub-Api-Version': version
         }
+        self.no_sleep = no_sleep
+
         if not github_url:
             self.github_url = "https://api.github.com"
         else:
@@ -99,6 +103,10 @@ class Api():
             # all calling code. We inform the here user that we are sleeping.
             # very large orgs will take several hours to enumerate, especially
             # if runlog enumeration is enabled.
+            if self.no_sleep:
+                Output.warn("Exiting early for rate limit!")
+                sys.exit(-1)
+
             Output.warn(
                 f"Sleeping for {Output.bright( sleep_time_mins + ' minutes')} "
                 "to prevent rate limit exhaustion!")
@@ -132,12 +140,14 @@ class Api():
 
                         if "Image Release: https://github.com/actions/runner-images" in content \
                                 or "Job is about to start running on the hosted runner: GitHub Actions" in content \
-                                or "Job is cancelled before starting" in content:
+                                or "Job is cancelled before starting" in content \
+                                or "Job is about to start" in content_lines[-2]:
                             # Larger runners will appear to be self-hosted, but
                             # they will have the image name. Skip if we see this.
                             # If the log contains "job is about to start running on hosted runner",
                             # the runner is a Github hosted runner so we can skip it.
                             continue
+
                         index = 0
                         while index < len(content_lines) and content_lines[index]:
                             line = content_lines[index]
