@@ -106,7 +106,7 @@ class NPHandler:
 
                             self.repository.artifact_snippets.add(snippet)
                         if 'provenance' in match:
-                            Output.tabbed(f"Path: {match.get('provenance', [{}])[0].get('path", "Unknown')}")
+                            Output.tabbed(f"Path: {match.get('provenance', [{}])[0].get('path', 'Unknown')}")
                             newmatch["provenance"] = match.get('provenance', [{}])[0].get('path', 'Unknown')
                         Output.tabbed("---")
 
