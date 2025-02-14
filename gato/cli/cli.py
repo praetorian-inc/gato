@@ -140,6 +140,8 @@ def validate_git_config(parser):
     git_version = git.version_check()
 
     if git_version:
+        git_version = git_version.split('.')[0:3]  # Keep only the first three parts
+        git_version = '.'.join(git_version)   
         git_version = version.parse(git_version)
         if git_version < version.parse(REQUIRED_GIT_VERSION):
             parser.error(

@@ -110,7 +110,7 @@ suite on the `dev` branch, so there should not be any _blatant_ bugs.
 
 If you want to use the `dev` branch, just check it out prior to running pip install - that's it!
 
-If you do run into any for your specific use case, by all means open an issue!
+If you do run into any bugs for your specific use case, by all means open an issue!
 
 
 ### Usage
@@ -140,7 +140,7 @@ mode or running unit tests, please see the [wiki](https://github.com/praetorian-
 
 ## Documentation
 
-Please see the [wiki](https://github.com/praetorian-inc/gato/wiki).
+Please see the [wiki](https://github.com/praetorian-inc/gato/wiki)
  for detailed documentation, as well as [OpSec](https://github.com/praetorian-inc/gato/wiki/opsec) considerations 
 for the tool's various modules!
 
@@ -158,8 +158,8 @@ If you are unsure if the behavior is a bug, use the discussions section instead!
 Contributions are welcome! Please [review](https://github.com/praetorian-inc/gato/wiki/Project-Design) our design methodology and coding 
 standards before working on a new feature!
 
-Additionally, if you are proposing significant changes to the tool, please open 
-an issue [open an issue](https://github.com/praetorian-inc/gato/issues/new) to 
+Additionally, if you are proposing significant changes to the tool, please
+[open an issue](https://github.com/praetorian-inc/gato/issues/new) to
 start a conversation about the motivation for the changes.
 
 ## License
