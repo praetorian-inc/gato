@@ -25,14 +25,18 @@ class Execution():
         Args:
             organizations (List[Organization]): List of org wrappers.
         """
+        if not organizations:
+            return
         self.organizations.extend([org for org in organizations if org])
 
     def add_repositories(self, repositories: List[Repository]):
-        """Add list of organization wrapper objects.
+        """Add list of repository wrapper objects.
 
         Args:
-            organizations (List[Organization]): List of org wrappers.
+            repositories (List[Repository]): List of repo wrappers.
         """
+        if not repositories:
+            return
         self.repositories.extend([repo for repo in repositories if repo])
 
     def set_user_details(self, user_details):

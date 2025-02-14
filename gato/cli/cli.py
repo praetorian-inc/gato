@@ -123,6 +123,8 @@ def validate_git_config(parser):
     git_version = git.version_check()
 
     if git_version:
+        git_version = git_version.split('.')[0:3]  # Keep only the first three parts
+        git_version = '.'.join(git_version)   
         git_version = version.parse(git_version)
         if git_version < version.parse(REQUIRED_GIT_VERSION):
             parser.error(
@@ -164,7 +166,8 @@ def attack(args, parser):
         socks_proxy=args.socks_proxy,
         http_proxy=args.http_proxy,
         timeout=timeout,
-        github_url=args.api_url
+        github_url=args.api_url,
+        no_sleep=args.no_sleep
     )
 
     if args.pull_request:
@@ -227,7 +230,8 @@ def enumerate(args, parser):
             http_proxy=args.http_proxy,
             output_yaml=args.output_yaml,
             skip_log=args.skip_runlog,
-            github_url=args.api_url
+            github_url=args.api_url,
+            no_sleep=args.no_sleep
         )
 
     exec_wrapper = Execution()
@@ -342,6 +346,12 @@ def configure_parser_general(parser):
     parser.add_argument(
         "--no-color", "-nc",
         help="Removes all color from output.",
+        action="store_true"
+    )
+
+    parser.add_argument(
+        "--no-sleep",
+        help="Exit immediately upon the API Rate Limit being hit.",
         action="store_true"
     )
 
