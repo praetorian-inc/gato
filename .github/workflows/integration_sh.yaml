@@ -6,6 +6,24 @@ env:
     SH_RUNNER_MANAGE_TOKEN: ${{secrets.SH_RUNNER_MANAGE_TOKEN }}
 
 jobs:
+
+    SH_Runner_Cleanup:
+    # First remove the SH runner in case it is still attached
+        name: Remove Self-Hosted Runner
+        runs-on: ubuntu-latest
+        needs: Integration_SH_Runner
+        steps:
+          - name: Checkout the repo
+            uses: actions/checkout@v3
+          - name: Setup python
+            uses: actions/setup-python@v4
+            with:
+              python-version: 3.11
+          - name: Force Remove SH Runner
+            run: |
+              pip install requests
+              python test/runner_helper.py force_remove
+
     # This job creates a self-hosted runner attached to the
     # test organization.
     Integration_SH_Runner:
@@ -33,13 +51,12 @@ jobs:
             run: |
               cd actions-runner
               python ../test/runner_helper.py remove
-    SH_Runner_Cleanup:
-    # Removes the self-hosted runner forcibly in the event the cleanup operation
-    # did not work.
+
+    SH_Runner_Cleanup_2:
+    # remove the SH runner again
         name: Remove Self-Hosted Runner
         runs-on: ubuntu-latest
         needs: Integration_SH_Runner
-        if: failure()
         steps:
           - name: Checkout the repo
             uses: actions/checkout@v3
@@ -51,3 +68,4 @@ jobs:
             run: |
               pip install requests
               python test/runner_helper.py force_remove
+
