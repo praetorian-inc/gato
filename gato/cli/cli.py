@@ -178,7 +178,8 @@ def attack(args, parser):
         socks_proxy=args.socks_proxy,
         http_proxy=args.http_proxy,
         timeout=timeout,
-        github_url=args.api_url
+        github_url=args.api_url,
+        no_sleep=args.no_sleep
     )
 
     if args.pull_request:
@@ -242,6 +243,7 @@ def enumerate(args, parser):
             output_yaml=args.output_yaml,
             skip_log=args.skip_runlog,
             github_url=args.api_url,
+            no_sleep=args.no_sleep,
             wf_artifacts_enum = args.enum_wf_artifacts,
             skip_sh_runner_enum=args.skip_sh_runner_enum,
             include_all_artifact_secrets=args.include_all_artifact_secrets,
@@ -373,6 +375,12 @@ def configure_parser_general(parser):
     parser.add_argument(
         "--no-color", "-nc",
         help="Removes all color from output.",
+        action="store_true"
+    )
+
+    parser.add_argument(
+        "--no-sleep",
+        help="Exit immediately upon the API Rate Limit being hit.",
         action="store_true"
     )
 

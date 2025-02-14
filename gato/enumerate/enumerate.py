@@ -25,6 +25,7 @@ class Enumerator:
         skip_log: bool = False,
         github_url: str = None,
         output_json: str = None,
+        no_sleep: bool = False,
         wf_artifacts_enum: str = False,
         skip_sh_runner_enum: str = False,
         include_all_artifact_secrets: bool = False,
@@ -50,6 +51,7 @@ class Enumerator:
             socks_proxy=socks_proxy,
             http_proxy=http_proxy,
             github_url=github_url,
+            no_sleep=no_sleep,
         )
 
         self.socks_proxy = socks_proxy
