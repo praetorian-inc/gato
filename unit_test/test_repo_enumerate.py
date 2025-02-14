@@ -36,7 +36,7 @@ def test_enumerate_repo():
     mock_api = MagicMock()
 
     gh_enumeration_runner = RepositoryEnum(
-        mock_api, False, True
+        mock_api, False, True, False, False, False
     )
 
     mock_api.check_user.return_value = {
@@ -78,7 +78,7 @@ def test_enumerate_repo_admin():
     mock_api = MagicMock()
 
     gh_enumeration_runner = RepositoryEnum(
-        mock_api, False, True
+        mock_api, False, True, False, False, False
     )
 
     mock_api.check_user.return_value = {

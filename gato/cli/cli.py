@@ -79,6 +79,7 @@ def cli(args):
 
     validate_arguments(arguments, parser)
     validate_git_config(parser)
+
     validate_noseyparker(arguments, parser)
 
     Output.splash()
@@ -86,7 +87,9 @@ def cli(args):
     arguments.func(arguments, subparsers)
 
 def validate_noseyparker(arguments, parser):
-    if arguments.enum_wf_artifacts:
+    args_dict = vars(arguments)
+
+    if "enum_wf_artifacts" in args_dict and args_dict["enum_wf_artifacts"] == True:
         retv = shutil.which('noseyparker')
 
         if not retv:
