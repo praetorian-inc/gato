@@ -84,7 +84,8 @@ class NPHandler:
 
                             # only output one finding for identical matches across the entire repository. 
                             # If we find secrets that could be repeated elsewhere in the repo, consider re-running on the repo with this disabled.
-                            if snippet in self.repository.artifact_snippets:
+                            if snippet in self.repository.artifact_snippets and np_finding.matches == []:
+                                add_finding = False
                                 continue
 
                             if not self.include_all_artifact_secrets:
@@ -107,7 +108,7 @@ class NPHandler:
                         if 'provenance' in match:
                             Output.tabbed(f"Path: {match.get("provenance", [{}])[0].get("path", "Unknown")}")
                             newmatch["provenance"] = match.get("provenance", [{}])[0].get("path", "Unknown")
-                        Output.tabbed("---") # TODO: test on huggingface/meshgen
+                        Output.tabbed("---")
 
 
                         np_finding.matches.append(newmatch)

@@ -19,32 +19,44 @@ runners.
 
 GitHub recommends that self-hosted runners only be utilized for private repositories, however, there are thousands of organizations that utilize self-hosted runners. Default configurations are often vulnerable, and Gato uses a mix of workflow file analysis and run-log analysis to identify potentially vulnerable repositories at scale.
 
-## Version 1.6
+## Version 1.7
 
-Gato version 1.6 improves the public repository enumeration feature set.
+Gato version 1.7 introduces the **Actions Artifacts Secrets Scanner**.
 
-Previously, Gato's code search functionality by default only looked for
-yaml files that explicitly had "self-hosted" in the name. Now, the
-code search functionality supports a SourceGraph query. This query has a 
-lower false negative rate and is not limited by GitHub's code search limit.
+The Actions Artifacts Secrets Scanner enumerates [GitHub Actions workflow artifacts](https://docs.github.com/en/actions/writing-workflows/choosing-what-your-workflow-does/storing-and-sharing-data-from-a-workflow) for secrets. Praetorian researchers have leveraged the scanner to identify critical vulnerabilities in several prominent open-sourced projects. Details of these vulnerabilities will be released once the disclosure processes are complete. This work was initially inspired by research from [Palo Alto Networks](https://unit42.paloaltonetworks.com/github-repo-artifacts-leak-tokens/). 
 
-For example, the following query will identify public repositories that use 
-self-hosted runners:
+The Actions Artifacts Secrets Scanner performs the following actions:
+1. Downloads GitHub Actions workflow artifacts from the target repository
+2. Recursively extracts the downloaded artifacts
+3. Scans the artifacts for secrets with [NoseyParker](https://github.com/praetorian-inc/noseyparker)
+4. Reports the results
 
-`gato search --sourcegraph --output-text public_repos.txt`
+[NoseyParker](https://github.com/praetorian-inc/noseyparker/releases) must be installed in the $PATH of the system running the Actions Artifacts Secrets Scanner.
 
-This can be fed back into Gato's enumeration feature:
+Secrets in public workflow artifacts can contain many false positives. By default, the Actions Artifacts Secrets Scanner excludes rules and results associated with common false positives. To include all secrets scanning results, you can use the `--include_all_artifact_secrets` flag.
 
-`gato enumerate --repositories public_repos.txt --output-json enumeration_results.json`
+Here is an example command that runs the Actions Artifacts Secrets Scanner on a list of GitHub organizations, disables self-hosted runner enumeration, includes all artifact secret results, and outputs to a JSON file.
 
-Additionally the release contains several improvements under the hood to speed up the enumeration process. This includes changes to limit redundant run-log downloads (which are the slowest part of Gato's enumeration process) and using the GraphQL API to download workflow files when enumerating an entire organization. Finally, Gato will use a heuristic to detect if an attached runner is non-ephemeral. Most poisoned pipeline execution attacks require a non-ephemeral runner in order to exploit.
+```
+gato e --enum_wf_artifacts --include_all_artifact_secrets --skip_sh_runner_enum -O testorgs.txt  -oJ testorgoutput.json
+```
 
-### New Features
+By default, the Actions Artifacts Secrets Scanner imposes the following limitations to reduce the time spent on a single repository:
+- Only downloads one artifact per name
+- Downloads a maximum of 50 artifacts per repository
+- Downloads a maximum of 10 files greater than 536 MBs
+- Does not download any files greater than 2.68 GBs
 
-* SourceGraph Search Functionality
-* Improved Public Repository Enumeration Speed
-* Improved Workflow File Analysis
-* Non-ephemeral self-hosted runner detection
+These constraints were optimized such that the Actions Artifacts Secrets Scanner can scan the top 200 GitHub organizations within 48 hours. If you want to modify these constraints, you can update them in the `scan_wf_artifacts()` function of `gato/enumerate/repository.py`.
+
+## New Features
+
+- Added the Actions Artifacts Secrets Scanner
+- Support to run modules on a list of GitHub organizations
+- Ability to disable self-hosted runner enumeration
+- Option to disable sleep
+- Differentates between public and private repos in output
+- Several bug fixes
 
 ## Who is it for?
 
@@ -68,6 +80,7 @@ Additionally the release contains several improvements under the hood to speed u
 * Automated workflow secrets exfiltration
 * SOCKS5 Proxy Support
 * HTTPS Proxy Support
+* GitHub Actions Workflow Artifacts Secrets Scanning
 
 ## Getting Started
 

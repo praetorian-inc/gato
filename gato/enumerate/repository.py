@@ -131,6 +131,8 @@ class RepositoryEnum():
         os.makedirs(np_output_dir, exist_ok=True)
         
         try:
+            # Modify these constraints as desired    
+
             # Track unique artifact names we've processed
             processed_names = set()
             # Track unique artifact sizes we've processed if the sizes are above large_download_size_in_bytes/2
