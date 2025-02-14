@@ -211,7 +211,7 @@ class Recommender:
             Output.owned("The user is an organization owner!")
             if "admin:org" in scopes:
                 Output.result(
-                    f"The token also has the {Output.yellow('admin:org')} "
+                    f"The token also has the {Output.text_color('admin:org', 'yellow')} "
                     "scope. This token has extensive access to the GitHub"
                     " organization!"
                 )

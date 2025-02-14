@@ -1,13 +1,10 @@
 import json
-
-from gato.cli import (RED_DASH, GREEN_PLUS, GREEN_EXCLAIM, RED_EXCLAIM,
-                      BRIGHT_DASH, YELLOW_EXCLAIM, SPLASH, YELLOW_DASH)
-
-
 from colorama import Style, Fore
+from gato.cli import (RED_DASH, GREEN_PLUS, GREEN_EXCLAIM, RED_EXCLAIM, BRIGHT_DASH, YELLOW_EXCLAIM, SPLASH, YELLOW_DASH)
 
 
 class Singleton (type):
+
     _instances = {}
 
     def __call__(cls, *args, **kwargs):
@@ -17,13 +14,12 @@ class Singleton (type):
             )
         return cls._instances[cls]
 
-
 class Output(metaclass=Singleton):
 
     def __init__(self, silent: bool, color: bool):
+
         self.silent = silent
         self.color = color
-
         self.red_dash = RED_DASH if color else '[-]'
         self.red_explain = RED_EXCLAIM if color else '[!]'
         self.green_plus = GREEN_PLUS if color else '[+]'
@@ -31,6 +27,10 @@ class Output(metaclass=Singleton):
         self.bright_dash = BRIGHT_DASH if color else '-'
         self.yellow_exclaim = YELLOW_EXCLAIM if color else "[!]"
         self.yellow_dash = YELLOW_DASH if color else "[-]"
+    
+    #######################
+    ## FileIO  Functions ##
+    #######################
 
     @classmethod
     def write_json(cls, execution_wrapper, output_json):
@@ -43,17 +43,23 @@ class Output(metaclass=Singleton):
         Returns:
             True if successful, false otherwise.
         """
+
         if execution_wrapper.user_details:
             with open(output_json, 'w') as json_out:
                 json_out.write(
                     json.dumps(execution_wrapper.toJSON(), indent=4)
                 )
             return True
+    
+    #######################
+    ## STDOUT Functions  ##
+    #######################
 
     @classmethod
     def splash(cls):
         """Prints the Gato mascot.
         """
+
         if not Output().silent:
             print(SPLASH)
 
@@ -64,6 +70,7 @@ class Output(metaclass=Singleton):
         Args:
             message (str): Message to format.
         """
+
         print(f"{Output().red_dash} {message}")
 
     @classmethod
@@ -73,6 +80,7 @@ class Output(metaclass=Singleton):
         Args:
             message (str): The message to print.
         """
+
         print(f"{Output().green_plus} {message}", end=end, flush=flush)
 
     @classmethod
@@ -82,6 +90,7 @@ class Output(metaclass=Singleton):
         Args:
             message (str): The message to print.
         """
+
         print(f"    {Output().bright_dash} {message}")
 
     @classmethod
@@ -91,6 +100,7 @@ class Output(metaclass=Singleton):
         Args:
             message (str): The message to print.
         """
+
         print(
             f"{cls.bright('---')}"
             f" {message} "
@@ -104,6 +114,7 @@ class Output(metaclass=Singleton):
         Args:
             message (str): The message to print.
         """
+
         print(f"{Output().green_plus} {message}")
 
     @classmethod
@@ -114,6 +125,7 @@ class Output(metaclass=Singleton):
         Args:
             message (str): The message to print.
         """
+
         print(f"{Output().green_exclaim} {message}")
 
     @classmethod
@@ -131,8 +143,13 @@ class Output(metaclass=Singleton):
         """Used to let the user know something that they should not, but
         unlikely to lead to an exploit.
         """
+
         print(f"{Output().yellow_exclaim} {message}")
 
+    
+    #######################
+    ##  Color Functions  ##
+    #######################
     @classmethod
     def bright(cls, toformat: str):
         """Highlights the text and returns it.
@@ -148,33 +165,22 @@ class Output(metaclass=Singleton):
             return f'{Style.BRIGHT}{toformat}{Style.RESET_ALL}'
         else:
             return toformat
-
+        
     @classmethod
-    def yellow(cls, toformat: str):
-        """Makes the text yellow and returns it.
-
-        Args:
-            toformat (str): Message to format.
-
-        Returns:
-            (str)): Formatted message.
-        """
-        if cls not in cls._instances or Output().color:
-            return f'{Fore.YELLOW}{toformat}{Style.RESET_ALL}'
-        else:
-            return toformat
-
-    @classmethod
-    def green(cls, toformat: str):
+    def text_color(cls, toformat: str, color: str):
         """Makes the text green and returns it.
 
         Args:
             toformat (str): Message to format.
+            color (str): Message to color. Either
 
         Returns:
             (str)): Formatted message.
         """
+
         if cls not in cls._instances or Output().color:
-            return f'{Fore.GREEN}{toformat}{Style.RESET_ALL}'
+                color = color.upper()
+                color = "Fore." + color
+                return f'{color}{toformat}{Style.RESET_ALL}'
         else:
             return toformat
