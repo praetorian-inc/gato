@@ -11,7 +11,6 @@ jobs:
     # First remove the SH runner in case it is still attached
         name: Remove Self-Hosted Runner
         runs-on: ubuntu-latest
-        needs: Integration_SH_Runner
         steps:
           - name: Checkout the repo
             uses: actions/checkout@v3
@@ -29,6 +28,7 @@ jobs:
     Integration_SH_Runner:
         name: Ephemeral Self-Hosted Runner
         runs-on: ubuntu-latest
+        if: always()
         timeout-minutes: 16
         steps:
           - name: Checkout the repo
