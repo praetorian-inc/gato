@@ -14,8 +14,7 @@ repositories.
 
 The tool has post-exploitation features to leverage a compromised personal
 access token in addition to enumeration features to identify poisoned pipeline
-execution vulnerabilities against public repositories that use self-hosted GitHub Actions 
-runners.
+execution vulnerabilities and actions artifacts secrets against public repositories.
 
 GitHub recommends that self-hosted runners only be utilized for private repositories, however, there are thousands of organizations that utilize self-hosted runners. Default configurations are often vulnerable, and Gato uses a mix of workflow file analysis and run-log analysis to identify potentially vulnerable repositories at scale.
 
