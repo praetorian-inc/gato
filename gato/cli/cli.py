@@ -86,18 +86,19 @@ def cli(args):
 
     arguments.func(arguments, subparsers)
 
+
 def validate_noseyparker(arguments, parser):
     args_dict = vars(arguments)
 
-    if "enum_wf_artifacts" in args_dict and args_dict["enum_wf_artifacts"] == True:
+    if "enum_wf_artifacts" in args_dict and args_dict["enum_wf_artifacts"] is True:
         retv = shutil.which('noseyparker')
 
         if not retv:
             parser.error(
                 f"{Fore.RED} [-] The 'noseyparker' application is either not installed, "
-                "or not present on the path! To install, download a release from https://github.com/praetorian-inc/noseyparker/releases and place it in your $PATH."
+                "or not present on the path! To install, download a release from "
+                "https://github.com/praetorian-inc/noseyparker/releases and place it in your $PATH."
             )
-
 
 
 def validate_arguments(args, parser):
@@ -141,7 +142,7 @@ def validate_git_config(parser):
 
     if git_version:
         git_version = git_version.split('.')[0:3]  # Keep only the first three parts
-        git_version = '.'.join(git_version)   
+        git_version = '.'.join(git_version)
         git_version = version.parse(git_version)
         if git_version < version.parse(REQUIRED_GIT_VERSION):
             parser.error(
@@ -249,7 +250,7 @@ def enumerate(args, parser):
             skip_log=args.skip_runlog,
             github_url=args.api_url,
             no_sleep=args.no_sleep,
-            wf_artifacts_enum = args.enum_wf_artifacts,
+            wf_artifacts_enum=args.enum_wf_artifacts,
             skip_sh_runner_enum=args.skip_sh_runner_enum,
             include_all_artifact_secrets=args.include_all_artifact_secrets,
 
@@ -599,7 +600,10 @@ def configure_parser_enumerate(parser):
     parser.add_argument(
         "--include_all_artifact_secrets",
         "-allas",
-        help=("Artifact secrets scanning (--enum_wf_artifacts) filters out common false positives by default. Use this flag along with --enum_wf_artifacts to include all NoseyParker secrets results in artifacts."),
+        help=("Artifact secrets scanning (--enum_wf_artifacts) filters out "
+              "common false positives by default. Use this flag along with "
+              "--enum_wf_artifacts to include all NoseyParker secrets results "
+              "in artifacts."),
         action="store_true",
     )
 

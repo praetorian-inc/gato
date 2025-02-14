@@ -2,17 +2,14 @@ import logging
 import os
 import re
 import shutil
-import subprocess
 import tempfile
 
 from gato.cli import Output
 from gato.models import Repository, Secret, Runner
 from gato.github import Api
 from gato.workflow_parser import WorkflowParser
-from gato.artifact_secrets_scanner.artifact_files import RecursiveExtractor, ExtractionError
+from gato.artifact_secrets_scanner.artifact_files import RecursiveExtractor
 from gato.artifact_secrets_scanner.noseyparker import NPHandler
-
-
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +18,9 @@ class RepositoryEnum():
     """Repository specific enumeration functionality.
     """
 
-    def __init__(self, api: Api, skip_log: bool, output_yaml, skip_sh_runner_enum: False, wf_artifacts_enum: False, include_all_artifact_secrets: False):
+    def __init__(self, api: Api, skip_log: bool, output_yaml,
+                 skip_sh_runner_enum: False, wf_artifacts_enum: False,
+                 include_all_artifact_secrets: False):
         """Initialize enumeration class with instantiated API wrapper and CLI
         parameters.
 
@@ -108,30 +107,30 @@ class RepositoryEnum():
                 logger.warning("Attmpted to parse invalid yaml!")
 
         return runner_wfs
-    
+
     def scan_wf_artifacts(self, repository: Repository):
         """
         Scan workflow artifacts for secrets using noseyparker.
-        
+
         Downloads recent workflow artifacts, extracts them, and scans for secrets.
         Only processes unique artifact names and unexpired artifacts.
-        
+
         Args:
             repository: Repository object to scan artifacts for
         """
 
         Output.info(f"Scanning {repository.name} for workflow artifacts...")
-        #repository.name = "sokkaofthewatertribe/actionstest"
-        sanitized_org_repo_name = repository.name.replace("/","_")
+        # repository.name = "sokkaofthewatertribe/actionstest"
+        sanitized_org_repo_name = repository.name.replace("/", "_")
         # Create temporary directories for processing
         artifact_dir = tempfile.mkdtemp(prefix=f'.{sanitized_org_repo_name}_artifacts')
         extracted_dir = tempfile.mkdtemp(prefix=f'.{sanitized_org_repo_name}_extracted')
         np_data_file = f'.{sanitized_org_repo_name}_np.dat'
         np_output_dir = '/tmp/.artifact_np_output'
         os.makedirs(np_output_dir, exist_ok=True)
-        
+
         try:
-            # Modify these constraints as desired    
+            # Modify these constraints as desired
 
             # Track unique artifact names we've processed
             processed_names = set()
@@ -139,15 +138,16 @@ class RepositoryEnum():
             processed_sizes = set()
             artifact_count = 0
             # Cap at 50 artifacts per repo, do this to prevent infinite looping and reduce the time. Increase this as needed.
-            max_artifacts = 50 
-            # The artifact secrets scanner will only download `max_large_downloads` number of downloads grater than this file size
-            large_download_size_in_bytes = 536870912 
-            max_large_downloads = 10 
+            max_artifacts = 50
+            # The artifact secrets scanner will only download `max_large_downloads`
+            # number of downloads grater than this file size
+            large_download_size_in_bytes = 536870912
+            max_large_downloads = 10
             # The maximum size of a file that will be downloaded
             max_size = 2684354560
             large_downloads = 0
 
-            # Get artifacts page by page        
+            # Get artifacts page by page
             page = 1
             while artifact_count < max_artifacts:
 
@@ -155,34 +155,37 @@ class RepositoryEnum():
                     f"/repos/{repository.name}/actions/artifacts",
                     params={"per_page": 100, "page": page}
                 )
-                
+
                 if artifacts.status_code != 200:
                     Output.error(f"Failed to get artifacts for {repository.name}")
                     break
-                    
+
                 artifacts = artifacts.json()
-                
+
                 if not artifacts["artifacts"]:
                     break
 
                 for artifact in artifacts["artifacts"]:
                     # Skip if we've hit our limit
                     if artifact_count >= max_artifacts or artifact["expired"]:
-                        artifact_count = max_artifacts + 1 # breaks loop once we see the first expired artifact
+                        artifact_count = max_artifacts + 1  # breaks loop once we see the first expired artifact
                         break
-                        
+
                     # Skip if we have already processed name or if the arifact is greater than the max size
                     if artifact["name"] in processed_names or int(artifact["size_in_bytes"]) > max_size:
                         continue
 
                     # Skip if it's large and we've already processed an artifact for this repo of that exact size
-                    if int(artifact["size_in_bytes"]) > large_download_size_in_bytes/2 and artifact["size_in_bytes"] in processed_sizes:
+                    if int(artifact["size_in_bytes"]) > large_download_size_in_bytes / 2 \
+                            and artifact["size_in_bytes"] in processed_sizes:
                         continue
-                    
+
                     if artifact["size_in_bytes"] > large_download_size_in_bytes:
                         if large_downloads >= max_large_downloads:
                             if large_downloads == max_large_downloads:
-                                print(f"Maximum number of large downloads reached for {repository.name}. Increase max_large_downloads if desired.")
+                                print("Maximum number of large downloads "
+                                      f"reached for {repository.name}. "
+                                      "Increase max_large_downloads if desired.")
                             large_downloads += 1
                             continue
                         large_downloads += 1
@@ -194,19 +197,19 @@ class RepositoryEnum():
                         archive_resp = self.api.call_get(
                             artifact["archive_download_url"].replace("https://api.github.com", "")
                         )
-                        
+
                         if archive_resp.status_code != 200:
                             print("Error downloading artifact. Make sure PAT has actions scope.")
                             continue
                         processed_names.add(artifact["name"])
                         processed_sizes.add(artifact["size_in_bytes"])
-                        # Save with workflow run ID prefix                        
-                        artifact_name = re.sub(r'[^a-zA-Z0-9.-]', '_', f"{artifact['workflow_run']['id']}_{artifact['name']}.zip")
+                        # Save with workflow run ID prefix
+                        artifact_name = re.sub(r'[^a-zA-Z0-9.-]', '_',
+                                               f"{artifact['workflow_run']['id']}_{artifact['name']}.zip")
                         artifact_path = os.path.join(artifact_dir, f"{artifact_name}")
-                        
+
                         with open(artifact_path, 'wb') as f:
                             f.write(archive_resp.content)
-                        file_size = os.path.getsize(artifact_path)
 
                         # Update file extension based on content type
                         if archive_resp.headers.get('content-type') == 'application/gzip':
@@ -234,21 +237,17 @@ class RepositoryEnum():
                             nphandler = NPHandler(repository, url, workflow_id, self.include_all_artifact_secrets)
                             nphandler.np_scan_and_report(np_data_file, np_output_dir, sanitized_org_repo_name, extracted_dir)
                             extractor.cleanup()
-                        
+
                     except Exception as e:
                         logger.warning(f"Error processing artifact {artifact['name']}: {e}")
                         continue
-                        
+
                 page += 1
-                
-        
 
         finally:
             # Cleanup again just in case
             shutil.rmtree(artifact_dir, ignore_errors=True)
             shutil.rmtree(extracted_dir, ignore_errors=True)
-
- 
 
     def enumerate_repository(self, repository: Repository, large_org_enum=False):
         """Enumerate a repository, and check everything relevant to

@@ -64,7 +64,9 @@ class Enumerator:
         self.wf_artifacts_enum = wf_artifacts_enum
         self.skip_sh_runner_enum = skip_sh_runner_enum
         self.include_all_artifact_secrets = include_all_artifact_secrets
-        self.repo_e = RepositoryEnum(self.api, skip_log, output_yaml, skip_sh_runner_enum, wf_artifacts_enum, include_all_artifact_secrets)
+        self.repo_e = RepositoryEnum(self.api, skip_log, output_yaml,
+                                     skip_sh_runner_enum, wf_artifacts_enum,
+                                     include_all_artifact_secrets)
         self.org_e = OrganizationEnum(self.api)
 
     def __setup_user_info(self):
@@ -192,7 +194,6 @@ class Enumerator:
                     self.repo_e.construct_workflow_cache(result.json()['data']['nodes'])
                 else:
                     Output.warn("GraphQL query failed, will revert to REST workflow query for impacted repositories!")
-    
 
         for repo in enum_list:
             Output.tabbed(

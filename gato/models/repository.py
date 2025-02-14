@@ -34,8 +34,6 @@ class Repository():
         self.wf_artifact_np_findings: list[NpFinding] = []
         self.artifact_snippets = set()
 
-
-
     def is_admin(self):
         return self.permission_data.get('admin', False)
 

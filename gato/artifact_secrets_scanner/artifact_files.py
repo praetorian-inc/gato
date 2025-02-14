@@ -17,14 +17,13 @@ This module supports multiple compression formats including:
 
 Example usage:
     from recursive_extractor import RecursiveExtractor
-    
+
     extractor = RecursiveExtractor()
     extractor.extract("path/to/archive.zip")
     extractor.cleanup()
 """
 
 import os
-import sys
 import zipfile
 import tarfile
 import py7zr
@@ -35,10 +34,8 @@ import shutil
 import logging
 import psutil
 from pathlib import Path
-import threading
-from typing import Optional, Set, Dict, Callable, List, Tuple
+from typing import Optional, Set
 from dataclasses import dataclass
-from concurrent.futures import ThreadPoolExecutor
 from tqdm import tqdm
 
 logger = logging.getLogger(__name__)
@@ -48,9 +45,11 @@ class ExtractionError(Exception):
     """Base exception for extraction errors."""
     pass
 
+
 class InsufficientSpaceError(ExtractionError):
     """Raised when there isn't enough disk space for extraction."""
     pass
+
 
 @dataclass
 class ExtractionStats:
@@ -61,9 +60,10 @@ class ExtractionStats:
     total_size: int = 0
     extracted_size: int = 0
 
+
 class CompressionHandler:
     """Internal handler for different compression formats."""
-    
+
     def __init__(self):
         self.logger = logger
         self.supported_extensions = {
@@ -93,7 +93,7 @@ class CompressionHandler:
             file_size = os.path.getsize(file_path)
             needed_space = file_size * 2
             free_space = psutil.disk_usage(os.path.dirname(extract_path)).free
-            
+
             if free_space < needed_space:
                 raise InsufficientSpaceError(
                     f"Not enough space for extraction. Need {needed_space // 1024 // 1024}MB, "
@@ -132,7 +132,7 @@ class CompressionHandler:
         try:
             # Create all parent directories
             os.makedirs(extract_path, exist_ok=True)
-            
+
             with rarfile.RarFile(file_path, 'r') as rar_ref:
                 rar_ref.extractall(extract_path)
             return True
@@ -188,10 +188,10 @@ class CompressionHandler:
         try:
             # Create all parent directories
             os.makedirs(extract_path, exist_ok=True)
-            
+
             # Get the output path
             output_path = os.path.join(extract_path, Path(file_path).stem)
-            
+
             # Extract the file
             with gzip.open(file_path, 'rb') as gz_ref:
                 with open(output_path, 'wb') as out_ref:
@@ -206,7 +206,7 @@ class CompressionHandler:
         try:
             # Create all parent directories
             os.makedirs(extract_path, exist_ok=True)
-            
+
             output_path = os.path.join(extract_path, Path(file_path).stem)
             with bz2.open(file_path, 'rb') as bz2_ref:
                 with open(output_path, 'wb') as out_ref:
@@ -224,19 +224,19 @@ class CompressionHandler:
             os.makedirs(extract_path, exist_ok=True)
 
             self.check_space(file_path, extract_path)
-            
+
             file_path_lower = str(file_path).lower()
-            
+
             if file_path_lower.endswith(('.tar.gz', '.tar.bz2', '.tgz')):
                 return self._handle_tar(file_path, extract_path)
-            
+
             file_ext = Path(file_path).suffix.lower()
             if file_ext in self.supported_extensions:
                 return self.supported_extensions[file_ext](file_path, extract_path)
-            
+
             self.logger.warning(f"Unsupported file format: {file_path}")
             return False
-            
+
         except InsufficientSpaceError as e:
             self.logger.error(str(e))
             return False
@@ -244,77 +244,76 @@ class CompressionHandler:
             self.logger.error(f"Unexpected error extracting {file_path}: {e}")
             return False
 
+
 class RecursiveExtractor:
     """
     Main class for handling recursive extraction of compressed files.
-    
+
     Attributes:
         logger (logging.Logger): Logger instance for tracking operations
         processed_files (Set[str]): Set of already processed files
         extraction_path (str): Path where files are being extracted
     """
-    
+
     def __init__(self):
         """
         Initialize the extractor.
-        
+
         Args:
             log_file (str): Path to the log file
             log_level (int): Logging level (e.g., logging.INFO)
         """
         self.logger = logger
-        
-        
+
         # Add handlers if they don't exist
         if not self.logger.handlers:
 
-            
             # Console handler
             ch = logging.StreamHandler()
             ch.setFormatter(logging.Formatter('%(levelname)s - %(message)s'))
             self.logger.addHandler(ch)
-        
+
         self.handler = CompressionHandler()
         self.processed_files: Set[str] = set()
         self.extraction_path: Optional[str] = None
 
-    def extract(self, 
-             file_path: str, 
-             custom_extract_path: Optional[str] = None,
-             max_workers: int = 1) -> bool:
+    def extract(self,
+                file_path: str,
+                custom_extract_path: Optional[str] = None,
+                max_workers: int = 1) -> bool:
         """
         Extract a compressed file and all nested compressed files within it.
-        
+
         Args:
             file_path (str): Path to the compressed file
             custom_extract_path (str, optional): Custom extraction path
-        
+
         Returns:
             bool: True if extraction was successful, False otherwise
-        
+
         Raises:
             ExtractionError: If there's an error during extraction
         """
         try:
             if not os.path.exists(file_path):
                 raise ExtractionError("The specified file does not exist")
-            
+
             if not os.path.isfile(file_path):
                 raise ExtractionError("The specified path is not a file")
-                
+
             if not self.handler.is_compressed_file(file_path):
                 raise ExtractionError("The specified file is not a supported compressed file")
-            
+
             self.extraction_path = custom_extract_path or f"{file_path}_extracted"
-            
+
             # Extract the initial compressed file
             if not self.handler.extract_file(file_path, self.extraction_path):
                 raise ExtractionError("Failed to extract initial compressed file")
-            
+
             self._extract_recursive(self.extraction_path)
             self.logger.debug("Extraction process completed successfully!")
             return True
-            
+
         except KeyboardInterrupt:
             self.logger.warning("\nExtraction interrupted by user")
             if self.extraction_path:
@@ -335,17 +334,17 @@ class RecursiveExtractor:
         for root, _, files in os.walk(current_path):
             for file in files:
                 file_path = os.path.join(root, file)
-                
+
                 if file_path in self.processed_files:
                     continue
-                
+
                 if self.handler.is_compressed_file(file_path):
                     self.logger.debug(f"Processing compressed file: {file_path}")
                     new_extract_path = os.path.join(
                         os.path.dirname(file_path),
                         f"{Path(file).stem}_extracted"
                     )
-                    
+
                     if self.handler.extract_file(file_path, new_extract_path):
                         self.processed_files.add(file_path)
                         self._extract_recursive(new_extract_path)
@@ -362,14 +361,14 @@ class RecursiveExtractor:
     def cleanup(self) -> bool:
         """
         Clean up the extracted files.
-        
+
         Returns:
             bool: True if cleanup was successful, False otherwise
         """
 
         if not self.extraction_path or not os.path.exists(self.extraction_path):
             return True
-            
+
         try:
             shutil.rmtree(self.extraction_path)
             return True
