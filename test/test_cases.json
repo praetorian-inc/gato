@@ -73,7 +73,7 @@
                 "type": "stdout"
             },
             {
-                "expect": "About to enumerate 1 repos within the GHRunnerPlayground organization!",
+                "expect": "About to enumerate 2 repos within the GHRunnerPlayground organization!",
                 "type": "stdout"
             }
         ],
