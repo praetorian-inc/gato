@@ -23,7 +23,7 @@
                 "type": "stdout"
             },
             {
-                "expect": "About to enumerate 3 repos within the GHRunnerPlayground organization!",
+                "expect": "About to enumerate 4 repos within the GHRunnerPlayground organization!",
                 "type": "stdout"
             },
             {
@@ -54,7 +54,7 @@
                 "type": "stdout"
             },
             {
-                "expect": "About to enumerate 3 repos within the GHRunnerPlayground organization!",
+                "expect": "About to enumerate 4 repos within the GHRunnerPlayground organization!",
                 "type": "stdout"
             }
         ],
@@ -88,7 +88,7 @@
                 "type": "stdout"
             },
             {
-                "expect": "About to enumerate 3 repos within the GHRunnerPlayground organization!",
+                "expect": "About to enumerate 4 repos within the GHRunnerPlayground organization!",
                 "type": "stdout"
             },
             {
@@ -111,7 +111,7 @@
                 "type": "stdout"
             },
             {
-                "expect": "About to enumerate 3 repos within the GHRunnerPlayground organization!",
+                "expect": "About to enumerate 4 repos within the GHRunnerPlayground organization!",
                 "type": "stdout"
             },
             {
@@ -276,7 +276,7 @@
                 "type": "stdout"
             },
             {
-                "expect": "About to enumerate 3 repos within the GHRunnerPlayground organization!",
+                "expect": "About to enumerate 4 repos within the GHRunnerPlayground organization!",
                 "type": "stdout"
             },
             {
@@ -299,7 +299,7 @@
         "invocation": "gato -s enum --target GHRunnerPlayground -oJ integration_test.json",
         "assertions": [
             {
-                "expect": "About to enumerate 3 repos within the GHRunnerPlayground organization!",
+                "expect": "About to enumerate 4 repos within the GHRunnerPlayground organization!",
                 "type": "stdout"
             },
             {

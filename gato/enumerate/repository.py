@@ -19,8 +19,7 @@ class RepositoryEnum():
     """
 
     def __init__(self, api: Api, skip_log: bool, output_yaml,
-                 skip_sh_runner_enum: False, wf_artifacts_enum: False,
-                 include_all_artifact_secrets: False):
+                 skip_sh_runner_enum: False):
         """Initialize enumeration class with instantiated API wrapper and CLI
         parameters.
 
@@ -32,8 +31,6 @@ class RepositoryEnum():
         self.skip_log = skip_log
         self.output_yaml = output_yaml
         self.skip_sh_runner_enum = skip_sh_runner_enum
-        self.wf_artifacts_enum = wf_artifacts_enum
-        self.include_all_artifact_secrets = include_all_artifact_secrets
 
     def __perform_runlog_enumeration(self, repository: Repository):
         """Enumerate for the presence of a self-hosted runner based on
@@ -102,13 +99,13 @@ class RepositoryEnum():
             # At this point we only know the extension, so handle and
             #  ignore malformed yml files.
             except Exception as parse_error:
-
-                print(f"{wf}: {str(parse_error)}")
+                Output.error(f"{wf}: {str(parse_error)}")
                 logger.warning("Attmpted to parse invalid yaml!")
 
         return runner_wfs
 
-    def scan_wf_artifacts(self, repository: Repository):
+    def enumerate_workflow_artifacts(self, repository: Repository,
+                                     include_all_artifact_secrets: False):
         """
         Scan workflow artifacts for secrets using noseyparker.
 
@@ -120,13 +117,14 @@ class RepositoryEnum():
         """
 
         Output.info(f"Scanning {repository.name} for workflow artifacts...")
-        # repository.name = "sokkaofthewatertribe/actionstest"
         sanitized_org_repo_name = repository.name.replace("/", "_")
         # Create temporary directories for processing
-        artifact_dir = tempfile.mkdtemp(prefix=f'.{sanitized_org_repo_name}_artifacts')
-        extracted_dir = tempfile.mkdtemp(prefix=f'.{sanitized_org_repo_name}_extracted')
-        np_data_file = f'.{sanitized_org_repo_name}_np.dat'
-        np_output_dir = '/tmp/.artifact_np_output'
+        tmp_dir = "./artifact_tmp"
+        os.makedirs(tmp_dir, exist_ok=True)
+        artifact_dir = tempfile.mkdtemp(dir=tmp_dir, prefix=f".{sanitized_org_repo_name}_artifacts")
+        extracted_dir = tempfile.mkdtemp(dir=tmp_dir, prefix=f".{sanitized_org_repo_name}_extracted")
+        np_data_file = f"{tmp_dir}/.{sanitized_org_repo_name}_np.dat"
+        np_output_dir = f"{tmp_dir}/.artifact_np_output"
         os.makedirs(np_output_dir, exist_ok=True)
 
         try:
@@ -134,10 +132,12 @@ class RepositoryEnum():
 
             # Track unique artifact names we've processed
             processed_names = set()
-            # Track unique artifact sizes we've processed if the sizes are above large_download_size_in_bytes/2
+            # Track unique artifact sizes we've processed if the sizes are above
+            # large_download_size_in_bytes / 2
             processed_sizes = set()
             artifact_count = 0
-            # Cap at 50 artifacts per repo, do this to prevent infinite looping and reduce the time. Increase this as needed.
+            # Cap at 50 artifacts per repo, do this to prevent infinite looping
+            # and reduce the time. Increase this as needed.
             max_artifacts = 50
             # The artifact secrets scanner will only download `max_large_downloads`
             # number of downloads grater than this file size
@@ -183,9 +183,9 @@ class RepositoryEnum():
                     if artifact["size_in_bytes"] > large_download_size_in_bytes:
                         if large_downloads >= max_large_downloads:
                             if large_downloads == max_large_downloads:
-                                print("Maximum number of large downloads "
-                                      f"reached for {repository.name}. "
-                                      "Increase max_large_downloads if desired.")
+                                Output.warn("Maximum number of large downloads "
+                                            f"reached for {repository.name}. "
+                                            "Increase max_large_downloads if desired.")
                             large_downloads += 1
                             continue
                         large_downloads += 1
@@ -199,7 +199,7 @@ class RepositoryEnum():
                         )
 
                         if archive_resp.status_code != 200:
-                            print("Error downloading artifact. Make sure PAT has actions scope.")
+                            Output.error("Error downloading artifact. Make sure PAT has actions scope.")
                             continue
                         processed_names.add(artifact["name"])
                         processed_sizes.add(artifact["size_in_bytes"])
@@ -234,7 +234,7 @@ class RepositoryEnum():
                             # Cleanup and np scanning will happen even if extraction fails
                             url = artifact["url"]
                             workflow_id = artifact["workflow_run"]["id"]
-                            nphandler = NPHandler(repository, url, workflow_id, self.include_all_artifact_secrets)
+                            nphandler = NPHandler(repository, url, workflow_id, include_all_artifact_secrets)
                             nphandler.np_scan_and_report(np_data_file, np_output_dir, sanitized_org_repo_name, extracted_dir)
                             extractor.cleanup()
 
@@ -248,6 +248,7 @@ class RepositoryEnum():
             # Cleanup again just in case
             shutil.rmtree(artifact_dir, ignore_errors=True)
             shutil.rmtree(extracted_dir, ignore_errors=True)
+            shutil.rmtree(tmp_dir, ignore_errors=True)
 
     def enumerate_repository(self, repository: Repository, large_org_enum=False):
         """Enumerate a repository, and check everything relevant to
@@ -306,9 +307,6 @@ class RepositoryEnum():
                 # Only display permissions (beyond having none) if runner is
                 # detected.
                 repository.sh_runner_access = True
-
-        if self.wf_artifacts_enum:
-            self.scan_wf_artifacts(repository)
 
     def enumerate_repository_secrets(
             self, repository: Repository):

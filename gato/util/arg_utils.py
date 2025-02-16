@@ -1,5 +1,7 @@
 import argparse
 import os
+import subprocess
+import shutil
 import re
 
 
@@ -126,3 +128,22 @@ def read_file_and_validate_lines(filepath: str, regex: str):
                 )
             lines.append(match.group(0))
     return lines
+
+
+def is_command_available(command: str):
+    # First check if it's available as a binary
+    if shutil.which(command):
+        return True
+
+    try:
+        # Use -l to get a login shell that sources .profile
+        shell = os.environ.get('SHELL', '/bin/sh')
+        result = subprocess.run(
+            [shell, '-l', '-c', f'command -v {command}'],
+            capture_output=True,
+            text=True
+        )
+        return result.returncode == 0
+
+    except subprocess.SubprocessError:
+        return False

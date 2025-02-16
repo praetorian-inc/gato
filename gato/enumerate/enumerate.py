@@ -65,8 +65,7 @@ class Enumerator:
         self.skip_sh_runner_enum = skip_sh_runner_enum
         self.include_all_artifact_secrets = include_all_artifact_secrets
         self.repo_e = RepositoryEnum(self.api, skip_log, output_yaml,
-                                     skip_sh_runner_enum, wf_artifacts_enum,
-                                     include_all_artifact_secrets)
+                                     skip_sh_runner_enum)
         self.org_e = OrganizationEnum(self.api)
 
     def __setup_user_info(self):
@@ -203,6 +202,9 @@ class Enumerator:
             self.repo_e.enumerate_repository(repo, large_org_enum=len(enum_list) > 100)
             self.repo_e.enumerate_repository_secrets(repo)
 
+            if self.wf_artifacts_enum:
+                self.repo_e.enumerate_workflow_artifacts(repo, self.include_all_artifact_secrets)
+
             Recommender.print_repo_secrets(
                 self.user_perms['scopes'],
                 repo.secrets
@@ -239,6 +241,10 @@ class Enumerator:
             )
             self.repo_e.enumerate_repository(repo)
             self.repo_e.enumerate_repository_secrets(repo)
+
+            if self.wf_artifacts_enum:
+                self.repo_e.enumerate_workflow_artifacts(repo, self.include_all_artifact_secrets)
+
             Recommender.print_repo_secrets(
                 self.user_perms['scopes'],
                 repo.secrets + repo.org_secrets

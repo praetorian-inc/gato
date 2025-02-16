@@ -6,7 +6,6 @@ from packaging import version
 
 from colorama import Fore, Style
 from gato.cli import RED_DASH
-import shutil
 
 
 from gato.enumerate import Enumerator
@@ -18,6 +17,7 @@ from gato import util
 from gato.util.arg_utils import StringType
 from gato.util.arg_utils import WriteableDir
 from gato.util.arg_utils import ReadableFile
+from gato.util.arg_utils import is_command_available
 import gato.git as git
 from gato.cli import Output
 
@@ -90,15 +90,13 @@ def cli(args):
 def validate_noseyparker(arguments, parser):
     args_dict = vars(arguments)
 
-    if "enum_wf_artifacts" in args_dict and args_dict["enum_wf_artifacts"] is True:
-        retv = shutil.which('noseyparker')
-
-        if not retv:
-            parser.error(
-                f"{Fore.RED} [-] The 'noseyparker' application is either not installed, "
-                "or not present on the path! To install, download a release from "
-                "https://github.com/praetorian-inc/noseyparker/releases and place it in your $PATH."
-            )
+    if "enum_wf_artifacts" in args_dict and args_dict["enum_wf_artifacts"] \
+            and not is_command_available("noseyparker"):
+        parser.error(
+            f"{Fore.RED} [-] The 'noseyparker' application is either not installed, "
+            "or not present on the path! To install, download a release from "
+            "https://github.com/praetorian-inc/noseyparker/releases and place it in your $PATH."
+        )
 
 
 def validate_arguments(args, parser):

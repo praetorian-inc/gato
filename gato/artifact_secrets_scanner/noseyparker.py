@@ -18,10 +18,11 @@ class NPHandler:
         self.include_all_artifact_secrets = include_all_artifact_secrets
 
     def np_scan_and_report(self, np_data_file, np_output_dir, sanitized_org_repo_name, extracted_dir):
-        scan_cmd = f"noseyparker scan -d /tmp/{np_data_file} {extracted_dir}"
+        shell = os.environ.get('SHELL', '/bin/sh')
+
+        scan_cmd = f"noseyparker scan -d {np_data_file} {extracted_dir}"
         scan_result = subprocess.run(
-            scan_cmd,
-            shell=True,
+            [shell, '-l', '-c', scan_cmd],
             capture_output=True,
             text=True
         )
@@ -32,15 +33,14 @@ class NPHandler:
 
         # Generate report
         report_path = os.path.join(np_output_dir, f"{sanitized_org_repo_name}_np.json")
-        report_cmd = f"noseyparker report -d  /tmp/{np_data_file} -f json -o {report_path}"
+        report_cmd = f"noseyparker report -d  {np_data_file} -f json -o {report_path}"
         report_result = subprocess.run(
-            report_cmd,
-            shell=True,
+            [shell, '-l', '-c', report_cmd],
             capture_output=True,
             text=True
         )
 
-        shutil.rmtree(f"/tmp/{np_data_file}", ignore_errors=False)
+        shutil.rmtree(f"{np_data_file}", ignore_errors=False)
 
         if report_result.returncode != 0:
             Output.error(f"Noseyparker report failed: {report_result.stderr}")
