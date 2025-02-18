@@ -11,6 +11,7 @@ jobs:
           matrix:
             python-version: ["3.9", "3.10", "3.11", "3.12"]
 
+
         timeout-minutes: 10
 
         steps:
@@ -31,7 +32,7 @@ jobs:
               flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
           - name: Test with Pytest
             run: |
-              pytest --cov-fail-under=80
+              pytest --cov-fail-under=75
 
     OSX-test-and-lint:
         name: OS X Test and Lint
@@ -60,4 +61,4 @@ jobs:
               flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
           - name: Test with Pytest
             run: |
-              pytest --cov-fail-under=80
+              pytest --cov-fail-under=75

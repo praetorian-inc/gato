@@ -2,6 +2,7 @@ import datetime
 
 from typing import List
 
+from gato.models.npfinding import NpFinding
 from gato.models.runner import Runner
 from gato.models.secret import Secret
 
@@ -30,6 +31,8 @@ class Repository():
         self.sh_runner_access = False
         self.accessible_runners: List[Runner] = []
         self.runners: List[Runner] = []
+        self.wf_artifact_np_findings: list[NpFinding] = []
+        self.artifact_snippets = set()
 
     def is_admin(self):
         return self.permission_data.get('admin', False)
@@ -113,6 +116,8 @@ class Repository():
             "repo_runners": [runner.toJSON() for runner in self.runners],
             "repo_secrets": [secret.toJSON() for secret in self.secrets],
             "org_secrets": [secret.toJSON() for secret in self.org_secrets],
+            "wf_artifact_np_findings": [npfinding.toJSON() for npfinding in self.wf_artifact_np_findings],
+
         }
 
         return representation
