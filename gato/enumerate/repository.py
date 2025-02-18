@@ -1,10 +1,15 @@
 import logging
+import os
+import re
+import shutil
+import tempfile
 
 from gato.cli import Output
 from gato.models import Repository, Secret, Runner
 from gato.github import Api
 from gato.workflow_parser import WorkflowParser
-
+from gato.artifact_secrets_scanner.artifact_files import RecursiveExtractor
+from gato.artifact_secrets_scanner.noseyparker import NPHandler
 
 logger = logging.getLogger(__name__)
 
@@ -13,7 +18,8 @@ class RepositoryEnum():
     """Repository specific enumeration functionality.
     """
 
-    def __init__(self, api: Api, skip_log: bool, output_yaml):
+    def __init__(self, api: Api, skip_log: bool, output_yaml,
+                 skip_sh_runner_enum: False):
         """Initialize enumeration class with instantiated API wrapper and CLI
         parameters.
 
@@ -24,6 +30,7 @@ class RepositoryEnum():
         self.workflow_cache = {}
         self.skip_log = skip_log
         self.output_yaml = output_yaml
+        self.skip_sh_runner_enum = skip_sh_runner_enum
 
     def __perform_runlog_enumeration(self, repository: Repository):
         """Enumerate for the presence of a self-hosted runner based on
@@ -92,11 +99,156 @@ class RepositoryEnum():
             # At this point we only know the extension, so handle and
             #  ignore malformed yml files.
             except Exception as parse_error:
-
-                print(f"{wf}: {str(parse_error)}")
+                Output.error(f"{wf}: {str(parse_error)}")
                 logger.warning("Attmpted to parse invalid yaml!")
 
         return runner_wfs
+
+    def enumerate_workflow_artifacts(self, repository: Repository,
+                                     include_all_artifact_secrets: False):
+        """
+        Scan workflow artifacts for secrets using noseyparker.
+
+        Downloads recent workflow artifacts, extracts them, and scans for secrets.
+        Only processes unique artifact names and unexpired artifacts.
+
+        Args:
+            repository: Repository object to scan artifacts for
+        """
+
+        Output.info(f"Scanning {repository.name} for workflow artifacts...")
+        sanitized_org_repo_name = repository.name.replace("/", "_")
+        # Create temporary directories for processing
+        tmp_dir = "./artifact_tmp"
+        os.makedirs(tmp_dir, exist_ok=True)
+        artifact_dir = tempfile.mkdtemp(dir=tmp_dir, prefix=f".{sanitized_org_repo_name}_artifacts")
+        extracted_dir = tempfile.mkdtemp(dir=tmp_dir, prefix=f".{sanitized_org_repo_name}_extracted")
+        np_data_file = f"{tmp_dir}/.{sanitized_org_repo_name}_np.dat"
+        np_output_dir = f"{tmp_dir}/.artifact_np_output"
+        os.makedirs(np_output_dir, exist_ok=True)
+
+        try:
+            # Modify these constraints as desired
+
+            # Track unique artifact names we've processed
+            processed_names = set()
+            # Track unique artifact sizes we've processed if the sizes are above
+            # large_download_size_in_bytes / 2
+            processed_sizes = set()
+            artifact_count = 0
+            # Cap at 50 artifacts per repo, do this to prevent infinite looping
+            # and reduce the time. Increase this as needed.
+            max_artifacts = 50
+            # The artifact secrets scanner will only download `max_large_downloads`
+            # number of downloads grater than this file size
+            large_download_size_in_bytes = 536870912
+            max_large_downloads = 10
+            # The maximum size of a file that will be downloaded
+            max_size = 2684354560
+            large_downloads = 0
+
+            # Get artifacts page by page
+            page = 1
+            while artifact_count < max_artifacts:
+
+                artifacts = self.api.call_get(
+                    f"/repos/{repository.name}/actions/artifacts",
+                    params={"per_page": 100, "page": page}
+                )
+
+                if artifacts.status_code != 200:
+                    Output.error(f"Failed to get artifacts for {repository.name}")
+                    break
+
+                artifacts = artifacts.json()
+
+                if not artifacts["artifacts"]:
+                    break
+
+                for artifact in artifacts["artifacts"]:
+                    # Skip if we've hit our limit
+                    if artifact_count >= max_artifacts or artifact["expired"]:
+                        artifact_count = max_artifacts + 1  # breaks loop once we see the first expired artifact
+                        break
+
+                    # Skip if we have already processed name or if the arifact is greater than the max size
+                    if artifact["name"] in processed_names or int(artifact["size_in_bytes"]) > max_size:
+                        continue
+
+                    # Skip if it's large and we've already processed an artifact for this repo of that exact size
+                    if int(artifact["size_in_bytes"]) > large_download_size_in_bytes / 2 \
+                            and artifact["size_in_bytes"] in processed_sizes:
+                        continue
+
+                    if artifact["size_in_bytes"] > large_download_size_in_bytes:
+                        if large_downloads >= max_large_downloads:
+                            if large_downloads == max_large_downloads:
+                                Output.warn("Maximum number of large downloads "
+                                            f"reached for {repository.name}. "
+                                            "Increase max_large_downloads if desired.")
+                            large_downloads += 1
+                            continue
+                        large_downloads += 1
+
+                    artifact_count += 1
+
+                    try:
+                        # Download the artifact
+                        archive_resp = self.api.call_get(
+                            artifact["archive_download_url"].replace("https://api.github.com", "")
+                        )
+
+                        if archive_resp.status_code != 200:
+                            Output.error("Error downloading artifact. Make sure PAT has actions scope.")
+                            continue
+                        processed_names.add(artifact["name"])
+                        processed_sizes.add(artifact["size_in_bytes"])
+                        # Save with workflow run ID prefix
+                        artifact_name = re.sub(r'[^a-zA-Z0-9.-]', '_',
+                                               f"{artifact['workflow_run']['id']}_{artifact['name']}.zip")
+                        artifact_path = os.path.join(artifact_dir, f"{artifact_name}")
+
+                        with open(artifact_path, 'wb') as f:
+                            f.write(archive_resp.content)
+
+                        # Update file extension based on content type
+                        if archive_resp.headers.get('content-type') == 'application/gzip':
+                            new_path = artifact_path[:-4] + '.gz'
+                            os.rename(artifact_path, new_path)
+                            artifact_path = new_path
+
+                        # Extract recursively
+                        extractor = RecursiveExtractor(
+                        )
+
+                        try:
+
+                            success = extractor.extract(
+                                artifact_path,
+                                custom_extract_path=extracted_dir,
+                                max_workers=4  # Use 4 threads for parallel processing
+                            )
+                            if success:
+                                logger.debug("Recursive extraction completed successfully!")
+                        finally:
+                            # Cleanup and np scanning will happen even if extraction fails
+                            url = artifact["url"]
+                            workflow_id = artifact["workflow_run"]["id"]
+                            nphandler = NPHandler(repository, url, workflow_id, include_all_artifact_secrets)
+                            nphandler.np_scan_and_report(np_data_file, np_output_dir, sanitized_org_repo_name, extracted_dir)
+                            extractor.cleanup()
+
+                    except Exception as e:
+                        logger.warning(f"Error processing artifact {artifact['name']}: {e}")
+                        continue
+
+                page += 1
+
+        finally:
+            # Cleanup again just in case
+            shutil.rmtree(artifact_dir, ignore_errors=True)
+            shutil.rmtree(extracted_dir, ignore_errors=True)
+            shutil.rmtree(tmp_dir, ignore_errors=True)
 
     def enumerate_repository(self, repository: Repository, large_org_enum=False):
         """Enumerate a repository, and check everything relevant to
@@ -116,44 +268,45 @@ class RepositoryEnum():
             Output.error("The user cannot push or pull, skipping.")
             return
 
-        if repository.is_admin():
-            runners = self.api.get_repo_runners(repository.name)
+        if not self.skip_sh_runner_enum:
+            if repository.is_admin():
+                runners = self.api.get_repo_runners(repository.name)
 
-            if runners:
-                repo_runners = [
-                    Runner(
-                        runner,
-                        machine_name=None,
-                        os=runner['os'],
-                        status=runner['status'],
-                        labels=runner['labels']
-                    )
-                    for runner in runners
-                ]
+                if runners:
+                    repo_runners = [
+                        Runner(
+                            runner,
+                            machine_name=None,
+                            os=runner['os'],
+                            status=runner['status'],
+                            labels=runner['labels']
+                        )
+                        for runner in runners
+                    ]
 
-                repository.set_runners(repo_runners)
+                    repository.set_runners(repo_runners)
 
-        workflows = self.__perform_yml_enumeration(repository)
+            workflows = self.__perform_yml_enumeration(repository)
 
-        if len(workflows) > 0:
-            repository.add_self_hosted_workflows(workflows)
-            runner_detected = True
+            if len(workflows) > 0:
+                repository.add_self_hosted_workflows(workflows)
+                runner_detected = True
 
-        if not self.skip_log:
-            # If we are enumerating an organization, only enumerate runlogs if
-            # the workflow suggests a sh_runner.
-            if large_org_enum and runner_detected:
-                self.__perform_runlog_enumeration(repository)
+            if not self.skip_log:
+                # If we are enumerating an organization, only enumerate runlogs if
+                # the workflow suggests a sh_runner.
+                if large_org_enum and runner_detected:
+                    self.__perform_runlog_enumeration(repository)
 
-            # If we are doing internal enum, get the logs, because coverage is
-            # more important here and it's ok if it takes time.
-            elif not repository.is_public() or not large_org_enum:
-                runner_detected = self.__perform_runlog_enumeration(repository)
+                # If we are doing internal enum, get the logs, because coverage is
+                # more important here and it's ok if it takes time.
+                elif not repository.is_public() or not large_org_enum:
+                    runner_detected = self.__perform_runlog_enumeration(repository)
 
-        if runner_detected:
-            # Only display permissions (beyond having none) if runner is
-            # detected.
-            repository.sh_runner_access = True
+            if runner_detected:
+                # Only display permissions (beyond having none) if runner is
+                # detected.
+                repository.sh_runner_access = True
 
     def enumerate_repository_secrets(
             self, repository: Repository):

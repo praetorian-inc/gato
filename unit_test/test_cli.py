@@ -91,7 +91,7 @@ def test_cli_invalid_pat(capfd):
 
 
 def test_cli_double_proxy(capfd):
-    """Test case where conflicing proxies are provided.
+    """Test case where conflicting proxies are provided.
     """
     with pytest.raises(SystemExit):
         cli.cli(["-sp", "socks", "-p", "http", "enumerate", "-t", "test"])

@@ -21,7 +21,7 @@ from gato.attack import CICDAttack
 from gato.cli import Output
 
 logger = logging.getLogger(__name__)
-logging.root.setLevel(logging.DEBUG)
+logging.root.setLevel(logging.INFO)
 
 
 class Attacker:
@@ -38,6 +38,7 @@ class Attacker:
         author_name: str = None,
         timeout: int = 30,
         github_url: str = None,
+        no_sleep: bool = False
     ):
 
         self.api = Api(
@@ -45,6 +46,7 @@ class Attacker:
             socks_proxy=socks_proxy,
             http_proxy=http_proxy,
             github_url=github_url,
+            no_sleep=no_sleep,
         )
 
         self.socks_proxy = socks_proxy
