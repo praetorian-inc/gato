@@ -725,6 +725,7 @@ class Api():
             list: List of run logs for runs that ran on self-hosted runners.
         """
         start_date = datetime.now() - timedelta(days=60)
+
         runs = self.call_get(
             f'/repos/{repo_name}/actions/runs', params={
                 "per_page": "30",
@@ -733,7 +734,7 @@ class Api():
                 "created": f">{start_date.isoformat()}"
             }
         )
-
+   
         # This is a dictionary so we can de-duplicate runner IDs based on
         # the machine_name:runner_name.
         run_logs = {}
@@ -1235,3 +1236,39 @@ class Api():
             return None
 
         return new_commit_sha
+
+    def get_user_repositories(self):
+        """Get repositories that the authenticated user has access to, including personal
+        repositories and repositories they collaborate on.
+        
+        Returns:
+            list: List of repository data dictionaries
+        """
+        repos = []
+        page = 1
+        per_page = 100
+        
+        # Get all repositories the user has access to (including private)
+        while True:
+            result = self.call_get('/user/repos', params={
+                'per_page': per_page,
+                'page': page,
+                'sort': 'updated',
+                'affiliation': 'owner,collaborator,organization_member'
+            })
+            
+            if result.status_code == 200:
+                page_repos = result.json()
+                if not page_repos:
+                    break
+                    
+                repos.extend(page_repos)
+                page += 1
+                
+                if len(page_repos) < per_page:
+                    break
+            else:
+                logger.warning(f"Failed to get user repositories, status code: {result.status_code}")
+                break
+            
+        return repos
