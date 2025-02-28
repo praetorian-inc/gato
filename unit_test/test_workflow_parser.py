@@ -94,6 +94,28 @@ jobs:
           echo "Hello World and version ${{matrix.version}}"
 """
 
+# Test constructor with different inputs
+def test_init_with_empty_string():
+    """Test constructor with an empty string"""
+    parser = WorkflowParser("", "empty_repo", "empty.yml")
+    assert parser.parsed_yml is None
+    assert parser.raw_yaml == ""
+    assert parser.repo_name == "empty_repo"
+    assert parser.wf_name == "empty.yml"
+
+def test_init_with_malformed_yaml():
+    """Test constructor with malformed YAML"""
+    malformed_yaml = """
+    name: 'Malformed YAML
+    jobs:
+      - invalid
+    """
+    parser = WorkflowParser(malformed_yaml, "test_repo", "malformed.yml")
+    # The parser should handle malformed YAML gracefully
+    assert parser.parsed_yml is None
+    assert parser.raw_yaml == malformed_yaml
+    assert parser.repo_name == "test_repo"
+    assert parser.wf_name == "malformed.yml"
 
 def test_parse_workflow():
 
@@ -153,6 +175,44 @@ def test_matrix():
     sh_list = parser.self_hosted()
 
     assert len(sh_list) == 4
+
+
+# Test larger runner regex matching
+def test_larger_runner_regex_matching():
+    """Test that the larger runner regex correctly identifies GitHub-hosted runners"""
+    yml_content = """
+    name: 'Large Runner Test'
+    on:
+      pull_request:
+    
+    jobs:
+      large_job:
+        runs-on: ubuntu-22.04-16core-64gb
+        steps:
+          - name: Test
+            run: echo "Testing on large runner"
+    """
+    
+    parser = WorkflowParser(yml_content, "test/repo", "large_runner.yml")
+    sh_list = parser.self_hosted()
+    
+    # This should not identify as self-hosted because it matches the larger runner regex
+    assert len(sh_list) == 0, "Should not identify GitHub larger runners as self-hosted"
+
+
+# Test output with existing directory
+def test_output_creates_directories():
+    """Test that output creates directories when they don't exist"""
+    parser = WorkflowParser(TEST_WF, 'test_repo', 'test_wf.yml')
+    
+    with patch('os.path.join', return_value='test/path/test_repo/test_wf.yml'):
+        with patch('pathlib.Path.mkdir') as mock_mkdir:
+            with patch("builtins.open", mock_open(read_data="")) as mock_file:
+                result = parser.output('test/path')
+                
+                # Verify directory creation was called
+                mock_mkdir.assert_called_once_with(parents=True, exist_ok=True)
+                assert result is True, "Output should return True on success"
 
 
 # OIDC Tests
@@ -333,6 +393,43 @@ def test_google_cloud_oidc_connection():
     assert gcp_action['assumed_role'] == "Service Account: my-service-account@my-project.iam.gserviceaccount.com", "Should extract service account from action"
 
 
+def test_google_cloud_workload_identity():
+    """Test detection of Google Cloud OIDC connection with workload identity only."""
+    yml_content = """
+    name: GCP Workload Identity Workflow
+    on:
+      push:
+        branches: [ main ]
+    
+    permissions:
+      id-token: write
+      contents: read
+    
+    jobs:
+      deploy-to-gcp:
+        runs-on: ubuntu-latest
+        steps:
+          - uses: actions/checkout@v3
+          - name: Authenticate to Google Cloud
+            uses: google-github-actions/auth@v1
+            with:
+              workload_identity_provider: projects/123456/locations/global/workloadIdentityPools/my-pool/providers/my-provider
+          - name: Deploy
+            run: gcloud app deploy
+    """
+    
+    parser = WorkflowParser(yml_content, "test/repo", "workflow.yml")
+    oidc_jobs = parser.has_oidc_connection()
+    
+    # Filter for the GCP job
+    gcp_job = next((j for j in oidc_jobs if j['job_name'] == 'deploy-to-gcp'), None)
+    assert gcp_job is not None, "Should detect GCP job"
+    
+    # Check if workload identity was detected
+    gcp_action = gcp_job['actions'][0]
+    assert "Workload Identity:" in gcp_action['assumed_role'], "Should extract workload identity provider"
+
+
 def test_azure_oidc_connection():
     """Test detection of Azure OIDC connection with client ID."""
     yml_content = """
@@ -509,3 +606,37 @@ def test_env_var_role_detection():
     # Check if the role was detected from environment variables
     assert job['assumed_role'] == "arn:aws:iam::123456789012:role/env-var-role", "Should detect role from environment variable"
     assert job['provider'] == "Likely AWS", "Should detect likely AWS provider"
+
+
+def test_other_aws_role_format():
+    """Test detection of AWS roles with a different format in the environment variables."""
+    yml_content = """
+    name: AWS Alternative Role Format
+    on:
+      push:
+        branches: [ main ]
+    
+    permissions:
+      id-token: write
+    
+    jobs:
+      aws-deploy:
+        runs-on: ubuntu-latest
+        steps:
+          - uses: actions/checkout@v3
+          - name: Deploy
+            env:
+              AWS_ROLE_TO_ASSUME: arn:aws:iam::123456789012:role/alt-role
+            run: |
+              aws s3 sync . s3://my-bucket/
+    """
+    
+    parser = WorkflowParser(yml_content, "test/repo", "workflow.yml")
+    oidc_jobs = parser.has_oidc_connection()
+    
+    # Find the job
+    job = next((j for j in oidc_jobs if j['job_name'] == 'aws-deploy'), None)
+    assert job is not None, "Should detect job with alternative role format"
+    
+    # Check if the role was detected from environment variables
+    assert job['assumed_role'] == "arn:aws:iam::123456789012:role/alt-role", "Should detect role from AWS_ROLE_TO_ASSUME"
