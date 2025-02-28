@@ -200,6 +200,7 @@ class Enumerator:
                     repo.secrets + repo.org_secrets
                 )
                 Recommender.print_repo_runner_info(repo)
+                Recommender.print_repo_oidc_info(repo)
                 Recommender.print_repo_attack_recommendations(
                     self.user_perms['scopes'], repo
                 )
@@ -299,6 +300,7 @@ class Enumerator:
                 repo.secrets
             )
             Recommender.print_repo_runner_info(repo)
+            Recommender.print_repo_oidc_info(repo)
 
             # Only print info about individual repos if user is admin OR
             # we detect a runner.
@@ -339,6 +341,7 @@ class Enumerator:
                 repo.secrets + repo.org_secrets
             )
             Recommender.print_repo_runner_info(repo)
+            Recommender.print_repo_oidc_info(repo)
             Recommender.print_repo_attack_recommendations(
                 self.user_perms['scopes'], repo
             )
