@@ -76,6 +76,8 @@ class RepositoryEnum():
             list: List of workflows that execute on sh runner, empty otherwise.
         """
         runner_wfs = []
+        oidc_wfs = []  # New list for OIDC workflows
+        oidc_details = []  # List for detailed OIDC information
 
         if repository.name in self.workflow_cache:
             ymls = self.workflow_cache[repository.name]
@@ -87,8 +89,9 @@ class RepositoryEnum():
                 parsed_yml = WorkflowParser(yml, repository.name, wf)
                 if not parsed_yml:
                     continue
+                
+                # Check for self-hosted runners
                 self_hosted_jobs = parsed_yml.self_hosted()
-
                 if self_hosted_jobs:
                     runner_wfs.append(wf)
 
@@ -96,13 +99,26 @@ class RepositoryEnum():
                         success = parsed_yml.output(self.output_yaml)
                         if not success:
                             logger.warning("Failed to write yml to disk!")
+            
+                # Check for OIDC connections
+                oidc_jobs = parsed_yml.has_oidc_connection()
+                if oidc_jobs:
+                    oidc_wfs.append(wf)
+                    for job in oidc_jobs:
+                        # Add workflow filename to each job detail
+                        job['workflow_file'] = wf
+                        oidc_details.append(job)
 
             # At this point we only know the extension, so handle and
             #  ignore malformed yml files.
             except Exception as parse_error:
                 Output.error(f"{wf}: {str(parse_error)}")
-                logger.warning("Attmpted to parse invalid yaml!")
+                logger.warning("Attempted to parse invalid yaml!")
 
+        # Add OIDC workflows to repository
+        repository.add_oidc_workflows(oidc_wfs)
+        repository.set_oidc_details(oidc_details)
+        
         return runner_wfs
 
     def enumerate_workflow_artifacts(self, repository: Repository,
@@ -258,8 +274,8 @@ class RepositoryEnum():
         Args:
             repository (Repository): Wrapper object created from calling the
             API and retrieving a repository.
-            clone (bool, optional):  Whether to use repo contents API
-            in order to analayze the yaml files. Defaults to True.
+            large_org_enum (bool, optional): Whether we're enumerating a large org
+            which affects how runlogs are handled. Defaults to False.
         """
         runner_detected = False
 
