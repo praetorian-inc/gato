@@ -135,7 +135,7 @@ def test_analyze_entrypoints():
 
 
 def test_pull_request_target_trigger():
-
+    """Test that pull_req_target_trigger raises NotImplementedError."""
     parser = WorkflowParser(TEST_WF, 'unit_test', 'main.yml')
 
     with pytest.raises(NotImplementedError):
