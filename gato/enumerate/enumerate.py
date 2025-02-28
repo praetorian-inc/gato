@@ -112,10 +112,11 @@ class Enumerator:
         return [Organization({'login': org}, self.user_perms['scopes'], True) for org in orgs]
 
     def self_enumeration(self):
-        """Enumerates all organizations associated with the authenticated user.
+        """Enumerates all organizations associated with the authenticated user,
+        as well as personal/collaborator repositories.
 
         Returns:
-            bool: False if the PAT is not valid for enumeration.
+            list: List of Organization wrapper objects.
         """
 
         self.__setup_user_info()
@@ -127,6 +128,7 @@ class Enumerator:
             Output.error("Self-enumeration requires the repo scope!")
             return False
 
+        # Get organizations the user belongs to
         orgs = self.api.check_organizations()
 
         Output.info(
@@ -137,7 +139,46 @@ class Enumerator:
         for org in orgs:
             Output.tabbed(f"{Output.bright(org)}")
 
-        org_wrappers = list(map(self.enumerate_organization, orgs))
+        org_wrappers = []
+        for org in orgs:
+            org_wrapper = self.enumerate_organization(org)
+            if org_wrapper:
+                org_wrappers.append(org_wrapper)
+
+        # Add enumeration of personal and collaborator repositories
+        Output.info("Enumerating personal and collaborator repositories...")
+        
+        # Get repositories the user has access to 
+        user_repos = self.api.get_user_repositories()
+        
+        if user_repos:
+            Output.info(f"Found {len(user_repos)} personal/collaborator repositories")
+            
+            # We want to analyze all repositories thoroughly, don't treat this as a large enum
+            # since personal repositories are typically fewer and more important
+            large_enum = len(user_repos) > 100
+            
+            for repo_data in user_repos:
+                repo = Repository(repo_data)
+                Output.tabbed(f"Enumerating: {Output.bright(repo.name)}!")
+                
+                # Pass large_org_enum parameter as False to ensure we analyze run logs
+                self.repo_e.enumerate_repository(repo, large_org_enum=large_enum)
+                self.repo_e.enumerate_repository_secrets(repo)
+                
+                if self.wf_artifacts_enum:
+                    self.repo_e.enumerate_workflow_artifacts(repo, self.include_all_artifact_secrets)
+                    
+                Recommender.print_repo_secrets(
+                    self.user_perms['scopes'],
+                    repo.secrets + repo.org_secrets
+                )
+                Recommender.print_repo_runner_info(repo)
+                Recommender.print_repo_attack_recommendations(
+                    self.user_perms['scopes'], repo
+                )
+        else:
+            Output.info("No personal or collaborator repositories found")
 
         return org_wrappers
 

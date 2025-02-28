@@ -48,6 +48,7 @@ class RepositoryEnum():
         )
 
         if wf_runs:
+            print("wf_runs: ", wf_runs)
             for wf_run in wf_runs:
                 runner = Runner(
                     wf_run['runner_name'],
