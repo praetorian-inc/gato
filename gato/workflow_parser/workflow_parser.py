@@ -51,7 +51,13 @@ class WorkflowParser():
             repo_name (str): Name of the repository.
             workflow_name (str): name of the workflow file
         """
-        self.parsed_yml = yaml.safe_load(workflow_yml)
+        try:
+            self.parsed_yml = yaml.safe_load(workflow_yml)
+        except yaml.YAMLError as e:
+            # Handle malformed YAML gracefully
+            logger.warning(f"Failed to parse YAML in {workflow_name}: {e}")
+            self.parsed_yml = None
+        
         self.raw_yaml = workflow_yml
         self.repo_name = repo_name
         self.wf_name = workflow_name
@@ -221,9 +227,28 @@ class WorkflowParser():
                 if isinstance(permissions, dict) and permissions.get('id-token') == 'write':
                     job_has_oidc = True
                     oidc_details['permissions'] = permissions
+            # Also consider workflow-level permissions
+            elif workflow_level_oidc:
+                # Only mark this as an OIDC job if it actually uses OIDC
+                # through specific actions or environment variables
+                pass  # This will be determined below by checking steps
             
             # Check for OIDC provider actions
             if 'steps' in job_details:
+                # First, check for environment variables that might indicate OIDC usage
+                for step in job_details.get('steps', []):
+                    if 'env' in step:
+                        env_vars = step['env']
+                        # AWS role in environment variables
+                        aws_role = env_vars.get('AWS_ROLE_ARN') or env_vars.get('AWS_ROLE_TO_ASSUME')
+                        if aws_role:
+                            job_has_oidc = True
+                            if not oidc_details['assumed_role']:
+                                oidc_details['assumed_role'] = aws_role
+                            if oidc_details['provider'] == 'Unknown':
+                                oidc_details['provider'] = 'Likely AWS'
+                
+                # Then check for specific provider actions
                 for step in job_details['steps']:
                     if 'uses' in step:
                         action = step['uses'].split('@')[0].lower()
@@ -301,16 +326,6 @@ class WorkflowParser():
                     oidc_details['provider'] = 'Likely Google Cloud'
                 elif any('azure' in str(step).lower() for step in job_details.get('steps', [])):
                     oidc_details['provider'] = 'Likely Azure'
-                
-                # Look for environment variables that might indicate role assumption
-                for step in job_details.get('steps', []):
-                    if 'env' in step:
-                        env_vars = step['env']
-                        # AWS role in environment variables
-                        aws_role = env_vars.get('AWS_ROLE_ARN') or env_vars.get('AWS_ROLE_TO_ASSUME')
-                        if aws_role and not oidc_details['assumed_role']:
-                            oidc_details['assumed_role'] = aws_role
-                            break
             
             if job_has_oidc:
                 oidc_jobs.append(oidc_details)
