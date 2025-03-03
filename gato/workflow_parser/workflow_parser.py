@@ -51,7 +51,13 @@ class WorkflowParser():
             repo_name (str): Name of the repository.
             workflow_name (str): name of the workflow file
         """
-        self.parsed_yml = yaml.safe_load(workflow_yml)
+        try:
+            self.parsed_yml = yaml.safe_load(workflow_yml)
+        except yaml.YAMLError as e:
+            # Handle malformed YAML gracefully
+            logger.warning(f"Failed to parse YAML in {workflow_name}: {e}")
+            self.parsed_yml = None
+        
         self.raw_yaml = workflow_yml
         self.repo_name = repo_name
         self.wf_name = workflow_name
@@ -161,3 +167,167 @@ class WorkflowParser():
         checks out the remote head in a subsequent call.
         """
         raise NotImplementedError()
+
+    def has_oidc_connection(self):
+        """Analyze if any jobs within the workflow use OIDC connections
+        to authenticate with cloud providers or external services.
+
+        Returns:
+            list: List of dictionaries containing OIDC connection details
+        """
+        oidc_jobs = []
+        
+        if not self.parsed_yml or 'jobs' not in self.parsed_yml:
+            return oidc_jobs
+        
+        # OIDC provider mappings
+        oidc_provider_actions = {
+            'aws-actions/configure-aws-credentials': 'AWS',
+            'google-github-actions/auth': 'Google Cloud',
+            'azure/login': 'Azure',
+            'hashicorp/vault-action': 'HashiCorp Vault',
+            'auth0/action-credentials': 'Auth0',
+            'actions/create-github-app-token': 'GitHub App',
+            'actions/create-github-token': 'GitHub',
+            'azure/aks-set-context': 'Azure AKS',
+            'aws-actions/amazon-ecr-login': 'AWS ECR',
+            'gcp-auth': 'Google Cloud'
+        }
+        
+        # Check workflow-level permissions first
+        workflow_level_oidc = False
+        if 'permissions' in self.parsed_yml:
+            permissions = self.parsed_yml['permissions']
+            if isinstance(permissions, dict) and permissions.get('id-token') == 'write':
+                # Workflow has OIDC permissions at top level
+                workflow_level_oidc = True
+                oidc_jobs.append({
+                    'job_name': 'workflow',
+                    'type': 'Workflow-level OIDC permissions',
+                    'provider': 'Unknown (permissions set at workflow level)',
+                    'permissions': permissions,
+                    'assumed_role': None
+                })
+        
+        # Check each job
+        for jobname, job_details in self.parsed_yml['jobs'].items():
+            job_has_oidc = False
+            oidc_details = {
+                'job_name': jobname,
+                'type': 'Job-level OIDC permissions',
+                'provider': 'Unknown',
+                'permissions': None,
+                'actions': [],
+                'assumed_role': None
+            }
+            
+            # Check job-specific permissions
+            if 'permissions' in job_details:
+                permissions = job_details['permissions']
+                if isinstance(permissions, dict) and permissions.get('id-token') == 'write':
+                    job_has_oidc = True
+                    oidc_details['permissions'] = permissions
+            # Also consider workflow-level permissions
+            elif workflow_level_oidc:
+                # Only mark this as an OIDC job if it actually uses OIDC
+                # through specific actions or environment variables
+                pass  # This will be determined below by checking steps
+            
+            # Check for OIDC provider actions
+            if 'steps' in job_details:
+                # First, check for environment variables that might indicate OIDC usage
+                for step in job_details.get('steps', []):
+                    if 'env' in step:
+                        env_vars = step['env']
+                        # AWS role in environment variables
+                        aws_role = env_vars.get('AWS_ROLE_ARN') or env_vars.get('AWS_ROLE_TO_ASSUME')
+                        if aws_role:
+                            job_has_oidc = True
+                            if not oidc_details['assumed_role']:
+                                oidc_details['assumed_role'] = aws_role
+                            if oidc_details['provider'] == 'Unknown':
+                                oidc_details['provider'] = 'Likely AWS'
+                
+                # Then check for specific provider actions
+                for step in job_details['steps']:
+                    if 'uses' in step:
+                        action = step['uses'].split('@')[0].lower()
+                        for pattern, provider in oidc_provider_actions.items():
+                            if pattern.lower() in action:
+                                job_has_oidc = True
+                                oidc_details['provider'] = provider
+                                
+                                action_info = {
+                                    'action': step['uses'],
+                                    'provider': provider,
+                                    'step_name': step.get('name', 'Unnamed step'),
+                                    'assumed_role': None
+                                }
+                                
+                                # Extract role information based on provider
+                                if 'with' in step:
+                                    with_params = step['with']
+                                    
+                                    # AWS role extraction
+                                    if provider == 'AWS':
+                                        role = with_params.get('role-to-assume') or with_params.get('aws-role-to-assume')
+                                        if role:
+                                            action_info['assumed_role'] = role
+                                            if not oidc_details['assumed_role']:
+                                                oidc_details['assumed_role'] = role
+                                    
+                                    # Google Cloud role extraction
+                                    elif provider == 'Google Cloud':
+                                        service_account = with_params.get('service_account') or with_params.get('credentials_json')
+                                        workload_identity_provider = with_params.get('workload_identity_provider')
+                                        
+                                        if service_account:
+                                            action_info['assumed_role'] = f"Service Account: {service_account}"
+                                            if not oidc_details['assumed_role']:
+                                                oidc_details['assumed_role'] = f"Service Account: {service_account}"
+                                        elif workload_identity_provider:
+                                            action_info['assumed_role'] = f"Workload Identity: {workload_identity_provider}"
+                                            if not oidc_details['assumed_role']:
+                                                oidc_details['assumed_role'] = f"Workload Identity: {workload_identity_provider}"
+                                    
+                                    # Azure role extraction
+                                    elif provider == 'Azure':
+                                        client_id = with_params.get('client-id')
+                                        tenant_id = with_params.get('tenant-id')
+                                        subscription_id = with_params.get('subscription-id')
+                                        
+                                        if client_id:
+                                            role_info = f"Client ID: {client_id}"
+                                            if tenant_id:
+                                                role_info += f", Tenant: {tenant_id}"
+                                            if subscription_id:
+                                                role_info += f", Subscription: {subscription_id}"
+                                                
+                                            action_info['assumed_role'] = role_info
+                                            if not oidc_details['assumed_role']:
+                                                oidc_details['assumed_role'] = role_info
+                                    
+                                    # HashiCorp Vault role extraction
+                                    elif provider == 'HashiCorp Vault':
+                                        role = with_params.get('role') or with_params.get('vault-role')
+                                        if role:
+                                            action_info['assumed_role'] = f"Vault Role: {role}"
+                                            if not oidc_details['assumed_role']:
+                                                oidc_details['assumed_role'] = f"Vault Role: {role}"
+                                
+                                oidc_details['actions'].append(action_info)
+            
+            # If no specific provider was found but the job has OIDC permissions
+            if job_has_oidc and not oidc_details['actions'] and oidc_details['provider'] == 'Unknown':
+                # Try to infer provider from other job details
+                if any('aws' in str(step).lower() for step in job_details.get('steps', [])):
+                    oidc_details['provider'] = 'Likely AWS'
+                elif any('gcp' in str(step).lower() or 'google' in str(step).lower() for step in job_details.get('steps', [])):
+                    oidc_details['provider'] = 'Likely Google Cloud'
+                elif any('azure' in str(step).lower() for step in job_details.get('steps', [])):
+                    oidc_details['provider'] = 'Likely Azure'
+            
+            if job_has_oidc:
+                oidc_jobs.append(oidc_details)
+        
+        return oidc_jobs

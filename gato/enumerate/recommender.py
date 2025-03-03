@@ -100,6 +100,136 @@ class Recommender:
                 )
 
     @staticmethod
+    def print_repo_oidc_info(repository: Repository):
+        """Prints information about OIDC connections in repository workflows.
+
+        Args:
+            repository (Repository): Repository wrapper object.
+        """
+        if repository.oidc_enabled and repository.oidc_workflow_names:
+            Output.result(
+                f"The repository contains {len(repository.oidc_workflow_names)} "
+                f"workflow(s) that use OIDC connections for authentication!"
+            )
+            
+            # Group OIDC connections by provider
+            providers = {}
+            for detail in repository.oidc_details:
+                provider = detail.get('provider', 'Unknown')
+                if provider not in providers:
+                    providers[provider] = []
+                providers[provider].append(detail)
+            
+            # Display OIDC connections grouped by provider
+            for provider, details in providers.items():
+                Output.tabbed(
+                    f"OIDC Provider: {Output.bright(provider)} - "
+                    f"Found in {len(details)} job(s)"
+                )
+                
+                for detail in details:
+                    workflow_file = detail.get('workflow_file', 'Unknown workflow')
+                    job_name = detail.get('job_name', 'Unknown job')
+                    
+                    if job_name == 'workflow':
+                        Output.tabbed(
+                            f"  ↳ {Output.bright(workflow_file)}: "
+                            f"Workflow-level OIDC permissions"
+                        )
+                    else:
+                        Output.tabbed(
+                            f"  ↳ {Output.bright(workflow_file)}: "
+                            f"Job '{job_name}'"
+                        )
+                    
+                    # Display assumed role if available
+                    if detail.get('assumed_role'):
+                        Output.tabbed(
+                            f"    ↳ {Output.bright('Assumed Role/Identity')}: {detail['assumed_role']}"
+                        )
+                    
+                    # Display permissions if available
+                    if detail.get('permissions'):
+                        permissions = detail.get('permissions')
+                        Output.tabbed(
+                            f"    ↳ Permissions: {', '.join([f'{k}:{v}' for k,v in permissions.items()])}"
+                        )
+                    
+                    # Display specific actions that use OIDC
+                    actions = detail.get('actions', [])
+                    if actions:
+                        for action in actions:
+                            action_output = f"    ↳ Action: {Output.bright(action.get('action', 'Unknown'))}"
+                            
+                            # Add role information to the action if available and different from job-level role
+                            if action.get('assumed_role') and action['assumed_role'] != detail.get('assumed_role'):
+                                action_output += f" ➡ Role: {action['assumed_role']}"
+                                
+                            Output.tabbed(action_output)
+                            
+                            if 'step_name' in action:
+                                Output.tabbed(f"      ↳ Step: {action['step_name']}")
+            
+            # Security implications
+            Output.inform(
+                "OIDC workflows can potentially obtain credentials for cloud "
+                "resources or external services using GitHub identity."
+            )
+            
+            # Common providers and their security implications
+            if 'AWS' in providers:
+                Output.warn(
+                    "AWS OIDC connections can grant access to AWS resources "
+                    "based on the IAM role being assumed."
+                )
+                
+                # Check if any AWS connections have roles defined
+                aws_roles = set()
+                for detail in providers['AWS']:
+                    if detail.get('assumed_role'):
+                        aws_roles.add(detail['assumed_role'])
+                    for action in detail.get('actions', []):
+                        if action.get('assumed_role'):
+                            aws_roles.add(action['assumed_role'])
+                
+                if aws_roles:
+                    for role in aws_roles:
+                        Output.tabbed(f"  ↳ IAM Role: {Output.bright(role)}")
+                        
+                        # Extract account ID from role ARN if possible
+                        if role.startswith('arn:aws:iam::') and ':role/' in role:
+                            try:
+                                account_id = role.split(':')[4]
+                                Output.tabbed(f"    ↳ AWS Account ID: {Output.bright(account_id)}")
+                            except:
+                                pass
+            
+            if 'Google Cloud' in providers:
+                Output.warn(
+                    "Google Cloud OIDC connections can grant access to GCP resources "
+                    "based on the service account permissions."
+                )
+            
+            if 'Azure' in providers:
+                Output.warn(
+                    "Azure OIDC connections can grant access to Azure resources "
+                    "based on the assigned roles and permissions."
+                )
+                
+            if 'HashiCorp Vault' in providers:
+                Output.warn(
+                    "HashiCorp Vault OIDC connections can grant access to secrets "
+                    "based on the Vault role's policy."
+                )
+            
+            if repository.can_push():
+                Output.owned(
+                    "You have push access to this repository and can modify "
+                    "workflows with OIDC connections to potentially access "
+                    "external resources and assume these roles!"
+                )
+
+    @staticmethod
     def print_repo_secrets(scopes, secrets: List[Secret]):
         """Prints list of repository level secrets.
 
