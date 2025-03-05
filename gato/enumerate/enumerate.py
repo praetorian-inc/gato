@@ -87,6 +87,9 @@ class Enumerator:
             else:
                 Output.warn("The token has no scopes!")
 
+            if "repo" not in self.user_perms["scopes"]:
+                Output.warn("The token needs repo scope to retrieve workflow artifacts. Skipping workflow artifact secrets scanning.")
+
         return True
 
     def validate_only(self):
