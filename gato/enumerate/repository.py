@@ -117,10 +117,6 @@ class RepositoryEnum():
         """
 
 
-        if "repo" not in self.user_perms["scopes"]:
-            return
-
-
         Output.info(f"Scanning {repository.name} for workflow artifacts...")
         sanitized_org_repo_name = repository.name.replace("/", "_")
         # Create temporary directories for processing
