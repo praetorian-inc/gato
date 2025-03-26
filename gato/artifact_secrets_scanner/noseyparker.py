@@ -103,9 +103,10 @@ class NPHandler:
                                     continue
 
                                 # Excluding api keys in js files as these are commonly false positives
+                                path = match.get('provenance', [{}])[0].get('path', 'Unknown')
                                 if (finding['rule_name'] == "Generic API Key"
-                                        and ".js" in match["path"]) \
-                                        or "README.md" in match["path"]:
+                                        and ".js" in path) \
+                                        or "README.md" in path:
                                     add_finding = False
                                     continue
 
@@ -113,11 +114,12 @@ class NPHandler:
                             newmatch["snippet"] = snippet
 
                             self.repository.artifact_snippets.add(snippet)
+
                         if 'provenance' in match:
                             Output.tabbed(f"Path: {match.get('provenance', [{}])[0].get('path', 'Unknown')}")
                             newmatch["provenance"] = match.get('provenance', [{}])[0].get('path', 'Unknown')
-                        Output.tabbed("---")
 
+                        Output.tabbed("---")
                         np_finding.matches.append(newmatch)
 
                     if add_finding:
