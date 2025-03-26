@@ -97,7 +97,6 @@ class NPHandler:
                                               "example", "anon", "passwd",
                                               "pwd", "secretsmanager",
                                               "secret_config"]
-                                
 
                                 if any(exclusion in snippet for exclusion in exclusions):
                                     add_finding = False
@@ -109,15 +108,17 @@ class NPHandler:
                                         and ".js" in path) \
                                         or "README.md" in path:
                                     add_finding = False
-
                                     continue
+
                             Output.tabbed(f"Match: {snippet}")
                             newmatch["snippet"] = snippet
 
                             self.repository.artifact_snippets.add(snippet)
+
                         if 'provenance' in match:
                             Output.tabbed(f"Path: {match.get('provenance', [{}])[0].get('path', 'Unknown')}")
                             newmatch["provenance"] = match.get('provenance', [{}])[0].get('path', 'Unknown')
+
                         Output.tabbed("---")
                         np_finding.matches.append(newmatch)
 
