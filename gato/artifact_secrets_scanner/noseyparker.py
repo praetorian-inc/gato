@@ -97,18 +97,20 @@ class NPHandler:
                                               "example", "anon", "passwd",
                                               "pwd", "secretsmanager",
                                               "secret_config"]
+                                
 
                                 if any(exclusion in snippet for exclusion in exclusions):
                                     add_finding = False
                                     continue
 
                                 # Excluding api keys in js files as these are commonly false positives
+                                path = match.get('provenance', [{}])[0].get('path', 'Unknown')
                                 if (finding['rule_name'] == "Generic API Key"
-                                        and ".js" in match["path"]) \
-                                        or "README.md" in match["path"]:
+                                        and ".js" in path) \
+                                        or "README.md" in path:
                                     add_finding = False
-                                    continue
 
+                                    continue
                             Output.tabbed(f"Match: {snippet}")
                             newmatch["snippet"] = snippet
 
@@ -117,7 +119,6 @@ class NPHandler:
                             Output.tabbed(f"Path: {match.get('provenance', [{}])[0].get('path', 'Unknown')}")
                             newmatch["provenance"] = match.get('provenance', [{}])[0].get('path', 'Unknown')
                         Output.tabbed("---")
-
                         np_finding.matches.append(newmatch)
 
                     if add_finding:
