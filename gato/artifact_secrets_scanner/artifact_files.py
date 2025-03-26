@@ -172,7 +172,12 @@ class CompressionHandler:
                         if not is_within_directory(path, member_path):
                             self.logger.debug(f"Attempted path traversal in tar file: {member.name}")
                             continue
-                        tar.extract(member, path)
+                        try:
+                            tar.extract(member, path)
+                        except PermissionError:
+                            # Just log and continue if we hit permission issues
+                            self.logger.warning(f"Permission error extracting {member.name}, skipping")
+                            continue
 
                 safe_extract(tar_ref, extract_path)
             return True
