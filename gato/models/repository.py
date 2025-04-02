@@ -26,6 +26,8 @@ class Repository():
         self.org_secrets: List[Secret] = []
         self.sh_workflow_names = []
         self.enum_time = datetime.datetime.now()
+        self.default_branch = ""
+        self.default_branch_protection = None
 
         self.permission_data = self.repo_data['permissions']
         self.sh_runner_access = False
@@ -72,6 +74,10 @@ class Repository():
         """
         self.org_secrets = secrets
 
+    def set_default_branch_protection(self, protections: List):
+        self.default_branch = protections[0]
+        self.default_branch_protection = protections[1]
+
     def set_secrets(self, secrets: List[Secret]):
         """Sets secrets that are attached to this repository.
 
@@ -107,6 +113,8 @@ class Repository():
         representation = {
             "name": self.name,
             "private": self.is_private(),
+            "default_branch": self.default_branch,
+            "default_branch_protection": self.default_branch_protection,
             "enum_time": self.enum_time.ctime(),
             "permissions": self.permission_data,
             "can_fork": self.can_fork(),
