@@ -567,6 +567,16 @@ class Api():
                 " PAT permission level!"
             )
 
+    def get_installation_repos(self):
+        """ """
+        response = self.call_get("/installation/repositories")
+        if response.status_code == 200:
+            return response.json()
+
+    def is_app_token(self):
+        """Returns if the API is using a GitHub App installation token."""
+        return self.pat.startswith("ghs_")
+
     def check_org_repos(self, org: str, type: str):
         """Check repositories present within an organization.
 

@@ -56,6 +56,7 @@ These constraints were optimized such that the Actions Artifacts Secrets Scanner
 - Option to disable sleep
 - Differentates between public and private repos in output
 - Several bug fixes
+- Enumerate support for GitHub App Installation tokens
 
 ## Who is it for?
 
@@ -125,7 +126,7 @@ parameters for each of the tool's modules by running the following:
 * `gato enum -h`
 * `gato attack -h`
 
-The tool requires a GitHub classic PAT in order to function. To create one, log
+The tool requires a GitHub classic  or app installation token in order to function. To create one, log
 in to GitHub and go to [GitHub Developer
 Settings](https://github.com/settings/tokens) 
 and select `Generate New Token` and then `Generate new token (classic)`.
@@ -134,6 +135,8 @@ After creating this token set the `GH_TOKEN` environment variable within your
 shell by running `export GH_TOKEN=<YOUR_CREATED_TOKEN>`. Alternatively, store 
 the token within a secure password manager and enter it when the application 
 prompts you.
+
+If creating a GitHub App Installation token, the app needs to have at least `Actions:read` and `Contents:read`ß to execute the enumeration modules.
 
 For troubleshooting and additional details, such as installing in developer 
 mode or running unit tests, please see the [wiki](https://github.com/praetorian-inc/gato/wiki).
