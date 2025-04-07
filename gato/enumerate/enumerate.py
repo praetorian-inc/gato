@@ -29,6 +29,7 @@ class Enumerator:
         wf_artifacts_enum: str = False,
         skip_sh_runner_enum: str = False,
         include_all_artifact_secrets: bool = False,
+        app_installation_repos: list = [],
 
     ):
         """Initialize enumeration class with arguments sent by user.
@@ -67,6 +68,7 @@ class Enumerator:
         self.repo_e = RepositoryEnum(self.api, skip_log, output_yaml,
                                      skip_sh_runner_enum)
         self.org_e = OrganizationEnum(self.api)
+        self.app_installation_repos = app_installation_repos
 
     def __setup_user_info(self):
 
@@ -75,6 +77,7 @@ class Enumerator:
 
             if installation_info:
                 count = installation_info["total_count"]
+                self.app_installation_repos = installation_info["repositories"]
                 if count > 0:
                     Output.info(
                         f"Gato is using valid a GitHub App installation token!"
@@ -148,7 +151,7 @@ class Enumerator:
             return False
 
         if 'repo' not in self.user_perms['scopes']:
-            Output.error("Self-enumeration requires the repo scope!")
+            Output.error("Self-enumeration with PAT requires the repo scope!")
             return False
 
         orgs = self.api.check_organizations()
@@ -164,6 +167,26 @@ class Enumerator:
         org_wrappers = list(map(self.enumerate_organization, orgs))
 
         return org_wrappers
+    
+    def github_app_self_enumeration(self):
+        
+        self.__setup_user_info()
+
+        if not self.user_perms:
+            return False
+
+        repos = [item["owner"]["login"] + "/" + item["name"] for item in self.app_installation_repos]
+
+        Output.info(
+            f'The GitHub App Installation token has access to {len(repos)} '
+            'repositories! Note that Gato does not determine GitHub App Installation token access level and will only perform read-level analysis.'
+        )
+
+        for repo in repos:
+            Output.tabbed(f"{Output.bright(repo)}")
+
+        return repos
+
 
     def enumerate_organization(self, org: str):
         """Enumerate an entire organization, and check everything relevant to
