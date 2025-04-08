@@ -52,11 +52,9 @@ def load_test_files(request):
     with open(test_wf_path, 'r') as wf_data:
         TEST_WORKFLOW_YML = wf_data.read()
 
-
 @pytest.fixture
 def mock_api():
     with patch("gato.enumerate.enumerate.Api") as mock_api:
-        # Only set up the is_app_token method
         api_instance = mock_api.return_value
         api_instance.is_app_token.return_value = False
         yield mock_api
@@ -140,7 +138,6 @@ def test_enumerate_repo_admin(mock_api, capsys):
     assert "The user is an administrator on the" in escape_ansi(
         print_output
     )
-
 
 
 def test_enumerate_repo_admin_no_wf(mock_api, capsys):
@@ -606,22 +603,24 @@ def test_gh_app_token(mock_api, capfd):
     )
     mock_api.is_app_token.return_value = True
 
-    mock_api.return_value.get_installation_repos.return_value = {
+    mock_api.return_value.get_app_installations.return_value = {
         "total_count": 1,
-        "repositories": ["test/test"]
+        "repositories": [
+            {
+                "owner": {
+                    "login": "test"
+                    },
+                "name": "test"
+                }
+            ]
     }
 
-
-    mock_api.return_value.check_user.return_value = {
-        "user": 'testUser',
-        "scopes": []
-    }
-
-    status = gh_enumeration_runner.self_enumeration()
+    repos = gh_enumeration_runner.app_enumeration()
 
     out, _ = capfd.readouterr()
-    assert "Gato is using valid a GitHub App installation token!" in escape_ansi(out)
-    assert status is False
+    assert "The GitHub App Installation token has access to 1" in escape_ansi(out)
+    assert len(repos) == 1
+    assert "test/test" in escape_ansi(out)
 
 def test_enum_cache(mock_api, capfd):
 

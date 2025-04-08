@@ -262,8 +262,7 @@ def enumerate(args, parser):
         orgs = gh_enumeration_runner.validate_only()
     elif args.self_enumeration:
         if gh_enumeration_runner.api.is_app_token():
-            repo_list = gh_enumeration_runner.github_app_self_enumeration()
-            repos = gh_enumeration_runner.enumerate_repos(repo_list)
+            repos = gh_enumeration_runner.app_enumeration()
         else:
             orgs = gh_enumeration_runner.self_enumeration()
     elif args.target:

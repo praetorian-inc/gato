@@ -567,8 +567,15 @@ class Api():
                 " PAT permission level!"
             )
 
-    def get_installation_repos(self):
-        """ """
+    def get_app_installations(self):
+        """Checks for repositories associated with the authenticated GitHub App
+
+        Returns:
+            dict: Dictionary containingg information about the repos.
+        """
+        if not self.is_app_token():
+            return None
+
         response = self.call_get("/installation/repositories")
         if response.status_code == 200:
             return response.json()
