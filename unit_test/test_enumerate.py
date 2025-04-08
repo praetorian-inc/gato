@@ -52,8 +52,14 @@ def load_test_files(request):
     with open(test_wf_path, 'r') as wf_data:
         TEST_WORKFLOW_YML = wf_data.read()
 
+@pytest.fixture
+def mock_api():
+    with patch("gato.enumerate.enumerate.Api") as mock_api:
+        api_instance = mock_api.return_value
+        api_instance.is_app_token.return_value = False
+        yield mock_api
 
-@patch("gato.enumerate.enumerate.Api")
+
 def test_init(mock_api):
     """Test constructor for enumerator.
     """
@@ -69,7 +75,6 @@ def test_init(mock_api):
     assert gh_enumeration_runner.http_proxy == "localhost:8080"
 
 
-@patch("gato.enumerate.enumerate.Api")
 def test_self_enumerate(mock_api, capsys):
     """Test constructor for enumerator.
     """
@@ -98,7 +103,6 @@ def test_self_enumerate(mock_api, capsys):
     )
 
 
-@patch("gato.enumerate.enumerate.Api")
 def test_enumerate_repo_admin(mock_api, capsys):
     """Test constructor for enumerator.
     """
@@ -136,7 +140,6 @@ def test_enumerate_repo_admin(mock_api, capsys):
     )
 
 
-@patch("gato.enumerate.enumerate.Api")
 def test_enumerate_repo_admin_no_wf(mock_api, capsys):
     """Test constructor for enumerator.
     """
@@ -174,7 +177,7 @@ def test_enumerate_repo_admin_no_wf(mock_api, capsys):
     )
 
 
-@patch("gato.enumerate.enumerate.Api")
+
 def test_enumerate_repo_no_wf_no_admin(mock_api, capsys):
     """Test constructor for enumerator.
     """
@@ -211,7 +214,7 @@ def test_enumerate_repo_no_wf_no_admin(mock_api, capsys):
         escape_ansi(print_output)
 
 
-@patch("gato.enumerate.enumerate.Api")
+
 def test_enumerate_repo_no_wf_maintain(mock_api, capsys):
     """Test constructor for enumerator.
     """
@@ -249,7 +252,7 @@ def test_enumerate_repo_no_wf_maintain(mock_api, capsys):
     )
 
 
-@patch("gato.enumerate.enumerate.Api")
+
 def test_enumerate_repo_only(mock_api, capsys):
     """Test constructor for enumerator.
     """
@@ -287,7 +290,7 @@ def test_enumerate_repo_only(mock_api, capsys):
     )
 
 
-@patch("gato.enumerate.enumerate.Api")
+
 def test_enum_validate(mock_api, capfd):
 
     mock_api.return_value.check_user.return_value = {
@@ -313,7 +316,7 @@ def test_enum_validate(mock_api, capfd):
     )
 
 
-@patch("gato.enumerate.enumerate.Api")
+
 def test_enum_repo(mock_api, capfd):
 
     mock_api.return_value.check_user.return_value = {
@@ -339,7 +342,7 @@ def test_enum_repo(mock_api, capfd):
     )
 
 
-@patch("gato.enumerate.enumerate.Api")
+
 def test_enum_org(mock_api, capfd):
 
     mock_api.return_value.check_user.return_value = {
@@ -433,7 +436,7 @@ def test_enum_org(mock_api, capfd):
     assert "ghrunner-test" in escaped_output
 
 
-@patch("gato.enumerate.enumerate.Api")
+
 def test_enum_repo_runner(mock_api, capfd):
 
     mock_api.return_value.check_user.return_value = {
@@ -497,7 +500,7 @@ def test_enum_repo_runner(mock_api, capfd):
         escaped_output
 
 
-@patch("gato.enumerate.enumerate.Api")
+
 def test_enum_repos(mock_api, capfd):
 
     mock_api.return_value.check_user.return_value = {
@@ -523,7 +526,7 @@ def test_enum_repos(mock_api, capfd):
     )
 
 
-@patch("gato.enumerate.enumerate.Api")
+
 def test_enum_repos_empty(mock_api, capfd):
 
     mock_api.return_value.check_user.return_value = {
@@ -547,7 +550,7 @@ def test_enum_repos_empty(mock_api, capfd):
     mock_api.return_value.get_repository.assert_not_called()
 
 
-@patch("gato.enumerate.enumerate.Api")
+
 def test_bad_token(mock_api):
 
     gh_enumeration_runner = Enumerator(
@@ -565,7 +568,7 @@ def test_bad_token(mock_api):
     assert val is False
 
 
-@patch("gato.enumerate.enumerate.Api")
+
 def test_unscoped_token(mock_api, capfd):
 
     gh_enumeration_runner = Enumerator(
@@ -584,11 +587,41 @@ def test_unscoped_token(mock_api, capfd):
     status = gh_enumeration_runner.self_enumeration()
 
     out, _ = capfd.readouterr()
-    assert "Self-enumeration requires the repo scope!" in escape_ansi(out)
+    assert "Self-enumeration with PAT requires the repo scope!" in escape_ansi(out)
     assert status is False
 
 
 @patch("gato.enumerate.enumerate.Api")
+def test_gh_app_token(mock_api, capfd):
+
+    gh_enumeration_runner = Enumerator(
+        "ghs_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+        socks_proxy=None,
+        http_proxy=None,
+        output_yaml=False,
+        skip_log=True,
+    )
+    mock_api.is_app_token.return_value = True
+
+    mock_api.return_value.get_app_installations.return_value = {
+        "total_count": 1,
+        "repositories": [
+            {
+                "owner": {
+                    "login": "test"
+                    },
+                "name": "test"
+                }
+            ]
+    }
+
+    repos = gh_enumeration_runner.app_enumeration()
+
+    out, _ = capfd.readouterr()
+    assert "The GitHub App Installation token has access to 1" in escape_ansi(out)
+    assert len(repos) == 1
+    assert "test/test" in escape_ansi(out)
+
 def test_enum_cache(mock_api, capfd):
 
     mock_api.return_value.check_user.return_value = {

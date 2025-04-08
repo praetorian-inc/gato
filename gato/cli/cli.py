@@ -114,7 +114,7 @@ def validate_arguments(args, parser):
         )
 
     if not ("ghp_" in gh_token or "gho_" in gh_token or "ghu_" in
-            gh_token or re.match('^[a-fA-F0-9]{40}$', gh_token)):
+            gh_token or "ghs_" in gh_token or re.match('^[a-fA-F0-9]{40}$', gh_token)):
         parser.error(f"{Fore.RED}[!]{Style.RESET_ALL} Provided GitHub PAT is"
                      " malformed!")
 
@@ -261,7 +261,10 @@ def enumerate(args, parser):
     if args.validate:
         orgs = gh_enumeration_runner.validate_only()
     elif args.self_enumeration:
-        orgs = gh_enumeration_runner.self_enumeration()
+        if gh_enumeration_runner.api.is_app_token():
+            repos = gh_enumeration_runner.app_enumeration()
+        else:
+            orgs = gh_enumeration_runner.self_enumeration()
     elif args.target:
         orgs = [gh_enumeration_runner.enumerate_organization(
             args.target

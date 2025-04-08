@@ -29,7 +29,6 @@ class Enumerator:
         wf_artifacts_enum: str = False,
         skip_sh_runner_enum: str = False,
         include_all_artifact_secrets: bool = False,
-
     ):
         """Initialize enumeration class with arguments sent by user.
 
@@ -67,30 +66,53 @@ class Enumerator:
         self.repo_e = RepositoryEnum(self.api, skip_log, output_yaml,
                                      skip_sh_runner_enum)
         self.org_e = OrganizationEnum(self.api)
+        self.app_installed_repos = None
 
     def __setup_user_info(self):
         if not self.user_perms:
-            self.user_perms = self.api.check_user()
-            if not self.user_perms:
-                Output.error("This token cannot be used for enumeration!")
-                return False
+            if self.api.is_app_token():
+                Output.info("Gato is performing GitHub App enumeration!")
 
-            Output.info(
-                    "The authenticated user is: "
-                    f"{Output.bright(self.user_perms['user'])}"
-            )
-            if len(self.user_perms["scopes"]):
-                Output.info(
-                    "The GitHub Classic PAT has the following scopes: "
-                    f'{Output.yellow(", ".join(self.user_perms["scopes"]))}'
-                )
+                installed_repos = self.api.get_app_installations()
+                if not installed_repos:
+                    Output.error("Failed to validate the GitHub App installation token.")
+                    return False
+
+                count = installed_repos["total_count"]
+                repos_j = installed_repos["repositories"]
+
+                if count <= 0:
+                    Output.error("No installed repositories were found!")
+
+                self.user_perms = {
+                    "user": "Github App",
+                    "scopes": [],
+                    "name": "GATO App Mode",
+                }
+
+                self.app_installed_repos = [item["owner"]["login"] + "/" + item["name"] for item in repos_j]
             else:
-                Output.warn("The token has no scopes!")
+                self.user_perms = self.api.check_user()
+                if not self.user_perms:
+                    Output.error("This token cannot be used for enumeration!")
+                    return False
 
-            if self.wf_artifacts_enum and "repo" not in self.user_perms["scopes"]:
-                Output.error("The token needs repo scope to retrieve workflow artifacts. Skipping workflow artifact secrets scanning.")
-                self.wf_artifacts_enum = False
+                Output.info(
+                        "The authenticated user is: "
+                        f"{Output.bright(self.user_perms['user'])}"
+                )
+                if len(self.user_perms["scopes"]):
+                    Output.info(
+                        "The GitHub Classic PAT has the following scopes: "
+                        f'{Output.yellow(", ".join(self.user_perms["scopes"]))}'
+                    )
+                else:
+                    Output.warn("The token has no scopes!")
 
+                if self.wf_artifacts_enum and "repo" not in self.user_perms["scopes"]:
+                    Output.error("The token needs repo scope to retrieve workflow artifacts. "
+                                 "Skipping workflow artifact secrets scanning.")
+                    self.wf_artifacts_enum = False
         return True
 
     def validate_only(self):
@@ -128,7 +150,7 @@ class Enumerator:
             return False
 
         if 'repo' not in self.user_perms['scopes']:
-            Output.error("Self-enumeration requires the repo scope!")
+            Output.error("Self-enumeration with PAT requires the repo scope!")
             return False
 
         orgs = self.api.check_organizations()
@@ -144,6 +166,28 @@ class Enumerator:
         org_wrappers = list(map(self.enumerate_organization, orgs))
 
         return org_wrappers
+
+    def app_enumeration(self):
+        """Enumerates availabe repositories associated with the authenticated GitHub app.
+
+        Returns:
+            bool: False if the token is not valid for enumeration.
+        """
+        if not self.__setup_user_info():
+            return False
+
+        Output.info(
+            f'The GitHub App Installation token has access to {len(self.app_installed_repos)} '
+            'repositories! Note that Gato does not determine GitHub App '
+            'Installation token access level and will only perform read-level '
+            'analysis.')
+
+        Output.info("Accessible Repositories:")
+        for repo in self.app_installed_repos:
+            Output.tabbed(f"{Output.bright(repo)}")
+
+        Output.info("Enumerating each repository")
+        return self.enumerate_repos(self.app_installed_repos)
 
     def enumerate_organization(self, org: str):
         """Enumerate an entire organization, and check everything relevant to

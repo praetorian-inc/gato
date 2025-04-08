@@ -264,7 +264,7 @@ class RepositoryEnum():
 
         repository.update_time()
 
-        if not repository.can_pull():
+        if not repository.can_pull() and not self.api.is_app_token():
             Output.error("The user cannot push or pull, skipping.")
             return
 
