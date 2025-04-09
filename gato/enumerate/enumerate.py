@@ -249,6 +249,7 @@ class Enumerator:
 
             self.repo_e.enumerate_repository(repo, large_org_enum=len(enum_list) > 100)
             self.repo_e.enumerate_repository_secrets(repo)
+            self.repo_e.enumerate_branch_protections(repo)
 
             if self.wf_artifacts_enum:
                 self.repo_e.enumerate_workflow_artifacts(repo, self.include_all_artifact_secrets)
@@ -289,6 +290,7 @@ class Enumerator:
             )
             self.repo_e.enumerate_repository(repo)
             self.repo_e.enumerate_repository_secrets(repo)
+            self.repo_e.enumerate_branch_protections(repo)
 
             if self.wf_artifacts_enum:
                 self.repo_e.enumerate_workflow_artifacts(repo, self.include_all_artifact_secrets)
