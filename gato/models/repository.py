@@ -25,10 +25,13 @@ class Repository():
         self.secrets: List[Secret] = []
         self.org_secrets: List[Secret] = []
         self.sh_workflow_names = []
+        self.oidc_workflow_names = []
+        self.oidc_details = []
         self.enum_time = datetime.datetime.now()
 
         self.permission_data = self.repo_data['permissions']
         self.sh_runner_access = False
+        self.oidc_enabled = False
         self.accessible_runners: List[Runner] = []
         self.runners: List[Runner] = []
         self.wf_artifact_np_findings: list[NpFinding] = []
@@ -101,6 +104,23 @@ class Repository():
         self.sh_runner_access = True
         self.accessible_runners.append(runner)
 
+    def add_oidc_workflows(self, workflows: list):
+        """Add a list of workflow file names that use OIDC connections.
+        """
+        self.oidc_workflow_names.extend(workflows)
+        if workflows:
+            self.oidc_enabled = True
+            
+    def set_oidc_details(self, oidc_details: list):
+        """Sets detailed information about OIDC connections in workflows.
+        
+        Args:
+            oidc_details (list): List of dictionaries with OIDC connection details.
+        """
+        self.oidc_details = oidc_details
+        if oidc_details:
+            self.oidc_enabled = True
+
     def toJSON(self):
         """Converts the repository to a Gato JSON representation.
         """
@@ -111,6 +131,7 @@ class Repository():
             "permissions": self.permission_data,
             "can_fork": self.can_fork(),
             "runner_workflows": [wf for wf in self.sh_workflow_names],
+            "oidc_workflows": [wf for wf in self.oidc_workflow_names],
             "accessible_runners": [runner.toJSON() for runner
                                    in self.accessible_runners],
             "repo_runners": [runner.toJSON() for runner in self.runners],
