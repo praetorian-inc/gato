@@ -74,9 +74,9 @@ class Repository():
         """
         self.org_secrets = secrets
 
-    def set_default_branch_protection(self, protections: List):
-        self.default_branch = protections[0]
-        self.default_branch_protection = protections[1]
+    def set_default_branch_protection(self, branch: str, protection: str):
+        self.default_branch = branch
+        self.default_branch_protection = protection
 
     def set_secrets(self, secrets: List[Secret]):
         """Sets secrets that are attached to this repository.

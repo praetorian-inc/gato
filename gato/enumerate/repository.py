@@ -86,6 +86,7 @@ class RepositoryEnum():
                 parsed_yml = WorkflowParser(yml, repository.name, wf)
                 if not parsed_yml:
                     continue
+
                 self_hosted_jobs = parsed_yml.self_hosted()
                 if self_hosted_jobs:
                     runner_wfs.append(wf)
@@ -93,7 +94,7 @@ class RepositoryEnum():
                     if self.output_yaml:
                         success = parsed_yml.output(self.output_yaml)
                         if not success:
-                            logger.warning("Failed to write yml to disk!")                    
+                            logger.warning("Failed to write yml to disk!")
 
             # At this point we only know the extension, so handle and
             #  ignore malformed yml files.
@@ -102,34 +103,35 @@ class RepositoryEnum():
                 logger.warning("Attmpted to parse invalid yaml!")
 
         return runner_wfs
-    
-    def enumerate_branch_protections(self, repository: Repository):        
+
+    def enumerate_branch_protections(self, repository: Repository):
+        """
+        Check if branch protection is enabled on the default branch.
+
+        Args:
+            repository: Repository object to check branch protections for
+        """
         # Check if the repository has a default branch
         if not repository.repo_data or "default_branch" not in repository.repo_data:
-            Output.info(f"No default branch found for {repository.name}")
+            Output.warn(f"No default branch found for {repository.name}!")
             repository.default_branch = None
-            return
-        
+            return False
+
         default_branch = repository.repo_data["default_branch"]
-        Output.info(f"Default branch for {repository.name} is {default_branch}")
-        
-        # Instead of directly checking protection status, we can check if there are any 
+        Output.info(f"Default branch for {repository.name} is {default_branch}.")
+
+        # Instead of directly checking protection status, we can check if there are any
         # branch protection rules by looking at the branch itself
         branch_info = self.api.call_get(
             f"/repos/{repository.name}/branches/{default_branch}"
         ).json()
-        
+
         # The "protected" field is available in the branch info and readable by users with read access
-        protection_status = "Enabled" if branch_info.get("protected", False) else "Disabled"
-        Output.info(f"Branch protection is {protection_status.lower()} on {default_branch}")
-        
-        # Create a list with the branch name and protection status
-        branch_protection_info = [default_branch, protection_status]
-        
-        # Call repository.set_default_branch_protection() on the list
-        repository.set_default_branch_protection(branch_protection_info)
-        
-        return
+        branch_protection = "Enabled" if branch_info.get("protected", False) else "Disabled"
+        Output.info(f"Branch protection is {branch_protection.lower()} on {default_branch}.")
+
+        repository.set_default_branch_protection(default_branch, branch_protection)
+        return True
 
     def enumerate_workflow_artifacts(self, repository: Repository,
                                      include_all_artifact_secrets: False):
