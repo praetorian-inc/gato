@@ -1006,21 +1006,20 @@ class Api():
         if resp.status_code == 200:
             objects = resp.json()
 
-            for file in objects:
-                if file['type'] == "file" and (
-                    file['name'].endswith(".yml") or
-                    file['name'].endswith(".yaml")
-                ):
-
-                    resp = self.call_get(
-                        f'/repos/{repo_name}/contents/{file["path"]}'
-                    )
-                    if resp.status_code == 200:
-                        resp_data = resp.json()
-                        if 'content' in resp_data:
-                            file_data = base64.b64decode(resp_data['content'])
-                            ymls.append((file['name'], file_data.decode()))
-
+            if type(objects) is list:            
+                for file in objects:
+                    if file['type'] == "file" and (
+                        file['name'].endswith(".yml") or
+                        file['name'].endswith(".yaml")
+                    ):
+                        resp = self.call_get(
+                            f'/repos/{repo_name}/contents/{file["path"]}'
+                        )
+                        if resp.status_code == 200:
+                            resp_data = resp.json()
+                            if 'content' in resp_data:
+                                file_data = base64.b64decode(resp_data['content'])
+                                ymls.append((file['name'], file_data.decode()))
         return ymls
 
     def get_secrets(self, repo_name: str):
