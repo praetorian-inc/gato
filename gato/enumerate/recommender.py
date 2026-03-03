@@ -11,12 +11,12 @@ class Recommender:
 
     @staticmethod
     def print_repo_attack_recommendations(
-        scopes: list, repository: Repository
+        capabilities, repository: Repository
     ):
         """Prints attack recommendations for repositories.
 
         Args:
-            scopes (list): List of scopes for user who ran Gato.
+            capabilities: TokenCapabilities instance for the current token.
             repository (Repository): Repository wrapper object.
         """
         if not repository.sh_runner_access:
@@ -31,7 +31,7 @@ class Recommender:
             Output.owned(
                 "The user is an administrator on the repository!"
             )
-            if "workflow" in scopes:
+            if capabilities.can_write_workflows:
                 Output.result(
                     "The PAT also has the workflow scope, which means a "
                     "custom YAML payload can be used!"
@@ -53,7 +53,7 @@ class Recommender:
                     )
         elif repository.is_maintainer():
             Output.result("The user is a maintainer on the repository!")
-            if "workflow" in scopes:
+            if capabilities.can_write_workflows:
                 Output.result(
                     "The user also has the workflow scope, which means a "
                     "custom YAML payload can be used!"
@@ -75,7 +75,7 @@ class Recommender:
                     )
         elif repository.can_push():
             Output.result("The user can push to the repository!")
-            if "workflow" in scopes:
+            if capabilities.can_write_workflows:
                 Output.owned(
                     "The user also has the workflow scope, which means a "
                     "custom YAML payload can be used!"
@@ -100,18 +100,18 @@ class Recommender:
                 )
 
     @staticmethod
-    def print_repo_secrets(scopes, secrets: List[Secret]):
+    def print_repo_secrets(capabilities, secrets: List[Secret]):
         """Prints list of repository level secrets.
 
         Args:
-            scopes (list): List of OAuth scopes.
+            capabilities: TokenCapabilities instance for the current token.
             secrets (list[Secret]): List of secret wrapper objects.
         """
 
         if not secrets:
             return
 
-        if 'workflow' in scopes:
+        if capabilities.can_write_workflows:
             Output.owned(
                 "The repository can access "
                 f"{Output.bright(len(secrets))} secrets and the "
@@ -206,16 +206,17 @@ class Recommender:
                 )
 
     @staticmethod
-    def print_org_findings(scopes, organization: Organization):
+    def print_org_findings(capabilities, organization: Organization):
         """Prints findings related to an organization, and provides context for
         attacks/future investigation based on the scopes a user has.
 
         Args:
+            capabilities: TokenCapabilities instance for the current token.
             organization (Organization): Organization wrapper object.
         """
         if organization.org_admin_user:
             Output.owned("The user is an organization owner!")
-            if "admin:org" in scopes:
+            if capabilities.can_admin_org:
                 Output.result(
                     f"The token also has the {Output.yellow('admin:org')} "
                     "scope. This token has extensive access to the GitHub"
