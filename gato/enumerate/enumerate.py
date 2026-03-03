@@ -2,7 +2,8 @@ import logging
 
 from gato.github import Api
 from gato.github import GqlQueries
-from gato.models import Repository, Organization
+from gato.github.probe import PermissionProber
+from gato.models import Repository, Organization, TokenCapabilities
 from gato.cli import Output
 from gato.enumerate.repository import RepositoryEnum
 from gato.enumerate.organization import OrganizationEnum
@@ -58,6 +59,7 @@ class Enumerator:
         self.skip_log = skip_log
         self.output_yaml = output_yaml
         self.user_perms = None
+        self.capabilities = None
         self.github_url = github_url
         self.output_json = output_json
         self.wf_artifacts_enum = wf_artifacts_enum
@@ -89,6 +91,7 @@ class Enumerator:
                     "scopes": [],
                     "name": "GATO App Mode",
                 }
+                self.capabilities = TokenCapabilities.for_app_token()
 
                 self.app_installed_repos = [item["owner"]["login"] + "/" + item["name"] for item in repos_j]
             else:
@@ -101,17 +104,58 @@ class Enumerator:
                         "The authenticated user is: "
                         f"{Output.bright(self.user_perms['user'])}"
                 )
-                if len(self.user_perms["scopes"]):
+
+                if self.api.is_fine_grained():
+                    # Fine-grained PAT: probe permissions
+                    prober = PermissionProber(self.api)
+                    repos = prober.discover_accessible_repos()
+
+                    if repos:
+                        # Prefer private repo for probing
+                        probe_target = repos[0]
+                        is_private = probe_target.get("private", False)
+                        repo_name = probe_target["full_name"]
+                        permissions = prober.run_all_probes(
+                            repo_name, is_private
+                        )
+                    else:
+                        permissions = set()
+                        Output.warn("No accessible repositories found for"
+                                    " permission probing!")
+
+                    self.capabilities = TokenCapabilities.from_fine_grained(
+                        user=self.user_perms['user'],
+                        name=self.user_perms.get('name', ''),
+                        permissions=permissions,
+                    )
+
                     Output.info(
-                        "The GitHub Classic PAT has the following scopes: "
-                        f'{Output.yellow(", ".join(self.user_perms["scopes"]))}'
+                        f"Token type: {Output.bright('Fine-Grained PAT')}"
+                    )
+                    Output.info(
+                        "Detected permissions: "
+                        f"{Output.yellow(self.capabilities.scope_summary())}"
                     )
                 else:
-                    Output.warn("The token has no scopes!")
+                    # Classic PAT: read scopes from header
+                    self.capabilities = TokenCapabilities.from_classic_scopes(
+                        user=self.user_perms['user'],
+                        name=self.user_perms.get('name', ''),
+                        scopes=self.user_perms['scopes'],
+                    )
 
-                if self.wf_artifacts_enum and "repo" not in self.user_perms["scopes"]:
-                    Output.error("The token needs repo scope to retrieve workflow artifacts. "
-                                 "Skipping workflow artifact secrets scanning.")
+                    if len(self.user_perms["scopes"]):
+                        Output.info(
+                            "The GitHub Classic PAT has the following scopes: "
+                            f'{Output.yellow(", ".join(self.user_perms["scopes"]))}'
+                        )
+                    else:
+                        Output.warn("The token has no scopes!")
+
+                if self.wf_artifacts_enum and not self.capabilities.can_read_contents:
+                    Output.error("The token needs read access to retrieve"
+                                 " workflow artifacts. Skipping workflow"
+                                 " artifact secrets scanning.")
                     self.wf_artifacts_enum = False
         return True
 
@@ -121,7 +165,7 @@ class Enumerator:
         if not self.__setup_user_info():
             return False
 
-        if 'repo' not in self.user_perms['scopes']:
+        if not self.capabilities.can_read_contents:
             Output.warn("Token does not have sufficient access to list orgs!")
             return False
 
@@ -135,7 +179,7 @@ class Enumerator:
         for org in orgs:
             Output.tabbed(f"{Output.bright(org)}")
 
-        return [Organization({'login': org}, self.user_perms['scopes'], True) for org in orgs]
+        return [Organization({'login': org}, self.capabilities, True) for org in orgs]
 
     def self_enumeration(self):
         """Enumerates all organizations associated with the authenticated user.
@@ -149,7 +193,7 @@ class Enumerator:
         if not self.user_perms:
             return False
 
-        if 'repo' not in self.user_perms['scopes']:
+        if not self.capabilities.can_read_contents:
             Output.error("Self-enumeration with PAT requires the repo scope!")
             return False
 
@@ -211,7 +255,7 @@ class Enumerator:
                 "organization exists!")
             return False
 
-        organization = Organization(details, self.user_perms['scopes'])
+        organization = Organization(details, self.capabilities)
 
         Output.result(f"Enumerating the {Output.bright(org)} organization!")
 
@@ -219,7 +263,7 @@ class Enumerator:
             self.org_e.admin_enum(organization)
 
         Recommender.print_org_findings(
-            self.user_perms['scopes'], organization
+            self.capabilities, organization
         )
 
         enum_list = self.org_e.construct_repo_enum_list(organization)
@@ -255,7 +299,7 @@ class Enumerator:
                 self.repo_e.enumerate_workflow_artifacts(repo, self.include_all_artifact_secrets)
 
             Recommender.print_repo_secrets(
-                self.user_perms['scopes'],
+                self.capabilities,
                 repo.secrets
             )
             Recommender.print_repo_runner_info(repo)
@@ -264,7 +308,7 @@ class Enumerator:
             # we detect a runner.
             if repo.is_admin() or repo.sh_runner_access:
                 Recommender.print_repo_attack_recommendations(
-                    self.user_perms['scopes'], repo
+                    self.capabilities, repo
                 )
 
         return organization
@@ -296,12 +340,12 @@ class Enumerator:
                 self.repo_e.enumerate_workflow_artifacts(repo, self.include_all_artifact_secrets)
 
             Recommender.print_repo_secrets(
-                self.user_perms['scopes'],
+                self.capabilities,
                 repo.secrets + repo.org_secrets
             )
             Recommender.print_repo_runner_info(repo)
             Recommender.print_repo_attack_recommendations(
-                self.user_perms['scopes'], repo
+                self.capabilities, repo
             )
 
             return repo

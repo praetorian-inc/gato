@@ -6,6 +6,7 @@ import json
 from unittest.mock import patch
 
 from gato.enumerate import Enumerator
+from gato.models.token import TokenCapabilities
 from gato.cli import Output
 
 from unit_test.utils import escape_ansi as escape_ansi
@@ -57,6 +58,7 @@ def mock_api():
     with patch("gato.enumerate.enumerate.Api") as mock_api:
         api_instance = mock_api.return_value
         api_instance.is_app_token.return_value = False
+        api_instance.is_fine_grained.return_value = False
         yield mock_api
 
 

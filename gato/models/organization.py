@@ -7,12 +7,12 @@ from gato.models.secret import Secret
 
 class Organization():
 
-    def __init__(self, org_data: dict, user_scopes: list, limited_data: bool = False):
+    def __init__(self, org_data: dict, capabilities, limited_data: bool = False):
         """Wrapper object for an organization.
 
         Args:
             org_data (dict): Org data from GitHub API
-            user_scopes (list): List of OAuth scopes that the PAT has
+            capabilities: TokenCapabilities instance (or list for backwards compat)
             limited_data (bool): Whether limited org_data is present (default: False)
         """
         self.name = None
@@ -30,12 +30,19 @@ class Organization():
 
         self.name = org_data['login']
 
+        # Support both TokenCapabilities and legacy list for backwards compat
+        from gato.models.token import TokenCapabilities
+        if isinstance(capabilities, TokenCapabilities):
+            has_admin_org = capabilities.can_admin_org
+        else:
+            has_admin_org = "admin:org" in capabilities
+
         # If fields such as billing email are populated, then the user MUST
         # be an organization owner. If not, then the user is a member (for
         # private repos) or
         if "billing_email" in org_data and \
                 org_data["billing_email"] is not None:
-            if "admin:org" in user_scopes:
+            if has_admin_org:
                 self.org_admin_scopes = True
             self.org_admin_user = True
             self.org_member = True

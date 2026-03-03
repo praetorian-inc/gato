@@ -56,7 +56,7 @@ def test_assemble_repo_list():
 
     organization = Organization(
         TEST_ORG_DATA,
-        user_scopes=['repo', 'workflow']
+        capabilities=['repo', 'workflow']
     )
 
     repos = gh_enumeration_runner.construct_repo_enum_list(organization)
@@ -74,7 +74,7 @@ def test_admin_enum():
 
     organization = Organization(
         TEST_ORG_DATA,
-        user_scopes=['repo', 'workflow', 'admin:org']
+        capabilities=['repo', 'workflow', 'admin:org']
     )
 
     mock_api.check_org_runners.return_value = {

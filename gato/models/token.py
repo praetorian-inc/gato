@@ -102,6 +102,21 @@ class TokenCapabilities:
         caps.raw_scopes = []
         return caps
 
+    def __contains__(self, scope: str) -> bool:
+        """Backwards-compat: allow 'scope in capabilities' checks.
+
+        Maps classic scope names to capability booleans so that code not yet
+        migrated to capability attributes still works.
+        """
+        scope_map = {
+            "repo": self.can_read_contents,
+            "workflow": self.can_write_workflows,
+            "admin:org": self.can_admin_org,
+        }
+        if scope in scope_map:
+            return scope_map[scope]
+        return scope in self.raw_scopes
+
     def scope_summary(self) -> str:
         """Human-readable string of raw scopes/permissions for display."""
         return ", ".join(self.raw_scopes) if self.raw_scopes else "(none)"
