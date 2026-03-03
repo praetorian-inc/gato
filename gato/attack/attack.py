@@ -16,9 +16,11 @@ from cryptography.hazmat.primitives.ciphers import modes
 import hashlib
 
 from gato.github import Api
+from gato.github.probe import PermissionProber
 from gato.git import Git
 from gato.attack import CICDAttack
 from gato.cli import Output
+from gato.models.token import TokenCapabilities
 
 logger = logging.getLogger(__name__)
 logging.root.setLevel(logging.INFO)
@@ -52,6 +54,7 @@ class Attacker:
         self.socks_proxy = socks_proxy
         self.http_proxy = http_proxy
         self.user_perms = None
+        self.capabilities = None
         self.author_email = author_email
         self.author_name = author_name
         self.timeout = timeout
@@ -75,10 +78,42 @@ class Attacker:
                 "The authenticated user is: "
                 f"{Output.bright(self.user_perms['user'])}"
             )
-            Output.info(
-                "The GitHub Classic PAT has the following scopes: "
-                f'{Output.yellow(", ".join(self.user_perms["scopes"]))}'
-            )
+
+            if self.api.is_fine_grained():
+                # Fine-grained PAT: probe permissions against target
+                prober = PermissionProber(self.api)
+                repos = prober.discover_accessible_repos()
+                if repos:
+                    probe_target = repos[0]
+                    is_private = probe_target.get("private", False)
+                    permissions = prober.run_all_probes(
+                        probe_target["full_name"], is_private
+                    )
+                else:
+                    permissions = set()
+
+                self.capabilities = TokenCapabilities.from_fine_grained(
+                    user=self.user_perms['user'],
+                    name=self.user_perms.get('name', ''),
+                    permissions=permissions,
+                )
+                Output.info(
+                    f"Token type: {Output.bright('Fine-Grained PAT')}"
+                )
+                Output.info(
+                    "Detected permissions: "
+                    f"{Output.yellow(self.capabilities.scope_summary())}"
+                )
+            else:
+                self.capabilities = TokenCapabilities.from_classic_scopes(
+                    user=self.user_perms['user'],
+                    name=self.user_perms.get('name', ''),
+                    scopes=self.user_perms['scopes'],
+                )
+                Output.info(
+                    "The GitHub Classic PAT has the following scopes: "
+                    f'{Output.yellow(", ".join(self.user_perms["scopes"]))}'
+                )
 
         return True
 
@@ -287,8 +322,8 @@ class Attacker:
         if not self.user_perms:
             return False
 
-        if 'repo' in self.user_perms['scopes'] and \
-           'workflow' in self.user_perms['scopes']:
+        if self.capabilities.can_write_contents and \
+           self.capabilities.can_write_workflows:
 
             Output.info(
                 f"Conducting an attack against {Output.bright(target_repo)} as the "
@@ -441,8 +476,8 @@ class Attacker:
         if not self.user_perms:
             return False
 
-        if 'repo' in self.user_perms['scopes'] and \
-           'workflow' in self.user_perms['scopes']:
+        if self.capabilities.can_write_contents and \
+           self.capabilities.can_write_workflows:
 
             Output.info(
                     f"Will be conducting an attack against {Output.bright(target_repo)} as"
@@ -524,8 +559,8 @@ class Attacker:
         if not self.user_perms:
             return False
 
-        if 'repo' in self.user_perms['scopes'] and \
-           'workflow' in self.user_perms['scopes']:
+        if self.capabilities.can_write_contents and \
+           self.capabilities.can_write_workflows:
 
             secret_names = self.__collect_secret_names(target_repo)
 

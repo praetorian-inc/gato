@@ -41,6 +41,7 @@ def test_fork_pr(mock_git, mock_api, mock_time, capsys):
         "name": 'test user',
         "scopes": ['repo', 'workflow']
     }
+    mock_api.return_value.is_fine_grained.return_value = False
 
     mock_api.return_value.get_recent_workflow.return_value = \
         12345
@@ -88,6 +89,7 @@ def test_fork_pr_timeout(mock_git, mock_api, mock_time, capsys):
         "name": 'test user',
         "scopes": ['repo', 'workflow']
     }
+    mock_api.return_value.is_fine_grained.return_value = False
 
     mock_api.return_value.fork_repository.return_value = \
         'testOrg/targetRepo'
@@ -131,6 +133,7 @@ def test_fork_pr_perm(mock_git, mock_api, capsys):
         "name": 'test user',
         "scopes": ['repo']
     }
+    mock_api.return_value.is_fine_grained.return_value = False
 
     mock_api.return_value.proxies = {
         "https": "http://localhost:8080"
@@ -164,6 +167,7 @@ def test_shell_workflow_attack(mock_api, mock_time, capsys):
         "name": 'test user',
         "scopes": ['repo', 'workflow']
     }
+    mock_api.return_value.is_fine_grained.return_value = False
 
     mock_api.return_value.proxies = {
         "https": "http://localhost:8080"
@@ -204,6 +208,7 @@ def test_shell_workflow_attack_perm(mock_api, capsys):
         "name": 'test user',
         "scopes": ['repo']
     }
+    mock_api.return_value.is_fine_grained.return_value = False
 
     mock_api.return_value.proxies = {
         "https": "http://localhost:8080"
@@ -237,6 +242,7 @@ def test_shell_workflow_attack_fail_wf(mock_api, mock_time, capsys):
         "name": 'test user',
         "scopes": ['repo', 'workflow']
     }
+    mock_api.return_value.is_fine_grained.return_value = False
 
     mock_api.return_value.proxies = {
         "https": "http://localhost:8080"
@@ -276,6 +282,7 @@ def test_shell_workflow_attack_fail_timeout(mock_api, mock_time, capsys):
         "name": 'test user',
         "scopes": ['repo', 'workflow']
     }
+    mock_api.return_value.is_fine_grained.return_value = False
 
     mock_api.return_value.proxies = {
         "https": "http://localhost:8080"
@@ -315,6 +322,7 @@ def test_shell_workflow_attack_fail_timeout2(mock_api, mock_time, capsys):
         "name": 'test user',
         "scopes": ['repo', 'workflow']
     }
+    mock_api.return_value.is_fine_grained.return_value = False
 
     mock_api.return_value.proxies = {
         "https": "http://localhost:8080"
@@ -354,6 +362,7 @@ def test_shell_workflow_attack_fail_branch(mock_api, mock_time, capsys):
         "name": 'test user',
         "scopes": ['repo', 'workflow']
     }
+    mock_api.return_value.is_fine_grained.return_value = False
 
     mock_api.return_value.proxies = {
         "https": "http://localhost:8080"
@@ -388,6 +397,7 @@ def test_shell_workflow_attack_fail_branch2(mock_api, mock_time, capsys):
         "name": 'test user',
         "scopes": ['repo', 'workflow']
     }
+    mock_api.return_value.is_fine_grained.return_value = False
 
     mock_api.return_value.proxies = {
         "https": "http://localhost:8080"
@@ -423,6 +433,7 @@ def test_secrets_dump(mock_api, mock_privkey, mock_dec, capsys):
         "name": 'test user',
         "scopes": ['repo', 'workflow']
     }
+    mock_api.return_value.is_fine_grained.return_value = False
     mock_api.return_value.get_secrets.return_value = [{
         "name": "TEST_SECRET"
     }]
@@ -487,6 +498,7 @@ def test_secrets_dump_baduser(mock_api, capsys):
         "name": 'test user',
         "scopes": ['repo']
     }
+    mock_api.return_value.is_fine_grained.return_value = False
 
     gh_attacker = Attacker(
         "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
@@ -514,6 +526,7 @@ def test_secrets_dump_nosecret(mock_api, capsys):
         "name": 'test user',
         "scopes": ['repo', 'workflow']
     }
+    mock_api.return_value.is_fine_grained.return_value = False
 
     mock_api.return_value.get_secrets.return_value = []
     mock_api.return_value.get_repo_org_secrets.return_value = []
@@ -543,6 +556,7 @@ def test_secrets_dump_branchexist(mock_api, capsys):
         "name": 'test user',
         "scopes": ['repo', 'workflow']
     }
+    mock_api.return_value.is_fine_grained.return_value = False
 
     mock_api.return_value.get_secrets.return_value = [{
         "name": "TEST_SECRET"
@@ -575,6 +589,7 @@ def test_secrets_dump_branchfail(mock_api, capsys):
         "name": 'test user',
         "scopes": ['repo', 'workflow']
     }
+    mock_api.return_value.is_fine_grained.return_value = False
 
     mock_api.return_value.get_secrets.return_value = [{
         "name": "TEST_SECRET"
