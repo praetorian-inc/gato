@@ -2,7 +2,7 @@ import logging
 
 from gato.github import Api
 from gato.github import GqlQueries
-from gato.github.probe import PermissionProber
+from gato.github.utils import build_capabilities
 from gato.models import Repository, Organization, TokenCapabilities
 from gato.cli import Output
 from gato.enumerate.repository import RepositoryEnum
@@ -105,52 +105,9 @@ class Enumerator:
                         f"{Output.bright(self.user_perms['user'])}"
                 )
 
-                if self.api.is_fine_grained():
-                    # Fine-grained PAT: probe permissions
-                    prober = PermissionProber(self.api)
-                    repos = prober.discover_accessible_repos()
-
-                    if repos:
-                        # Prefer private repo for probing
-                        probe_target = repos[0]
-                        is_private = probe_target.get("private", False)
-                        repo_name = probe_target["full_name"]
-                        permissions = prober.run_all_probes(
-                            repo_name, is_private
-                        )
-                    else:
-                        permissions = set()
-                        Output.warn("No accessible repositories found for"
-                                    " permission probing!")
-
-                    self.capabilities = TokenCapabilities.from_fine_grained(
-                        user=self.user_perms['user'],
-                        name=self.user_perms.get('name', ''),
-                        permissions=permissions,
-                    )
-
-                    Output.info(
-                        f"Token type: {Output.bright('Fine-Grained PAT')}"
-                    )
-                    Output.info(
-                        "Detected permissions: "
-                        f"{Output.yellow(self.capabilities.scope_summary())}"
-                    )
-                else:
-                    # Classic PAT: read scopes from header
-                    self.capabilities = TokenCapabilities.from_classic_scopes(
-                        user=self.user_perms['user'],
-                        name=self.user_perms.get('name', ''),
-                        scopes=self.user_perms['scopes'],
-                    )
-
-                    if len(self.user_perms["scopes"]):
-                        Output.info(
-                            "The GitHub Classic PAT has the following scopes: "
-                            f'{Output.yellow(", ".join(self.user_perms["scopes"]))}'
-                        )
-                    else:
-                        Output.warn("The token has no scopes!")
+                self.capabilities = build_capabilities(
+                    self.api, self.user_perms
+                )
 
                 if self.wf_artifacts_enum and not self.capabilities.can_read_contents:
                     Output.error("The token needs read access to retrieve"

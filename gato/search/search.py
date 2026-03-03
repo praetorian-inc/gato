@@ -4,6 +4,7 @@ import json
 
 from gato.github import Search
 from gato.github import Api
+from gato.github.utils import build_capabilities
 
 from gato.cli import Output
 
@@ -31,6 +32,7 @@ class Searcher:
         self.socks_proxy = socks_proxy
         self.http_proxy = http_proxy
         self.user_perms = None
+        self.capabilities = None
 
     def __setup_user_info(self):
         """Checks the PAT to ensure that it is valid and retrieves the
@@ -49,13 +51,10 @@ class Searcher:
                 f"The authenticated user is: "
                 f"{Output.bright(self.user_perms['user'])}"
             )
-            if len(self.user_perms["scopes"]) > 0:
-                Output.info(
-                    f"The GitHub Classic PAT has the following scopes: "
-                    f'{Output.yellow(", ".join(self.user_perms["scopes"]))}'
-                )
-            else:
-                Output.warn("The token has no scopes!")
+
+            self.capabilities = build_capabilities(
+                self.api, self.user_perms
+            )
 
         return True
 

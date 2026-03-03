@@ -121,7 +121,6 @@ def validate_arguments(args, parser):
 
     args_dict = vars(args)
     args_dict["gh_token"] = gh_token
-    args_dict["token_type"] = token_type
 
     if args.socks_proxy and args.http_proxy:
         parser.error(

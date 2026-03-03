@@ -16,11 +16,10 @@ from cryptography.hazmat.primitives.ciphers import modes
 import hashlib
 
 from gato.github import Api
-from gato.github.probe import PermissionProber
+from gato.github.utils import build_capabilities
 from gato.git import Git
 from gato.attack import CICDAttack
 from gato.cli import Output
-from gato.models.token import TokenCapabilities
 
 logger = logging.getLogger(__name__)
 logging.root.setLevel(logging.INFO)
@@ -79,41 +78,9 @@ class Attacker:
                 f"{Output.bright(self.user_perms['user'])}"
             )
 
-            if self.api.is_fine_grained():
-                # Fine-grained PAT: probe permissions against target
-                prober = PermissionProber(self.api)
-                repos = prober.discover_accessible_repos()
-                if repos:
-                    probe_target = repos[0]
-                    is_private = probe_target.get("private", False)
-                    permissions = prober.run_all_probes(
-                        probe_target["full_name"], is_private
-                    )
-                else:
-                    permissions = set()
-
-                self.capabilities = TokenCapabilities.from_fine_grained(
-                    user=self.user_perms['user'],
-                    name=self.user_perms.get('name', ''),
-                    permissions=permissions,
-                )
-                Output.info(
-                    f"Token type: {Output.bright('Fine-Grained PAT')}"
-                )
-                Output.info(
-                    "Detected permissions: "
-                    f"{Output.yellow(self.capabilities.scope_summary())}"
-                )
-            else:
-                self.capabilities = TokenCapabilities.from_classic_scopes(
-                    user=self.user_perms['user'],
-                    name=self.user_perms.get('name', ''),
-                    scopes=self.user_perms['scopes'],
-                )
-                Output.info(
-                    "The GitHub Classic PAT has the following scopes: "
-                    f'{Output.yellow(", ".join(self.user_perms["scopes"]))}'
-                )
+            self.capabilities = build_capabilities(
+                self.api, self.user_perms
+            )
 
         return True
 
