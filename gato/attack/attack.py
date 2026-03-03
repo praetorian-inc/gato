@@ -309,7 +309,15 @@ class Attacker:
 
             repo_name = self.api.fork_repository(target_repo)
             if not repo_name:
-                Output.error("Error while forking repository!")
+                if self.api.is_fine_grained():
+                    Output.error(
+                        "Error while forking repository! Fine-grained PATs"
+                        " cannot fork repositories — the fork creates a new"
+                        " repo outside the token's scope. Use a classic PAT"
+                        " with repo + workflow scopes for fork PR attacks."
+                    )
+                else:
+                    Output.error("Error while forking repository!")
                 return False
 
             for i in range(self.timeout):
