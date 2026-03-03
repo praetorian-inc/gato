@@ -44,15 +44,25 @@ def test_cli_no_gh_token(capfd):
     assert "Please enter" in out
 
 
-def test_cli_fine_grained_pat(capfd):
-    """Test case where an unsupported PAT is provided.
+@mock.patch("gato.enumerate.Enumerator.enumerate_organization")
+def test_cli_fine_grained_pat(mock_enumerate, capfd):
+    """Test case where a fine-grained PAT is accepted.
     """
-    os.environ["GH_TOKEN"] = "github_pat_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+    os.environ["GH_TOKEN"] = "github_pat_" + "A" * 22 + "_" + "A" * 59
+
+    cli.cli(["enumerate", "-t", "test"])
+    mock_enumerate.assert_called_once()
+
+
+def test_cli_fine_grained_pat_malformed(capfd):
+    """Test case where a malformed fine-grained PAT is rejected.
+    """
+    os.environ["GH_TOKEN"] = "github_pat_short"
 
     with pytest.raises(SystemExit):
         cli.cli(["enumerate", "-t", "test"])
     out, err = capfd.readouterr()
-    assert "not supported" in err
+    assert "malformed" in err
 
 
 @mock.patch("gato.enumerate.Enumerator.enumerate_organization")

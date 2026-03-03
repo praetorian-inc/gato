@@ -108,18 +108,20 @@ def validate_arguments(args, parser):
     else:
         gh_token = os.environ["GH_TOKEN"]
 
-    if "github_pat_" in gh_token:
-        parser.error(
-            f"{Fore.RED}[!] Fine-grained PATs are currently not supported!"
-        )
-
-    if not ("ghp_" in gh_token or "gho_" in gh_token or "ghu_" in
-            gh_token or "ghs_" in gh_token or re.match('^[a-fA-F0-9]{40}$', gh_token)):
+    # Detect token type
+    if re.match(r"github_pat_[A-Za-z0-9_]{22}_[A-Za-z0-9_]{59}$", gh_token):
+        token_type = "fine_grained"
+    elif ("ghp_" in gh_token or "gho_" in gh_token or "ghu_" in
+            gh_token or "ghs_" in gh_token or
+            re.match('^[a-fA-F0-9]{40}$', gh_token)):
+        token_type = "classic"
+    else:
         parser.error(f"{Fore.RED}[!]{Style.RESET_ALL} Provided GitHub PAT is"
                      " malformed!")
 
     args_dict = vars(args)
     args_dict["gh_token"] = gh_token
+    args_dict["token_type"] = token_type
 
     if args.socks_proxy and args.http_proxy:
         parser.error(
