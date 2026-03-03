@@ -584,6 +584,10 @@ class Api():
         """Returns if the API is using a GitHub App installation token."""
         return self.pat.startswith("ghs_")
 
+    def is_fine_grained(self):
+        """Returns if the API is using a fine-grained personal access token."""
+        return self.pat.startswith("github_pat_")
+
     def check_org_repos(self, org: str, type: str):
         """Check repositories present within an organization.
 

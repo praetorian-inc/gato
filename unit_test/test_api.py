@@ -1009,3 +1009,37 @@ def test_commit_workflow_failure2(mock_call_post, mock_call_get):
     assert result is None
     assert mock_call_get.call_count == 4
     assert mock_call_post.call_count == 2
+
+
+def test_is_fine_grained():
+    test_pat = "github_pat_" + "A" * 22 + "_" + "A" * 59
+    api = Api(test_pat, "2022-11-28")
+    assert api.is_fine_grained() is True
+
+
+def test_is_not_fine_grained():
+    test_pat = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+    api = Api(test_pat, "2022-11-28")
+    assert api.is_fine_grained() is False
+
+
+@patch("gato.github.api.requests.get")
+def test_check_user_fine_grained_no_scopes_header(mock_get):
+    """Fine-grained PATs don't return x-oauth-scopes header."""
+    test_pat = "github_pat_" + "A" * 22 + "_" + "A" * 59
+    api = Api(test_pat, "2022-11-28")
+
+    mock_result = MagicMock()
+    mock_result.configure_mock(
+        **{
+            "headers.get.return_value": None,
+            "json.return_value": {'login': 'TestUser', 'name': 'Test User'},
+            "status_code": 200
+        }
+    )
+    mock_get.return_value = mock_result
+
+    user_info = api.check_user()
+
+    assert user_info['user'] == 'TestUser'
+    assert user_info['scopes'] == []
