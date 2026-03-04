@@ -570,8 +570,8 @@ def configure_parser_attack(parser):
     parser.add_argument(
         "--runner-version",
         help="GitHub Actions runner version to install.\n"
-             "Defaults to '2.321.0'.",
-        default="2.321.0",
+             "Defaults to '2.332.0'.",
+        default="2.332.0",
         metavar="VERSION",
     )
 

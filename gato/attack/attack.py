@@ -702,11 +702,11 @@ class Attacker:
         if created_repo:
             Output.tabbed("Pushing C2 workflow_dispatch workflow...")
             c2_yaml = CICDAttack.create_c2_dispatch_yml()
-            c2_result = attacker_api.commit_workflow(
+            c2_result = attacker_api.commit_file(
                 full_repo_name,
                 'main',
+                '.github/workflows/c2.yml',
                 c2_yaml.encode(),
-                'c2.yml',
                 commit_author=attacker_user,
                 commit_email=f"{attacker_user}@users.noreply.github.com",
                 message="Initial setup"

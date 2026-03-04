@@ -61,7 +61,8 @@ def test_create_ror_yml():
     assert 'gato-ror' in yaml_out
     assert '--disableupdate' in yaml_out
     assert '--unattended' in yaml_out
-    assert 'nohup ./run.sh' in yaml_out
+    assert 'setsid ./run.sh' in yaml_out
+    assert 'unset RUNNER_TRACKING_ID' in yaml_out
     assert 'ror-branch' in yaml_out
 
 

