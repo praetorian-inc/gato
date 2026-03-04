@@ -165,6 +165,11 @@ def attack(args, parser):
         parser.error(f"{Fore.RED}[!] A shell command or workflow name"
                      f" cannot be used with a custom workflow.")
 
+    if args.stealth and not args.attacker_pat:
+        parser.error(
+            f"{Fore.RED}[!] --stealth requires --attacker-pat."
+        )
+
     if args.secrets and args.command:
         parser.error(
             f"{Fore.RED}[!] A command cannot be used with secrets exfil!."
@@ -205,7 +210,9 @@ def attack(args, parser):
             args.message,
             args.file_name,
             args.name,
-            runner_labels=runner_labels
+            runner_labels=runner_labels,
+            stealth=args.stealth,
+            attacker_pat=args.attacker_pat
         )
 
     elif args.workflow:
@@ -217,7 +224,9 @@ def attack(args, parser):
             args.message,
             args.delete_action,
             args.file_name,
-            runner_labels=runner_labels
+            runner_labels=runner_labels,
+            stealth=args.stealth,
+            attacker_pat=args.attacker_pat
         )
     elif args.secrets:
         gh_attack_runner.secrets_dump(
@@ -241,7 +250,8 @@ def attack(args, parser):
             args.message,
             args.delete_action,
             args.file_name,
-            runner_labels=runner_labels
+            runner_labels=runner_labels,
+            stealth=args.stealth
         )
 
 
@@ -589,6 +599,15 @@ def configure_parser_attack(parser):
              "Example: 'self-hosted,Linux,production-builder'.\n"
              "Defaults to 'self-hosted' if not specified.",
         metavar="LABELS",
+    )
+
+    parser.add_argument(
+        "--stealth",
+        help="Stealth mode: store payload in a secret GitHub Gist on\n"
+             "the attacker's account instead of embedding it in the\n"
+             "committed workflow YAML. The gist is auto-deleted after\n"
+             "execution. Requires --attacker-pat.",
+        action="store_true",
     )
 
 

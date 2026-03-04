@@ -764,6 +764,57 @@ class Api():
             )
             return None
 
+    def create_gist(self, description: str, filename: str, content: str,
+                    public: bool = False):
+        """Create a GitHub Gist.
+
+        Args:
+            description (str): Gist description.
+            filename (str): Name of the file in the gist.
+            content (str): File content.
+            public (bool): Whether the gist is public. Defaults to False.
+
+        Returns:
+            dict: {'id': gist_id, 'raw_url': raw_url} or None on failure.
+        """
+        result = self.call_post('/gists', params={
+            'description': description,
+            'public': public,
+            'files': {filename: {'content': content}}
+        })
+
+        if result.status_code == 201:
+            data = result.json()
+            raw_url = list(data['files'].values())[0]['raw_url']
+            gist_id = data['id']
+            logger.info(f'Created gist: {gist_id}')
+            return {'id': gist_id, 'raw_url': raw_url}
+        else:
+            logger.error(
+                f'Failed to create gist: {result.status_code}'
+            )
+            return None
+
+    def delete_gist(self, gist_id: str):
+        """Delete a GitHub Gist.
+
+        Args:
+            gist_id (str): The gist ID.
+
+        Returns:
+            bool: True if deleted, False otherwise.
+        """
+        result = self.call_delete(f'/gists/{gist_id}')
+
+        if result.status_code == 204:
+            logger.info(f'Deleted gist: {gist_id}')
+            return True
+        else:
+            logger.error(
+                f'Failed to delete gist {gist_id}: {result.status_code}'
+            )
+            return False
+
     def retrieve_run_logs(self, repo_name: str, short_circuit: bool = True):
         """Retrieve the most recent run log associated with a repository.
 

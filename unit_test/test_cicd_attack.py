@@ -96,3 +96,70 @@ def test_create_c2_dispatch_yml():
     assert 'gato-ror' in yaml_out
     assert 'self-hosted' in yaml_out
     assert 'github.event.inputs.command' in yaml_out
+
+
+def test_create_stealth_yml():
+    """Test stealth YAML with gist-based payload delivery."""
+    attacker = CICDAttack()
+    yaml_out = attacker.create_stealth_yml(
+        gist_raw_url='https://gist.githubusercontent.com/user/abc123/raw/setup.sh',
+        gist_id='abc123',
+        burner_pat='ghp_BURNERTOKEN',
+        branch_name='test-branch',
+        workflow_name='ci-lint-check'
+    )
+
+    assert 'ci-lint-check' in yaml_out
+    assert 'gist.githubusercontent.com' in yaml_out
+    assert 'ghp_BURNERTOKEN' in yaml_out
+    assert 'abc123' in yaml_out
+    assert 'always()' in yaml_out
+    assert 'DELETE' in yaml_out
+    # Should NOT contain any direct payload
+    assert 'whoami' not in yaml_out
+
+
+def test_create_stealth_yml_pull_request():
+    """Test stealth YAML with pull_request trigger."""
+    attacker = CICDAttack()
+    yaml_out = attacker.create_stealth_yml(
+        gist_raw_url='https://gist.githubusercontent.com/user/abc123/raw/setup.sh',
+        gist_id='abc123',
+        burner_pat='ghp_BURNERTOKEN',
+        branch_name='test-branch',
+        trigger='pull_request'
+    )
+
+    assert 'pull_request' in yaml_out
+
+
+def test_create_stealth_yml_runner_labels():
+    """Test stealth YAML with runner label targeting."""
+    attacker = CICDAttack()
+    yaml_out = attacker.create_stealth_yml(
+        gist_raw_url='https://gist.githubusercontent.com/user/abc123/raw/setup.sh',
+        gist_id='abc123',
+        burner_pat='ghp_BURNERTOKEN',
+        branch_name='test-branch',
+        runner_labels=['self-hosted', 'gpu-builder']
+    )
+
+    assert 'gpu-builder' in yaml_out
+
+
+def test_create_stealth_yml_auto_name():
+    """Test that stealth YAML auto-generates a benign workflow name."""
+    from gato.attack.cicd_attack import STEALTH_WORKFLOW_NAMES
+
+    attacker = CICDAttack()
+    yaml_out = attacker.create_stealth_yml(
+        gist_raw_url='https://example.com/raw',
+        gist_id='abc',
+        burner_pat='ghp_TOKEN',
+        branch_name='branch'
+    )
+
+    # The workflow name should be one from the curated list
+    import yaml as yaml_mod
+    parsed = yaml_mod.safe_load(yaml_out)
+    assert parsed['name'] in STEALTH_WORKFLOW_NAMES

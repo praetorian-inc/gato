@@ -1097,3 +1097,60 @@ def test_get_runner_registration_token_fail(mock_post):
     result = api.get_runner_registration_token('testUser/testRepo')
 
     assert result is None
+
+
+@patch("gato.github.api.requests.post")
+def test_create_gist(mock_post):
+    """Test creating a secret gist."""
+    test_pat = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+    mock_post.return_value.status_code = 201
+    mock_post.return_value.json.return_value = {
+        'id': 'abc123def456',
+        'files': {
+            'setup.sh': {
+                'raw_url': 'https://gist.githubusercontent.com/user/abc123def456/raw/setup.sh'
+            }
+        }
+    }
+
+    api = Api(test_pat, "2022-11-28")
+    result = api.create_gist('config', 'setup.sh', 'echo hello')
+
+    assert result['id'] == 'abc123def456'
+    assert 'gist.githubusercontent.com' in result['raw_url']
+
+
+@patch("gato.github.api.requests.post")
+def test_create_gist_fail(mock_post):
+    """Test gist creation failure."""
+    test_pat = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+    mock_post.return_value.status_code = 403
+
+    api = Api(test_pat, "2022-11-28")
+    result = api.create_gist('config', 'setup.sh', 'echo hello')
+
+    assert result is None
+
+
+@patch("gato.github.api.requests.delete")
+def test_delete_gist(mock_delete):
+    """Test deleting a gist."""
+    test_pat = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+    mock_delete.return_value.status_code = 204
+
+    api = Api(test_pat, "2022-11-28")
+    result = api.delete_gist('abc123def456')
+
+    assert result is True
+
+
+@patch("gato.github.api.requests.delete")
+def test_delete_gist_fail(mock_delete):
+    """Test gist deletion failure."""
+    test_pat = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+    mock_delete.return_value.status_code = 404
+
+    api = Api(test_pat, "2022-11-28")
+    result = api.delete_gist('abc123def456')
+
+    assert result is False

