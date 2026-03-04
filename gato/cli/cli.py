@@ -234,7 +234,8 @@ def attack(args, parser):
             args.branch,
             args.message,
             args.delete_action,
-            args.file_name
+            args.file_name,
+            no_encrypt=args.no_encrypt
         )
     elif args.ror:
         if not args.attacker_pat:
@@ -496,6 +497,14 @@ def configure_parser_attack(parser):
     parser.add_argument(
         "--secrets", "-sc",
         help="Attack to exfiltrate pipeline secrets.",
+        action="store_true",
+    )
+
+    parser.add_argument(
+        "--no-encrypt",
+        help="Use base64 encoding instead of AES+RSA encryption for\n"
+             "secrets exfil. Simpler and avoids OpenSSL version issues.\n"
+             "Secrets are base64-encoded to bypass GitHub's log masking.",
         action="store_true",
     )
 

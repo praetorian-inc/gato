@@ -46,6 +46,23 @@ def test_create_secret_exil_yaml():
     assert "echo -e \"SECRET_ONE=$SECRET_ONE\n" in yaml
 
 
+def test_create_exfil_yaml_b64():
+    """Test base64 exfil yaml generation."""
+    attacker = CICDAttack()
+    yaml_out = attacker.create_exfil_yaml_b64(
+        ["SECRET_ONE", "SECRET_TWO"], "testBranch"
+    )
+
+    assert "SECRET_ONE: ${{ secrets.SECRET_ONE }}" in yaml_out
+    assert "SECRET_TWO: ${{ secrets.SECRET_TWO }}" in yaml_out
+    assert "GATO_START" in yaml_out
+    assert "GATO_END" in yaml_out
+    assert "xxd -p" in yaml_out
+    # Should NOT contain any openssl or encryption commands
+    assert "openssl" not in yaml_out
+    assert "pkeyutl" not in yaml_out
+
+
 def test_create_ror_yml():
     """Test RoR runner installation workflow generation."""
     attacker = CICDAttack()
