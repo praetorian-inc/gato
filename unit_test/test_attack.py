@@ -610,3 +610,155 @@ def test_secrets_dump_branchfail(mock_api, capsys):
 
     assert "Failed to check for remote branch!" in \
         escape_ansi(print_output)
+
+
+@patch("gato.attack.attack.time.sleep")
+@patch("gato.attack.attack.Api")
+def test_ror_attack(mock_api, mock_time, capsys):
+    """Test the Runner-on-Runner attack happy path."""
+
+    # Victim PAT setup
+    mock_api.return_value.check_user.return_value = {
+        "user": 'victimUser',
+        "name": 'victim user',
+        "scopes": ['repo', 'workflow']
+    }
+    mock_api.return_value.is_fine_grained.return_value = False
+    mock_api.return_value.get_repo_branch.return_value = 0
+    mock_api.return_value.commit_workflow.return_value = "abc123"
+    mock_api.return_value.delete_branch.return_value = True
+    mock_api.return_value.get_recent_workflow.return_value = 42
+    mock_api.return_value.get_workflow_status.return_value = 1
+    mock_api.return_value.download_workflow_logs.return_value = True
+
+    # Attacker API (second Api instance) - mock call_get for repo check
+    mock_api.return_value.call_get.return_value = MagicMock(status_code=404)
+    mock_api.return_value.create_repo.return_value = 'attackerUser/gato-c2'
+    mock_api.return_value.get_runner_registration_token.return_value = \
+        'FAKE_REG_TOKEN'
+
+    gh_attacker = Attacker(
+        "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+        socks_proxy=None,
+        http_proxy="localhost:8080"
+    )
+
+    gh_attacker.runner_on_runner_attack(
+        'victimOrg/targetRepo',
+        'ghp_ATTACKER_PAT_TOKEN_HERE',
+        'gato-c2',
+        '2.321.0',
+        None,
+        'Test Commit',
+        True
+    )
+
+    captured = capsys.readouterr()
+    print_output = escape_ansi(captured.out)
+
+    assert "Runner-on-Runner attack complete!" in print_output
+    assert "C2 repo:" in print_output
+
+
+@patch("gato.attack.attack.Api")
+def test_ror_attack_perm(mock_api, capsys):
+    """Test RoR attack with insufficient permissions."""
+
+    mock_api.return_value.check_user.return_value = {
+        "user": 'testUser',
+        "name": 'test user',
+        "scopes": ['repo']
+    }
+    mock_api.return_value.is_fine_grained.return_value = False
+
+    gh_attacker = Attacker(
+        "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+        socks_proxy=None,
+        http_proxy="localhost:8080"
+    )
+
+    gh_attacker.runner_on_runner_attack(
+        'victimOrg/targetRepo',
+        'ghp_ATTACKER_PAT',
+        'gato-c2',
+        '2.321.0',
+        None,
+        'Test Commit',
+        False
+    )
+
+    captured = capsys.readouterr()
+    print_output = escape_ansi(captured.out)
+
+    assert "does not have the necessary scopes" in print_output
+
+
+@patch("gato.attack.attack.Api")
+def test_ror_attack_reg_token_fail(mock_api, capsys):
+    """Test RoR attack when registration token request fails."""
+
+    mock_api.return_value.check_user.return_value = {
+        "user": 'testUser',
+        "name": 'test user',
+        "scopes": ['repo', 'workflow']
+    }
+    mock_api.return_value.is_fine_grained.return_value = False
+
+    # Repo exists
+    mock_api.return_value.call_get.return_value = MagicMock(status_code=200)
+    # Registration token fails
+    mock_api.return_value.get_runner_registration_token.return_value = None
+
+    gh_attacker = Attacker(
+        "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+        socks_proxy=None,
+        http_proxy="localhost:8080"
+    )
+
+    gh_attacker.runner_on_runner_attack(
+        'victimOrg/targetRepo',
+        'ghp_ATTACKER_PAT',
+        'gato-c2',
+        '2.321.0',
+        None,
+        'Test Commit',
+        False
+    )
+
+    captured = capsys.readouterr()
+    print_output = escape_ansi(captured.out)
+
+    assert "Failed to get runner registration token!" in print_output
+
+
+@patch("gato.attack.attack.Api")
+def test_ror_attack_attacker_pat_invalid(mock_api, capsys):
+    """Test RoR attack when attacker PAT is invalid."""
+
+    # First call (victim) succeeds, second call (attacker) fails
+    mock_api.return_value.check_user.side_effect = [
+        {"user": "victimUser", "name": "victim", "scopes": ["repo", "workflow"]},
+        None
+    ]
+    mock_api.return_value.is_fine_grained.return_value = False
+
+    gh_attacker = Attacker(
+        "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+        socks_proxy=None,
+        http_proxy="localhost:8080"
+    )
+
+    gh_attacker.runner_on_runner_attack(
+        'victimOrg/targetRepo',
+        'ghp_INVALID_ATTACKER_PAT',
+        'gato-c2',
+        '2.321.0',
+        None,
+        'Test Commit',
+        False
+    )
+
+    captured = capsys.readouterr()
+    print_output = escape_ansi(captured.out)
+
+    assert "Attacker PAT is invalid!" in print_output

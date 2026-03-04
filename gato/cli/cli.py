@@ -156,9 +156,9 @@ def validate_git_config(parser):
 
 def attack(args, parser):
     parser = parser.choices["attack"]
-    if not (args.workflow or args.pull_request or args.secrets):
+    if not (args.workflow or args.pull_request or args.secrets or args.ror):
         parser.error(f"{Fore.RED}[!] You must select one of the attack modes, "
-                     "workflow, pr, or secrets.")
+                     "workflow, pr, secrets, or ror.")
 
     if args.custom_file and (args.command or
                              args.name):
@@ -216,6 +216,21 @@ def attack(args, parser):
     elif args.secrets:
         gh_attack_runner.secrets_dump(
             args.target,
+            args.branch,
+            args.message,
+            args.delete_action,
+            args.file_name
+        )
+    elif args.ror:
+        if not args.attacker_pat:
+            parser.error(
+                f"{Fore.RED}[!] --ror requires --attacker-pat."
+            )
+        gh_attack_runner.runner_on_runner_attack(
+            args.target,
+            args.attacker_pat,
+            args.attacker_repo,
+            args.runner_version,
             args.branch,
             args.message,
             args.delete_action,
@@ -525,6 +540,39 @@ def configure_parser_attack(parser):
         "for the fork repository to be created. Defaults to '30'",
         default="30",
         type=int
+    )
+
+    parser.add_argument(
+        "--ror",
+        help="Runner-on-Runner attack: install a persistent runner on the\n"
+             "target, registered to a C2 repo for persistent access.\n"
+             "Requires --attacker-pat.",
+        action="store_true",
+    )
+
+    parser.add_argument(
+        "--attacker-pat",
+        help="PAT for the attacker's GitHub account. Used to create/access\n"
+             "a C2 repo and get a runner registration token.\n"
+             "Required for --ror.",
+        metavar="TOKEN",
+    )
+
+    parser.add_argument(
+        "--attacker-repo",
+        help="Name for the attacker's C2 repo. If the repo doesn't exist,\n"
+             "it will be created as a private repo. Defaults to 'gato-c2'.",
+        metavar="REPO_NAME",
+        default="gato-c2",
+        type=StringType(80)
+    )
+
+    parser.add_argument(
+        "--runner-version",
+        help="GitHub Actions runner version to install.\n"
+             "Defaults to '2.321.0'.",
+        default="2.321.0",
+        metavar="VERSION",
     )
 
 

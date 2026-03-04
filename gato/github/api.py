@@ -716,6 +716,54 @@ class Api():
 
         return None
 
+    def create_repo(self, name: str, private: bool = True):
+        """Create a new repository for the authenticated user.
+
+        Args:
+            name (str): Repository name.
+            private (bool): Whether the repo is private. Defaults to True.
+
+        Returns:
+            str: Full repo name (user/repo) or None on failure.
+        """
+        result = self.call_post('/user/repos', params={
+            'name': name,
+            'private': private,
+            'auto_init': True
+        })
+
+        if result.status_code == 201:
+            full_name = result.json()['full_name']
+            logger.info(f'Created repository: {full_name}')
+            return full_name
+        else:
+            logger.error(
+                f'Failed to create repo {name}: {result.status_code}'
+            )
+            return None
+
+    def get_runner_registration_token(self, repo_name: str):
+        """Get a registration token for adding a self-hosted runner to a repo.
+
+        Args:
+            repo_name (str): Repository in Org/Repo format.
+
+        Returns:
+            str: Registration token string, or None on failure.
+        """
+        result = self.call_post(
+            f'/repos/{repo_name}/actions/runners/registration-token'
+        )
+
+        if result.status_code == 201:
+            return result.json()['token']
+        else:
+            logger.error(
+                f'Failed to get registration token for {repo_name}: '
+                f'{result.status_code}'
+            )
+            return None
+
     def retrieve_run_logs(self, repo_name: str, short_circuit: bool = True):
         """Retrieve the most recent run log associated with a repository.
 

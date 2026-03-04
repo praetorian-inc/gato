@@ -1043,3 +1043,57 @@ def test_check_user_fine_grained_no_scopes_header(mock_get):
 
     assert user_info['user'] == 'TestUser'
     assert user_info['scopes'] == []
+
+
+@patch("gato.github.api.requests.post")
+def test_create_repo(mock_post):
+    """Test creating a repository."""
+    test_pat = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+    mock_post.return_value.status_code = 201
+    mock_post.return_value.json.return_value = {
+        'full_name': 'testUser/gato-c2'
+    }
+
+    api = Api(test_pat, "2022-11-28")
+    result = api.create_repo('gato-c2')
+
+    assert result == 'testUser/gato-c2'
+
+
+@patch("gato.github.api.requests.post")
+def test_create_repo_fail(mock_post):
+    """Test creating a repository failure."""
+    test_pat = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+    mock_post.return_value.status_code = 422
+
+    api = Api(test_pat, "2022-11-28")
+    result = api.create_repo('gato-c2')
+
+    assert result is None
+
+
+@patch("gato.github.api.requests.post")
+def test_get_runner_registration_token(mock_post):
+    """Test getting a runner registration token."""
+    test_pat = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+    mock_post.return_value.status_code = 201
+    mock_post.return_value.json.return_value = {
+        'token': 'ABRTY3MZFQ3KPGH2FAKE'
+    }
+
+    api = Api(test_pat, "2022-11-28")
+    result = api.get_runner_registration_token('testUser/testRepo')
+
+    assert result == 'ABRTY3MZFQ3KPGH2FAKE'
+
+
+@patch("gato.github.api.requests.post")
+def test_get_runner_registration_token_fail(mock_post):
+    """Test getting a runner registration token failure."""
+    test_pat = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+    mock_post.return_value.status_code = 403
+
+    api = Api(test_pat, "2022-11-28")
+    result = api.get_runner_registration_token('testUser/testRepo')
+
+    assert result is None

