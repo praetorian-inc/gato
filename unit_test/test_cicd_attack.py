@@ -66,6 +66,26 @@ def test_create_ror_yml():
     assert 'ror-branch' in yaml_out
 
 
+def test_create_malicious_yml_runner_labels():
+    """Test runner label targeting in malicious yml."""
+    attacker = CICDAttack()
+    yaml_out = attacker.create_malicious_yml(
+        "whoami", runner_labels=['self-hosted', 'Linux', 'gpu-builder']
+    )
+    assert 'self-hosted' in yaml_out
+    assert 'gpu-builder' in yaml_out
+
+
+def test_create_push_yml_runner_labels():
+    """Test runner label targeting in push yml."""
+    attacker = CICDAttack()
+    yaml_out = attacker.create_push_yml(
+        "whoami", "test-branch",
+        runner_labels=['self-hosted', 'production']
+    )
+    assert 'production' in yaml_out
+
+
 def test_create_c2_dispatch_yml():
     """Test C2 workflow_dispatch YAML generation."""
     attacker = CICDAttack()

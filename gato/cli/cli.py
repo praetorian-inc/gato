@@ -174,6 +174,10 @@ def attack(args, parser):
         args.command = args.command if args.command else "whoami"
         args.name = args.name if args.name else "test"
 
+    runner_labels = None
+    if args.runner_labels:
+        runner_labels = [l.strip() for l in args.runner_labels.split(',')]
+
     timeout = int(args.timeout)
 
     gh_attack_runner = Attacker(
@@ -200,7 +204,8 @@ def attack(args, parser):
             args.custom_file,
             args.message,
             args.file_name,
-            args.name
+            args.name,
+            runner_labels=runner_labels
         )
 
     elif args.workflow:
@@ -211,7 +216,8 @@ def attack(args, parser):
             args.branch,
             args.message,
             args.delete_action,
-            args.file_name
+            args.file_name,
+            runner_labels=runner_labels
         )
     elif args.secrets:
         gh_attack_runner.secrets_dump(
@@ -234,7 +240,8 @@ def attack(args, parser):
             args.branch,
             args.message,
             args.delete_action,
-            args.file_name
+            args.file_name,
+            runner_labels=runner_labels
         )
 
 
@@ -573,6 +580,15 @@ def configure_parser_attack(parser):
              "Defaults to '2.332.0'.",
         default="2.332.0",
         metavar="VERSION",
+    )
+
+    parser.add_argument(
+        "--runner-labels",
+        help="Comma-separated runner labels for runs-on targeting.\n"
+             "Use to target a specific runner by its labels.\n"
+             "Example: 'self-hosted,Linux,production-builder'.\n"
+             "Defaults to 'self-hosted' if not specified.",
+        metavar="LABELS",
     )
 
 

