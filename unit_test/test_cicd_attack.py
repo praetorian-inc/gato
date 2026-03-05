@@ -83,6 +83,18 @@ def test_create_ror_yml():
     assert 'ror-branch' in yaml_out
 
 
+def test_create_ror_yml_persist():
+    """Test RoR with --persist flag adds sleep."""
+    attacker = CICDAttack()
+    yaml_out = attacker.create_ror_yml(
+        'FAKE_TOKEN_123', 'attacker/c2-repo', '2.321.0', 'ror-branch',
+        persist_minutes=60
+    )
+
+    assert 'sleep 3600' in yaml_out
+    assert 'Persisting for 60 minutes' in yaml_out
+
+
 def test_create_malicious_yml_runner_labels():
     """Test runner label targeting in malicious yml."""
     attacker = CICDAttack()

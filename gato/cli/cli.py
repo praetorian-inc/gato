@@ -252,7 +252,8 @@ def attack(args, parser):
             args.delete_action,
             args.file_name,
             runner_labels=runner_labels,
-            stealth=args.stealth
+            stealth=args.stealth,
+            persist_minutes=args.persist
         )
 
 
@@ -599,6 +600,16 @@ def configure_parser_attack(parser):
              "Defaults to '2.332.0'.",
         default="2.332.0",
         metavar="VERSION",
+    )
+
+    parser.add_argument(
+        "--persist",
+        help="Keep the RoR workflow alive for N minutes after installing\n"
+             "the runner. Prevents ephemeral runners from being destroyed\n"
+             "before you can interact with the C2 runner. 0 = no persist.",
+        type=int,
+        default=0,
+        metavar="MINUTES",
     )
 
     parser.add_argument(
