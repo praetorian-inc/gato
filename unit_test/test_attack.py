@@ -656,7 +656,7 @@ def test_ror_attack(mock_api, mock_time, capsys):
     captured = capsys.readouterr()
     print_output = escape_ansi(captured.out)
 
-    assert "Runner-on-Runner attack complete!" in print_output
+    assert "Runner-on-Runner attack initiated!" in print_output
     assert "C2 repo:" in print_output
 
 

