@@ -185,6 +185,13 @@ def attack(args, parser):
 
     timeout = int(args.timeout)
 
+    # When --persist is set, auto-extend timeout to cover the full workflow:
+    # runner install (~60s) + persist sleep + safety buffer
+    if hasattr(args, 'persist') and args.persist and args.persist > 0:
+        persist_timeout = args.persist * 60 + 180
+        if persist_timeout > timeout:
+            timeout = persist_timeout
+
     gh_attack_runner = Attacker(
         args.gh_token,
         author_email=args.author_email,
