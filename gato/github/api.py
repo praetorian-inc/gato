@@ -85,7 +85,7 @@ class Api():
         """Checks the rate limit, and pauses Gato execution until the rate
         limit resets.
         """
-        if 'X-Ratelimit-Remaining' in headers and \
+        if 'X-Ratelimit-Remaining' in headers and 'X-Ratelimit-Resource' in headers and \
                 int(headers['X-Ratelimit-Remaining']) < int(headers['X-RateLimit-Limit']) // 20 and \
                 headers['X-Ratelimit-Resource'] == 'core':
             gh_date = headers['Date']
