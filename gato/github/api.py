@@ -575,10 +575,28 @@ class Api():
         """
         if not self.is_app_token():
             return None
+        
+        page = 1
+        full_data = {}
+        while True:
+            response = self.call_get(f'/installation/repositories?per_page=100&page={page}')
+            response.raise_for_status()
+            
+            data = response.json()
+            page += 1
+            if len(data['repositories']) == 0:
+                break
+            else:
+                # TODO: handle the cawe where full_data is empty
+                if full_data == {}:
+                    full_data = data
+                else:
+                    full_data['repositories'].extend(data['repositories'])
 
-        response = self.call_get("/installation/repositories")
         if response.status_code == 200:
-            return response.json()
+            return full_data
+        
+
 
     def is_app_token(self):
         """Returns if the API is using a GitHub App installation token."""
